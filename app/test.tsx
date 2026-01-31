@@ -2,8 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, KeyboardAvoidingView, Platform, PanResponder, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useAppStore } from '../../store/useAppStore';
-import { useSetSubScreenOpen } from '../../store/useUIStore';
+import { useRouter } from 'expo-router';
+import { useAppStore } from '../store/useAppStore';
+import { useSetSubScreenOpen } from '../store/useUIStore';
 import {
     LEVELS,
     LIMITER_CONFIG,
@@ -11,8 +12,8 @@ import {
     ETP_COEFFICIENT,
     type LevelKey,
     type LimiterType
-} from '../../constants';
-import { formatTime, formatKmPace, calculateZones, calculatePredictions } from '../../utils/calculations';
+} from '../constants';
+import { formatTime, formatKmPace, calculateZones, calculatePredictions } from '../utils/calculations';
 
 const SWIPE_THRESHOLD = 80;
 
@@ -269,14 +270,27 @@ const rampStyles = StyleSheet.create({
 export default function TestScreen() {
     // Zustandストア
     const addTestResult = useAppStore((state) => state.addTestResult);
+    const profile = useAppStore((state) => state.profile);
     const setSubScreenOpen = useSetSubScreenOpen();
+    const router = useRouter();
+
+    // PBからレベルを推定
+    const getRecommendedLevel = (): LevelKey => {
+        const pb1500 = profile?.pbs?.m1500;
+        if (!pb1500) return 'A'; // デフォルト
+        if (pb1500 < 210) return 'SS';
+        if (pb1500 < 240) return 'S';
+        if (pb1500 < 270) return 'A';
+        if (pb1500 < 300) return 'B';
+        return 'C';
+    };
 
     // 画面状態
     const [showInput, setShowInput] = useState(false);
     const [showResult, setShowResult] = useState(false);
 
-    // テスト設定
-    const [level, setLevel] = useState<LevelKey>('A');
+    // テスト設定（PBからレベル推定）
+    const [level, setLevel] = useState<LevelKey>(getRecommendedLevel());
     const [isFirstTest, setIsFirstTest] = useState(false);
 
     // 結果入力
@@ -366,7 +380,7 @@ export default function TestScreen() {
         });
     };
 
-    // リセット
+    // ホームに戻る
     const handleReset = () => {
         setShowInput(false);
         setShowResult(false);
@@ -376,6 +390,7 @@ export default function TestScreen() {
         setQ2(false);
         setQ3('30-60');
         setResult(null);
+        router.replace('/(tabs)');
     };
 
     const limiter = result ? LIMITER_CONFIG[result.limiterType] : null;
@@ -569,9 +584,31 @@ export default function TestScreen() {
                         <Text style={styles.limiterDescription}>{limiter.description}</Text>
                     </View>
 
-                    {/* 再テストボタン */}
+                    {/* 次のステップガイド */}
+                    <View style={styles.nextStepsCard}>
+                        <Text style={styles.nextStepsTitle}>🎯 次のステップ</Text>
+                        <Text style={styles.nextStepsDescription}>
+                            テスト結果をもとにトレーニング計画を作成しましょう
+                        </Text>
+
+                        <TouchableOpacity
+                            style={styles.nextStepButton}
+                            onPress={() => router.replace('/(tabs)/plan')}
+                        >
+                            <LinearGradient
+                                colors={['#3B82F6', '#8B5CF6']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 1, y: 0 }}
+                                style={styles.nextStepButtonGradient}
+                            >
+                                <Text style={styles.nextStepButtonText}>📅 計画を作成する</Text>
+                            </LinearGradient>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* ホームに戻るボタン */}
                     <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
-                        <Text style={styles.resetButtonText}>🔄 ホームに戻る</Text>
+                        <Text style={styles.resetButtonText}>🏠 ホームに戻る</Text>
                     </TouchableOpacity>
 
                     <View style={styles.bottomSpacer} />
@@ -1102,11 +1139,57 @@ const styles = StyleSheet.create({
         color: '#9ca3af',
         lineHeight: 20,
     },
+    // 次のステップガイド
+    nextStepsCard: {
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        borderRadius: 16,
+        padding: 20,
+        marginTop: 20,
+        marginBottom: 10,
+        borderWidth: 1,
+        borderColor: 'rgba(59, 130, 246, 0.3)',
+    },
+    nextStepsTitle: {
+        fontSize: 17,
+        fontWeight: '600',
+        color: '#fff',
+        marginBottom: 8,
+    },
+    nextStepsDescription: {
+        fontSize: 14,
+        color: '#9ca3af',
+        marginBottom: 16,
+    },
+    nextStepButton: {
+        borderRadius: 12,
+        overflow: 'hidden',
+        marginBottom: 10,
+    },
+    nextStepButtonGradient: {
+        paddingVertical: 14,
+        alignItems: 'center',
+    },
+    nextStepButtonText: {
+        color: '#fff',
+        fontSize: 15,
+        fontWeight: '600',
+    },
+    nextStepSecondary: {
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 10,
+        paddingVertical: 12,
+        alignItems: 'center',
+    },
+    nextStepSecondaryText: {
+        color: '#9ca3af',
+        fontSize: 14,
+    },
     resetButton: {
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
+        marginTop: 10,
     },
     resetButtonText: {
         fontSize: 16,

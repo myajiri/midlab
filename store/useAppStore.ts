@@ -41,9 +41,11 @@ export interface TestResult {
 // プロフィール
 export interface Profile {
     displayName: string;
+    avatarUri?: string; // プロフィール画像URI
     ageCategory: 'junior' | 'youth' | 'senior' | 'master';
     gender: 'male' | 'female' | 'other';
     experience: 'beginner' | 'intermediate' | 'advanced' | 'elite';
+    selfReportedLimiter?: LimiterType; // 自己申告タイプ
     pbs: {
         m200?: number;  // 秒
         m400?: number;
@@ -52,6 +54,7 @@ export interface Profile {
         m3000?: number;
         m5000?: number;
     };
+    restDays: number[];  // 休養日（0=月, 1=火... 6=日）
 }
 
 // アプリ設定
@@ -180,6 +183,7 @@ const defaultProfile: Profile = {
     gender: 'other',
     experience: 'intermediate',
     pbs: {},
+    restDays: [0, 4],  // デフォルト: 月曜・金曜を休養日
 };
 
 const defaultSettings: AppSettings = {

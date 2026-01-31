@@ -1,0 +1,33 @@
+appId: host.exp.Exponent
+---
+# Zone2Peak - ワークアウトメニューテスト
+# Expo GoでアプリをQRコードで開いた状態で実行すること
+
+- launchApp:
+    clearState: false
+
+# メニュータブに移動
+- tapOn: "メニュー"
+- waitForAnimationToEnd
+- takeScreenshot: workout_menu_initial
+
+# カテゴリーの確認
+- assertVisible:
+    text: "有酸素ベース"
+    optional: true
+
+- assertVisible:
+    text: "乳酸閾値"
+    optional: true
+
+# メニューカードをタップ
+- tapOn:
+    text: "Easy 6000m"
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: workout_detail
+
+# 閉じる
+- tapOn:
+    text: "×"
+    optional: true

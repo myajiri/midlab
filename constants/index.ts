@@ -94,6 +94,40 @@ export const STORAGE_KEYS = {
 // 計画関連定数（rise-test互換）
 // ============================================
 
+// 生理学的焦点カテゴリ（アイコン付き）
+export const PHYSIOLOGICAL_FOCUS_CATEGORIES = {
+    aerobic: {
+        name: '有酸素ベース',
+        menuCategory: '有酸素ベース',
+        icon: '🫀',
+        color: '#3B82F6',
+        description: '毛細血管発達・ミトコンドリア増加',
+    },
+    threshold: {
+        name: '乳酸閾値',
+        menuCategory: '乳酸閾値',
+        icon: '💪',
+        color: '#EAB308',
+        description: '乳酸処理能力の向上',
+    },
+    vo2max: {
+        name: 'VO2max',
+        menuCategory: 'VO2max',
+        icon: '🔥',
+        color: '#F97316',
+        description: '最大酸素摂取量の向上',
+    },
+    speed: {
+        name: '神経筋系',
+        menuCategory: '神経筋系',
+        icon: '⚡',
+        color: '#EF4444',
+        description: '神経筋協調性・ランニングエコノミー',
+    },
+} as const;
+
+export type FocusKey = keyof typeof PHYSIOLOGICAL_FOCUS_CATEGORIES;
+
 // フェーズ設定
 export const PHASE_CONFIG = {
     base: { name: '基礎期', color: '#3B82F6', loadRange: [100, 100] },
