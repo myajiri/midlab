@@ -1,0 +1,45 @@
+appId: host.exp.Exponent
+---
+# Zone2Peak - 計画画面テスト
+# Expo GoでアプリをQRコードで開いた状態で実行すること
+
+- launchApp:
+    clearState: false
+
+# 計画タブに移動
+- tapOn: "計画"
+- waitForAnimationToEnd
+
+# 計画画面の確認
+- takeScreenshot: plan_screen_initial
+
+# 計画がある場合のテスト
+- runFlow:
+    when:
+      visible: "トレーニング計画"
+    commands:
+      - takeScreenshot: plan_overview
+      
+      # 今週のセクション確認
+      - assertVisible:
+          text: "今週"
+          optional: true
+      
+      # 全体を見るボタンをタップ
+      - tapOn:
+          text: "プラン全体を見る"
+          optional: true
+      - waitForAnimationToEnd
+      - takeScreenshot: plan_full_view
+      
+      # 戻る
+      - tapOn:
+          text: "← 戻る"
+          optional: true
+
+# 計画がない場合（作成フォーム表示）
+- runFlow:
+    when:
+      visible: "レースを選択"
+    commands:
+      - takeScreenshot: plan_create_form

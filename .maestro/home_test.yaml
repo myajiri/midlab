@@ -1,0 +1,16 @@
+appId: host.exp.Exponent
+---
+# Zone2Peak - ホーム画面テスト
+# Expo GoでアプリをQRコードで開いた状態で実行すること
+
+- launchApp:
+    clearState: false
+
+# ホーム画面の確認
+- assertVisible: "ホーム"
+- assertVisible: "計画"
+- assertVisible: "メニュー"
+- assertVisible: "マイページ"
+
+# スクリーンショット
+- takeScreenshot: home_screen

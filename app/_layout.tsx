@@ -4,22 +4,29 @@ import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { useAuthStore } from '../store/useAuthStore';
 import { useAppStore } from '../store/useAppStore';
+import { useSubscriptionStore } from '../store/useSubscriptionStore';
 
 // ルートレイアウト - アプリ全体のナビゲーション構造を定義
 export default function RootLayout() {
-    const initialize = useAuthStore((state) => state.initialize);
+    const initializeAuth = useAuthStore((state) => state.initialize);
+    const initializeSubscription = useSubscriptionStore((state) => state.initialize);
     const isOnboardingComplete = useAppStore((state) => state.isOnboardingComplete);
+    const user = useAuthStore((state) => state.user);
     const [isReady, setIsReady] = useState(false);
     const router = useRouter();
     const segments = useSegments();
 
-    // アプリ起動時に認証状態を初期化
+    // アプリ起動時に認証状態とサブスクリプションを初期化
     useEffect(() => {
-        initialize().then(() => {
+        const init = async () => {
+            await initializeAuth();
+            // RevenueCat初期化（ユーザーIDがあれば紐付け）
+            await initializeSubscription(user?.id);
             // Zustandの永続化が完了するまで少し待つ
             setTimeout(() => setIsReady(true), 100);
-        });
-    }, [initialize]);
+        };
+        init();
+    }, [initializeAuth, initializeSubscription, user?.id]);
 
     // オンボーディング状態に応じてリダイレクト
     useEffect(() => {

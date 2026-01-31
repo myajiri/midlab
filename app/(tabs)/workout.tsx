@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, PanResponder, Animated, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, PanResponder, Animated, Alert, Modal, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAppStore, useCurrentEtp, useCurrentLimiter } from '../../store/useAppStore';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { ZONE_COEFFICIENTS, LIMITER_CONFIG, type ZoneKey, type LimiterType } from '../../constants';
@@ -266,6 +266,25 @@ const WorkoutGraph = ({ segments, totalDistance, zones }: WorkoutGraphProps) => 
         return heights[zone];
     };
 
+    // ラベル変換（W-up/C-down→R、周回数→距離m）
+    const formatLabel = (label: string | undefined, distance: number): string => {
+        if (!label) return '';
+        let result = label
+            .replace(/W-up/g, 'R')
+            .replace(/C-down/g, 'R');
+        // 周回数を距離（m）に変換
+        result = result.replace(/\d+周/, `${distance}m`);
+        return result;
+    };
+
+    // ペースを「xx秒/400m(x:xx/km)」形式でフォーマット
+    // zones値は400m秒単位
+    const formatPaceWith400m = (pace400m: number): string => {
+        const per400m = Math.round(pace400m);
+        const perKm = formatKmPace(pace400m);
+        return `${per400m}秒/400m (${perKm})`;
+    };
+
     return (
         <View style={graphStyles.container}>
             <Text style={graphStyles.title}>ワークアウト構成</Text>
@@ -290,7 +309,7 @@ const WorkoutGraph = ({ segments, totalDistance, zones }: WorkoutGraphProps) => 
                                 ]}
                             >
                                 {segment.label && widthPercent > 10 && (
-                                    <Text style={graphStyles.segmentLabel}>{segment.label}</Text>
+                                    <Text style={graphStyles.segmentLabel}>{formatLabel(segment.label, segment.distance)}</Text>
                                 )}
                             </View>
                         );
@@ -316,7 +335,7 @@ const WorkoutGraph = ({ segments, totalDistance, zones }: WorkoutGraphProps) => 
                                 {ZONE_COEFFICIENTS[segment.zone].name}
                             </Text>
                             <Text style={graphStyles.legendPace}>
-                                {formatKmPace(zones[segment.zone])}
+                                {formatPaceWith400m(zones[segment.zone])}
                             </Text>
                         </View>
                     ))}
@@ -403,12 +422,29 @@ const graphStyles = StyleSheet.create({
 
 export default function WorkoutScreen() {
     const router = useRouter();
+    const { category: categoryParam } = useLocalSearchParams<{ category?: string }>();
     const currentEtp = useCurrentEtp();
     const currentLimiter = useCurrentLimiter();
     const setSubScreenOpen = useSetSubScreenOpen();
     const hasTestResult = currentEtp !== null;
 
     const [selectedMenu, setSelectedMenu] = useState<WorkoutMenu | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<TrainingCategory | null>(null);
+
+    // 完了モーダル用ステート
+    const [showCompleteModal, setShowCompleteModal] = useState(false);
+    const [actualDistance, setActualDistance] = useState('');
+    const [actualDuration, setActualDuration] = useState('');
+    const [notes, setNotes] = useState('');
+
+    const addWorkoutLog = useAppStore((state) => state.addWorkoutLog);
+
+    // URLパラメータからカテゴリを設定
+    useEffect(() => {
+        if (categoryParam && Object.keys(TRAINING_CATEGORIES).includes(categoryParam)) {
+            setSelectedCategory(categoryParam as TrainingCategory);
+        }
+    }, [categoryParam]);
 
     // サブ画面表示時にタブスワイプを無効化
     useEffect(() => {
@@ -569,31 +605,102 @@ export default function WorkoutScreen() {
                     <TouchableOpacity
                         style={styles.completeButton}
                         onPress={() => {
-                            Alert.alert(
-                                'ワークアウト完了',
-                                `${selectedMenu.name}を完了しましたか？`,
-                                [
-                                    { text: 'キャンセル', style: 'cancel' },
-                                    {
-                                        text: '完了！',
-                                        onPress: () => {
-                                            const addWorkoutLog = useAppStore.getState().addWorkoutLog;
+                            // 予想距離をデフォルト値として設定
+                            const totalDistance = selectedMenu.segments.reduce((sum, s) => sum + s.distance, 0);
+                            setActualDistance((totalDistance / 1000).toFixed(1));
+                            setActualDuration('');
+                            setNotes('');
+                            setShowCompleteModal(true);
+                        }}
+                    >
+                        <Text style={styles.completeButtonText}>✅ 完了として記録</Text>
+                    </TouchableOpacity>
+
+                    {/* 完了入力モーダル */}
+                    <Modal
+                        visible={showCompleteModal}
+                        transparent
+                        animationType="fade"
+                        onRequestClose={() => setShowCompleteModal(false)}
+                    >
+                        <KeyboardAvoidingView
+                            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                            style={styles.modalOverlay}
+                        >
+                            <View style={styles.modalContent}>
+                                <Text style={styles.modalTitle}>🎉 ワークアウト完了</Text>
+                                <Text style={styles.modalSubtitle}>{selectedMenu.name}</Text>
+
+                                {/* 距離入力 */}
+                                <View style={styles.modalInputGroup}>
+                                    <Text style={styles.modalLabel}>走行距離 (km)</Text>
+                                    <TextInput
+                                        style={styles.modalInput}
+                                        value={actualDistance}
+                                        onChangeText={setActualDistance}
+                                        keyboardType="decimal-pad"
+                                        placeholder="例: 5.0"
+                                        placeholderTextColor="#6b7280"
+                                    />
+                                </View>
+
+                                {/* 時間入力 */}
+                                <View style={styles.modalInputGroup}>
+                                    <Text style={styles.modalLabel}>所要時間 (分)</Text>
+                                    <TextInput
+                                        style={styles.modalInput}
+                                        value={actualDuration}
+                                        onChangeText={setActualDuration}
+                                        keyboardType="decimal-pad"
+                                        placeholder="例: 25"
+                                        placeholderTextColor="#6b7280"
+                                    />
+                                </View>
+
+                                {/* メモ入力 */}
+                                <View style={styles.modalInputGroup}>
+                                    <Text style={styles.modalLabel}>メモ（任意）</Text>
+                                    <TextInput
+                                        style={[styles.modalInput, { height: 60 }]}
+                                        value={notes}
+                                        onChangeText={setNotes}
+                                        placeholder="感想やコンディションなど"
+                                        placeholderTextColor="#6b7280"
+                                        multiline
+                                    />
+                                </View>
+
+                                {/* ボタン */}
+                                <View style={styles.modalButtons}>
+                                    <TouchableOpacity
+                                        style={styles.modalCancelButton}
+                                        onPress={() => setShowCompleteModal(false)}
+                                    >
+                                        <Text style={styles.modalCancelText}>キャンセル</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={styles.modalSaveButton}
+                                        onPress={() => {
                                             addWorkoutLog({
                                                 date: new Date().toISOString(),
                                                 workoutType: selectedMenu.id,
                                                 workoutName: selectedMenu.name,
                                                 completed: true,
+                                                actualDistance: parseFloat(actualDistance) || undefined,
+                                                actualDuration: parseFloat(actualDuration) || undefined,
+                                                notes: notes || undefined,
                                             });
+                                            setShowCompleteModal(false);
                                             Alert.alert('記録しました！', '素晴らしい！ワークアウトを完了しました 🎉');
                                             setSelectedMenu(null);
-                                        },
-                                    },
-                                ]
-                            );
-                        }}
-                    >
-                        <Text style={styles.completeButtonText}>✅ 完了として記録</Text>
-                    </TouchableOpacity>
+                                        }}
+                                    >
+                                        <Text style={styles.modalSaveText}>保存</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </KeyboardAvoidingView>
+                    </Modal>
 
                     <View style={styles.bottomSpacer} />
                 </ScrollView>
@@ -644,56 +751,108 @@ export default function WorkoutScreen() {
                 <View style={styles.menusSection}>
                     <Text style={styles.sectionTitle}>ワークアウトメニュー</Text>
 
-                    {(Object.keys(TRAINING_CATEGORIES) as TrainingCategory[]).map((category) => {
-                        const categoryConfig = TRAINING_CATEGORIES[category];
-                        const categoryMenus = WORKOUT_MENUS.filter((m) => m.category === category);
-                        if (categoryMenus.length === 0) return null;
+                    {/* カテゴリフィルター */}
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        style={{ marginBottom: 16, marginHorizontal: -20, paddingHorizontal: 20 }}
+                    >
+                        <TouchableOpacity
+                            style={{
+                                paddingHorizontal: 14,
+                                paddingVertical: 8,
+                                borderRadius: 20,
+                                marginRight: 8,
+                                backgroundColor: !selectedCategory ? 'rgba(139, 92, 246, 0.3)' : 'rgba(255,255,255,0.05)',
+                                borderWidth: 1,
+                                borderColor: !selectedCategory ? '#8B5CF6' : 'transparent',
+                            }}
+                            onPress={() => setSelectedCategory(null)}
+                        >
+                            <Text style={{ color: !selectedCategory ? '#8B5CF6' : '#9ca3af', fontSize: 13 }}>
+                                すべて
+                            </Text>
+                        </TouchableOpacity>
+                        {(Object.keys(TRAINING_CATEGORIES) as TrainingCategory[]).map((category) => {
+                            const config = TRAINING_CATEGORIES[category];
+                            const isActive = selectedCategory === category;
+                            return (
+                                <TouchableOpacity
+                                    key={category}
+                                    style={{
+                                        flexDirection: 'row',
+                                        alignItems: 'center',
+                                        paddingHorizontal: 14,
+                                        paddingVertical: 8,
+                                        borderRadius: 20,
+                                        marginRight: 8,
+                                        backgroundColor: isActive ? config.color + '30' : 'rgba(255,255,255,0.05)',
+                                        borderWidth: 1,
+                                        borderColor: isActive ? config.color : 'transparent',
+                                    }}
+                                    onPress={() => setSelectedCategory(isActive ? null : category)}
+                                >
+                                    <Text style={{ marginRight: 4 }}>{config.icon}</Text>
+                                    <Text style={{ color: isActive ? config.color : '#9ca3af', fontSize: 13 }}>
+                                        {category}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </ScrollView>
 
-                        return (
-                            <View key={category} style={styles.categorySection}>
-                                <View style={styles.categoryHeader}>
-                                    <Text style={styles.categoryIcon}>{categoryConfig.icon}</Text>
-                                    <View style={styles.categoryInfo}>
-                                        <Text style={[styles.categoryName, { color: categoryConfig.color }]}>
-                                            {category}
-                                        </Text>
-                                        <Text style={styles.categoryDesc}>{categoryConfig.description}</Text>
+                    {(Object.keys(TRAINING_CATEGORIES) as TrainingCategory[])
+                        .filter(category => !selectedCategory || selectedCategory === category)
+                        .map((category) => {
+                            const categoryConfig = TRAINING_CATEGORIES[category];
+                            const categoryMenus = WORKOUT_MENUS.filter((m) => m.category === category);
+                            if (categoryMenus.length === 0) return null;
+
+                            return (
+                                <View key={category} style={styles.categorySection}>
+                                    <View style={styles.categoryHeader}>
+                                        <Text style={styles.categoryIcon}>{categoryConfig.icon}</Text>
+                                        <View style={styles.categoryInfo}>
+                                            <Text style={[styles.categoryName, { color: categoryConfig.color }]}>
+                                                {category}
+                                            </Text>
+                                            <Text style={styles.categoryDesc}>{categoryConfig.description}</Text>
+                                        </View>
                                     </View>
-                                </View>
 
-                                {categoryMenus.map((menu) => {
-                                    const zoneConfig = ZONE_COEFFICIENTS[menu.zone];
-                                    const isRecommended = menu.targetLimiter === limiter;
-                                    return (
-                                        <TouchableOpacity
-                                            key={menu.id}
-                                            style={[styles.menuCard, isRecommended && styles.menuCardRecommended]}
-                                            onPress={() => setSelectedMenu(menu)}
-                                        >
-                                            <View style={[styles.menuZone, { backgroundColor: zoneConfig.color }]} />
-                                            <View style={styles.menuInfo}>
-                                                <View style={styles.menuHeader}>
-                                                    <Text style={styles.menuIcon}>{menu.icon}</Text>
-                                                    <Text style={styles.menuName}>{menu.name}</Text>
-                                                    {isRecommended && (
-                                                        <View style={styles.recommendedBadge}>
-                                                            <Text style={styles.recommendedText}>おすすめ</Text>
-                                                        </View>
-                                                    )}
+                                    {categoryMenus.map((menu) => {
+                                        const zoneConfig = ZONE_COEFFICIENTS[menu.zone];
+                                        const isRecommended = menu.targetLimiter === limiter;
+                                        return (
+                                            <TouchableOpacity
+                                                key={menu.id}
+                                                style={[styles.menuCard, isRecommended && styles.menuCardRecommended]}
+                                                onPress={() => setSelectedMenu(menu)}
+                                            >
+                                                <View style={[styles.menuZone, { backgroundColor: zoneConfig.color }]} />
+                                                <View style={styles.menuInfo}>
+                                                    <View style={styles.menuHeader}>
+                                                        <Text style={styles.menuIcon}>{menu.icon}</Text>
+                                                        <Text style={styles.menuName}>{menu.name}</Text>
+                                                        {isRecommended && (
+                                                            <View style={styles.recommendedBadge}>
+                                                                <Text style={styles.recommendedText}>おすすめ</Text>
+                                                            </View>
+                                                        )}
+                                                    </View>
+                                                    <Text style={styles.menuDescription} numberOfLines={2}>
+                                                        {menu.description}
+                                                    </Text>
                                                 </View>
-                                                <Text style={styles.menuDescription} numberOfLines={2}>
-                                                    {menu.description}
-                                                </Text>
-                                            </View>
-                                            <View style={styles.menuPace}>
-                                                <Text style={styles.menuPaceValue}>{formatKmPace(zones[menu.zone])}</Text>
-                                            </View>
-                                        </TouchableOpacity>
-                                    );
-                                })}
-                            </View>
-                        );
-                    })}
+                                                <View style={styles.menuPace}>
+                                                    <Text style={styles.menuPaceValue}>{formatKmPace(zones[menu.zone])}</Text>
+                                                </View>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </View>
+                            );
+                        })}
                 </View>
 
                 <View style={styles.bottomSpacer} />
@@ -1113,6 +1272,82 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
     },
+
+    // 完了モーダル
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    modalContent: {
+        backgroundColor: '#1a1a2e',
+        borderRadius: 20,
+        padding: 24,
+        width: '100%',
+        maxWidth: 340,
+    },
+    modalTitle: {
+        fontSize: 22,
+        fontWeight: '700',
+        color: '#fff',
+        textAlign: 'center',
+    },
+    modalSubtitle: {
+        fontSize: 14,
+        color: '#9ca3af',
+        textAlign: 'center',
+        marginTop: 4,
+        marginBottom: 20,
+    },
+    modalInputGroup: {
+        marginBottom: 16,
+    },
+    modalLabel: {
+        fontSize: 13,
+        color: '#9ca3af',
+        marginBottom: 6,
+    },
+    modalInput: {
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        borderRadius: 10,
+        padding: 12,
+        fontSize: 16,
+        color: '#fff',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        gap: 12,
+        marginTop: 8,
+    },
+    modalCancelButton: {
+        flex: 1,
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        borderRadius: 12,
+        paddingVertical: 14,
+        alignItems: 'center',
+    },
+    modalCancelText: {
+        color: '#9ca3af',
+        fontSize: 15,
+        fontWeight: '600',
+    },
+    modalSaveButton: {
+        flex: 1,
+        backgroundColor: '#22c55e',
+        borderRadius: 12,
+        paddingVertical: 14,
+        alignItems: 'center',
+    },
+    modalSaveText: {
+        color: '#fff',
+        fontSize: 15,
+        fontWeight: '600',
+    },
+
     bottomSpacer: {
         height: 40,
     },
