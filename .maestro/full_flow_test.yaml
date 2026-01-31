@@ -1,0 +1,42 @@
+appId: host.exp.Exponent
+---
+# Zone2Peak - 全フローテスト
+# Expo GoでアプリをQRコードで開いた状態で実行すること
+
+- launchApp:
+    clearState: false
+
+# ========== ホーム画面 ==========
+- assertVisible: "ホーム"
+- takeScreenshot: 01_home_screen
+
+# ========== 計画画面 ==========
+- tapOn: "計画"
+- waitForAnimationToEnd
+- takeScreenshot: 02_plan_screen
+
+# ========== メニュー画面 ==========
+- tapOn: "メニュー"
+- waitForAnimationToEnd
+- takeScreenshot: 03_workout_menu
+
+# ========== マイページ画面 ==========
+- tapOn: "マイページ"
+- waitForAnimationToEnd
+- takeScreenshot: 04_profile_screen
+
+# ========== タブスワイプテスト ==========
+# ホームに戻る
+- tapOn: "ホーム"
+- waitForAnimationToEnd
+
+# 右にスワイプして計画へ
+- swipe:
+    direction: LEFT
+    duration: 300
+- waitForAnimationToEnd
+- takeScreenshot: 05_after_swipe_to_plan
+
+# テスト完了
+- tapOn: "ホーム"
+- takeScreenshot: 06_test_complete
