@@ -66,17 +66,7 @@ export default function TabLayout() {
                 options={{
                     title: 'ホーム',
                     tabBarIcon: ({ color }) => (
-                        <Ionicons name="home" size={20} color={color} />
-                    ),
-                }}
-            />
-            {/* テストタブ */}
-            <MaterialTopTabs.Screen
-                name="test"
-                options={{
-                    title: 'テスト',
-                    tabBarIcon: ({ color }) => (
-                        <Ionicons name="fitness" size={20} color={color} />
+                        <Ionicons name="home" size={22} color={color} />
                     ),
                 }}
             />
@@ -86,37 +76,27 @@ export default function TabLayout() {
                 options={{
                     title: '計画',
                     tabBarIcon: ({ color }) => (
-                        <Ionicons name="calendar" size={20} color={color} />
+                        <Ionicons name="calendar" size={22} color={color} />
                     ),
                 }}
             />
-            {/* ワークアウトタブ */}
+            {/* メニュータブ */}
             <MaterialTopTabs.Screen
                 name="workout"
                 options={{
                     title: 'メニュー',
                     tabBarIcon: ({ color }) => (
-                        <Ionicons name="barbell" size={20} color={color} />
+                        <Ionicons name="fitness" size={22} color={color} />
                     ),
                 }}
             />
-            {/* 履歴タブ */}
+            {/* マイページタブ */}
             <MaterialTopTabs.Screen
-                name="history"
+                name="profile"
                 options={{
-                    title: '履歴',
+                    title: 'マイページ',
                     tabBarIcon: ({ color }) => (
-                        <Ionicons name="time" size={20} color={color} />
-                    ),
-                }}
-            />
-            {/* 設定タブ */}
-            <MaterialTopTabs.Screen
-                name="settings"
-                options={{
-                    title: '設定',
-                    tabBarIcon: ({ color }) => (
-                        <Ionicons name="settings" size={22} color={color} />
+                        <Ionicons name="person" size={22} color={color} />
                     ),
                 }}
             />

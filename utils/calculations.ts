@@ -430,6 +430,7 @@ interface GeneratePlanParams {
         limiterType: LimiterType;
     };
     weeksUntilRace: number;
+    restDays?: number[];  // 休養日（0=月, 1=火... 6=日）
 }
 
 /**
@@ -440,6 +441,7 @@ const generateWeeklySchedule = (
     focusKeys: readonly string[],
     isRecoveryWeek: boolean,
     isRiseTestWeek: boolean,
+    restDays: number[] = [2, 6],  // デフォルト: 水・日
 ): DaySchedule[] => {
     const getFocusLabel = (key: string): string => {
         const labels: Record<string, string> = {
@@ -451,46 +453,73 @@ const generateWeeklySchedule = (
         return labels[key] || '有酸素ベース';
     };
 
-    if (isRecoveryWeek) {
-        return [
-            { dayOfWeek: 0, type: 'easy', label: 'Easy Run', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-            { dayOfWeek: 1, type: 'easy', label: 'Easy Run', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-            { dayOfWeek: 2, type: 'rest', label: '休養', isKey: false, completed: false },
-            { dayOfWeek: 3, type: 'workout', label: getFocusLabel(focusKeys[0]), isKey: true, completed: false, focusKey: focusKeys[0], focusCategory: getFocusLabel(focusKeys[0]) },
-            { dayOfWeek: 4, type: 'easy', label: 'Easy Run', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-            { dayOfWeek: 5, type: 'long', label: 'Long Run', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-            { dayOfWeek: 6, type: 'rest', label: '休養', isKey: false, completed: false },
-        ];
+    // 基本スケジュールを作成（全曜日をプレースホルダーで埋める）
+    const schedule: DaySchedule[] = [];
+    const workoutDays: number[] = [];  // ワークアウトを配置する曜日
+
+    // 休養日以外の曜日を取得
+    for (let d = 0; d < 7; d++) {
+        if (!restDays.includes(d)) {
+            workoutDays.push(d);
+        }
     }
 
-    if (isRiseTestWeek) {
-        return [
-            { dayOfWeek: 0, type: 'easy', label: 'Easy Run', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-            { dayOfWeek: 1, type: 'easy', label: 'Easy Run', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-            { dayOfWeek: 2, type: 'rest', label: '休養', isKey: false, completed: false },
-            { dayOfWeek: 3, type: 'test', label: 'RISE Test', isKey: true, completed: false, focusKey: 'test' },
-            { dayOfWeek: 4, type: 'rest', label: '休養', isKey: false, completed: false },
-            { dayOfWeek: 5, type: 'workout', label: getFocusLabel(focusKeys[0]), isKey: true, completed: false, focusKey: focusKeys[0], focusCategory: getFocusLabel(focusKeys[0]) },
-            { dayOfWeek: 6, type: 'rest', label: '休養', isKey: false, completed: false },
-        ];
+    // ワークアウト配置: 週2回のキーワークアウト、1回のロング走、残りはイージー
+    // ワークアウト曜日の中から選択
+    let keyWorkoutDays: number[] = [];
+    let longRunDay: number | null = null;
+    let testDay: number | null = null;
+
+    if (workoutDays.length >= 3) {
+        // キーワークアウトは間隔を空けて配置（火・木など）
+        const mid = Math.floor(workoutDays.length / 2);
+        keyWorkoutDays = [workoutDays[Math.floor(mid / 2)], workoutDays[mid + Math.floor((workoutDays.length - mid) / 2)]];
+        // ロング走は週末寄り（最後の練習日）
+        longRunDay = workoutDays[workoutDays.length - 1];
+        // テスト日（RISEテスト週用）
+        testDay = workoutDays[Math.floor(mid / 2)];
+    } else if (workoutDays.length === 2) {
+        keyWorkoutDays = [workoutDays[0]];
+        longRunDay = workoutDays[1];
+        testDay = workoutDays[0];
+    } else if (workoutDays.length === 1) {
+        keyWorkoutDays = [];
+        longRunDay = workoutDays[0];
+        testDay = workoutDays[0];
     }
 
-    // 通常週
-    return [
-        { dayOfWeek: 0, type: 'easy', label: 'Easy Run', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-        { dayOfWeek: 1, type: 'workout', label: getFocusLabel(focusKeys[0]), isKey: true, completed: false, focusKey: focusKeys[0], focusCategory: getFocusLabel(focusKeys[0]) },
-        { dayOfWeek: 2, type: 'rest', label: '休養', isKey: false, completed: false },
-        { dayOfWeek: 3, type: 'easy', label: 'Easy Run', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-        { dayOfWeek: 4, type: 'workout', label: focusKeys[1] ? getFocusLabel(focusKeys[1]) : getFocusLabel(focusKeys[0]), isKey: true, completed: false, focusKey: focusKeys[1] || focusKeys[0], focusCategory: focusKeys[1] ? getFocusLabel(focusKeys[1]) : getFocusLabel(focusKeys[0]) },
-        { dayOfWeek: 5, type: 'long', label: 'Long Run', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-        { dayOfWeek: 6, type: 'rest', label: '休養', isKey: false, completed: false },
-    ];
+    // 各曜日のスケジュールを生成
+    for (let d = 0; d < 7; d++) {
+        if (restDays.includes(d)) {
+            schedule.push({ dayOfWeek: d, type: 'rest', label: '休養', isKey: false, completed: false });
+        } else if (isRiseTestWeek && d === testDay) {
+            schedule.push({ dayOfWeek: d, type: 'test', label: 'RISE Test', isKey: true, completed: false, focusKey: 'test' });
+        } else if (keyWorkoutDays.includes(d) && !isRecoveryWeek) {
+            const idx = keyWorkoutDays.indexOf(d);
+            const focusKey = focusKeys[idx] || focusKeys[0];
+            schedule.push({
+                dayOfWeek: d,
+                type: 'workout',
+                label: getFocusLabel(focusKey),
+                isKey: true,
+                completed: false,
+                focusKey,
+                focusCategory: getFocusLabel(focusKey)
+            });
+        } else if (d === longRunDay && !isRiseTestWeek) {
+            schedule.push({ dayOfWeek: d, type: 'long', label: 'Long Run', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' });
+        } else {
+            schedule.push({ dayOfWeek: d, type: 'easy', label: 'Easy Run', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' });
+        }
+    }
+
+    return schedule;
 };
 
 /**
  * トレーニング計画を生成
  */
-export const generatePlan = ({ race, baseline, weeksUntilRace }: GeneratePlanParams): TrainingPlan => {
+export const generatePlan = ({ race, baseline, weeksUntilRace, restDays = [2, 6] }: GeneratePlanParams): TrainingPlan => {
     // 期間に応じた配分を決定
     const distribution = weeksUntilRace >= 16 ? 'long'
         : weeksUntilRace >= 10 ? 'medium'
@@ -499,23 +528,69 @@ export const generatePlan = ({ race, baseline, weeksUntilRace }: GeneratePlanPar
 
     const phaseConfig = PHASE_DISTRIBUTION[distribution];
     const phases: PlanPhase[] = [];
+
+    // フェーズ配分: taperを先に確保し、残りをbase/build/peakに配分
+    const taperWeeks = Math.max(phaseConfig.taper.weeks[0], Math.min(phaseConfig.taper.weeks[1], Math.floor(weeksUntilRace * 0.1)));
+    const remainingWeeks = weeksUntilRace - taperWeeks;
+
+    // 残りをbase:build:peakの比率で配分 (約3:4:2)
+    const baseMax = phaseConfig.base.weeks[1];
+    const buildMax = phaseConfig.build.weeks[1];
+    const peakMax = phaseConfig.peak.weeks[1];
+    const totalRatio = baseMax + buildMax + peakMax;
+
+    const baseWeeks = Math.max(phaseConfig.base.weeks[0], Math.min(baseMax, Math.round(remainingWeeks * baseMax / totalRatio)));
+    const buildWeeks = Math.max(phaseConfig.build.weeks[0], Math.min(buildMax, Math.round(remainingWeeks * buildMax / totalRatio)));
+    const peakWeeks = Math.max(phaseConfig.peak.weeks[0], remainingWeeks - baseWeeks - buildWeeks);
+
     let currentWeek = 1;
 
-    // フェーズ配分
-    (['base', 'build', 'peak', 'taper'] as const).forEach((type) => {
-        const [min, max] = phaseConfig[type].weeks;
-        const weeks = Math.min(max, Math.max(min, Math.floor(weeksUntilRace * (max / 16))));
-        if (weeks > 0) {
-            phases.push({
-                type,
-                startWeek: currentWeek,
-                endWeek: currentWeek + weeks - 1,
-                weeks,
-                focus: PHASE_CONFIG[type].name,
-            });
-            currentWeek += weeks;
-        }
-    });
+    // base
+    if (baseWeeks > 0) {
+        phases.push({
+            type: 'base',
+            startWeek: currentWeek,
+            endWeek: currentWeek + baseWeeks - 1,
+            weeks: baseWeeks,
+            focus: PHASE_CONFIG.base.name,
+        });
+        currentWeek += baseWeeks;
+    }
+
+    // build
+    if (buildWeeks > 0) {
+        phases.push({
+            type: 'build',
+            startWeek: currentWeek,
+            endWeek: currentWeek + buildWeeks - 1,
+            weeks: buildWeeks,
+            focus: PHASE_CONFIG.build.name,
+        });
+        currentWeek += buildWeeks;
+    }
+
+    // peak
+    if (peakWeeks > 0) {
+        phases.push({
+            type: 'peak',
+            startWeek: currentWeek,
+            endWeek: currentWeek + peakWeeks - 1,
+            weeks: peakWeeks,
+            focus: PHASE_CONFIG.peak.name,
+        });
+        currentWeek += peakWeeks;
+    }
+
+    // taper（必ず最後に配置）
+    if (taperWeeks > 0) {
+        phases.push({
+            type: 'taper',
+            startWeek: currentWeek,
+            endWeek: currentWeek + taperWeeks - 1,
+            weeks: taperWeeks,
+            focus: PHASE_CONFIG.taper.name,
+        });
+    }
 
     // RISE Test推奨週（4週間ごと）
     const riseTestDates: number[] = [];
@@ -583,7 +658,7 @@ export const generatePlan = ({ race, baseline, weeksUntilRace }: GeneratePlanPar
         const phaseFocusKeys = KEY_WORKOUTS_BY_PHASE[phaseType]?.focusKeys || ['aerobic'];
         const isRiseTestWeek = riseTestDates.includes(weekNumber);
 
-        const days = generateWeeklySchedule(phaseType, phaseFocusKeys, isRecoveryWeek, isRiseTestWeek);
+        const days = generateWeeklySchedule(phaseType, phaseFocusKeys, isRecoveryWeek, isRiseTestWeek, restDays);
 
         weeklyPlans.push({
             weekNumber,
@@ -596,7 +671,8 @@ export const generatePlan = ({ race, baseline, weeksUntilRace }: GeneratePlanPar
             keyWorkouts: days.filter((d) => d.isKey).map((d) => d.focusKey || d.label),
             isRecoveryWeek,
             isRiseTestWeek,
-        });
+            distribution: dist, // ゾーン配分 (E/T/I/R)
+        } as WeeklyPlan);
     }
 
     return {

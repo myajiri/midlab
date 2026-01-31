@@ -3,11 +3,12 @@
 // ============================================
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAppStore } from '../../store/useAppStore';
+import { LIMITER_CONFIG, type LimiterType } from '../../constants';
 
 const AGE_CATEGORIES = [
     { key: 'junior', label: '中学生', desc: '12-15歳' },
@@ -23,17 +24,32 @@ const EXPERIENCE_LEVELS = [
     { key: 'elite', label: 'エリート', desc: '競技経験あり' },
 ] as const;
 
+const LIMITER_TYPES: { key: LimiterType; label: string; desc: string }[] = [
+    { key: 'cardio', label: '心肺型', desc: '心肺機能が制限要因' },
+    { key: 'muscular', label: '筋持久力型', desc: '筋持久力が制限要因' },
+    { key: 'balanced', label: 'バランス型', desc: '両方バランスが取れている' },
+];
+
 export default function OnboardingAttributes() {
     const router = useRouter();
+    const { edit } = useLocalSearchParams<{ edit?: string }>();
+    const isEditMode = edit === 'true';
+
     const setProfile = useAppStore((state) => state.setProfile);
     const profile = useAppStore((state) => state.profile);
 
+    const [displayName, setDisplayName] = useState(profile.displayName || '');
     const [ageCategory, setAgeCategory] = useState<typeof AGE_CATEGORIES[number]['key']>(profile.ageCategory);
     const [experience, setExperience] = useState<typeof EXPERIENCE_LEVELS[number]['key']>(profile.experience);
+    const [limiterType, setLimiterType] = useState<LimiterType>(profile.selfReportedLimiter ?? 'balanced');
 
     const handleNext = () => {
-        setProfile({ ageCategory, experience });
-        router.push('/onboarding/pb');
+        setProfile({ displayName: displayName.trim() || 'ゲスト', ageCategory, experience, selfReportedLimiter: limiterType });
+        if (isEditMode) {
+            router.back();
+        } else {
+            router.push('/onboarding/pb');
+        }
     };
 
     const handleBack = () => {
@@ -53,6 +69,18 @@ export default function OnboardingAttributes() {
 
                 <Text style={styles.title}>あなたについて教えてください</Text>
                 <Text style={styles.subtitle}>より正確な推定のために使用します</Text>
+
+                {/* ニックネーム */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>ニックネーム</Text>
+                    <TextInput
+                        style={styles.nameInput}
+                        value={displayName}
+                        onChangeText={setDisplayName}
+                        placeholder="ニックネームを入力"
+                        placeholderTextColor="#6b7280"
+                    />
+                </View>
 
                 {/* 年齢カテゴリ */}
                 <View style={styles.section}>
@@ -103,6 +131,35 @@ export default function OnboardingAttributes() {
                         ))}
                     </View>
                 </View>
+
+                {/* タイプ（リミッター） */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>自分のタイプ（わからなければバランス型）</Text>
+                    <View style={styles.optionGrid}>
+                        {LIMITER_TYPES.map((type) => {
+                            const config = LIMITER_CONFIG[type.key];
+                            return (
+                                <TouchableOpacity
+                                    key={type.key}
+                                    style={[
+                                        styles.optionCard,
+                                        limiterType === type.key && { borderColor: config.color, backgroundColor: config.color + '20' },
+                                    ]}
+                                    onPress={() => setLimiterType(type.key)}
+                                >
+                                    <Text style={{ fontSize: 20, marginBottom: 4 }}>{config.icon}</Text>
+                                    <Text style={[
+                                        styles.optionLabel,
+                                        limiterType === type.key && { color: config.color },
+                                    ]}>
+                                        {type.label}
+                                    </Text>
+                                    <Text style={styles.optionDesc}>{type.desc}</Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                </View>
             </ScrollView>
 
             {/* 次へボタン */}
@@ -114,7 +171,7 @@ export default function OnboardingAttributes() {
                         end={{ x: 1, y: 0 }}
                         style={styles.nextButtonGradient}
                     >
-                        <Text style={styles.nextButtonText}>次へ</Text>
+                        <Text style={styles.nextButtonText}>{isEditMode ? '保存' : '次へ'}</Text>
                     </LinearGradient>
                 </TouchableOpacity>
             </View>
@@ -215,5 +272,14 @@ const styles = StyleSheet.create({
         color: '#ffffff',
         fontSize: 18,
         fontWeight: '600',
+    },
+    nameInput: {
+        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+        borderRadius: 12,
+        padding: 16,
+        fontSize: 16,
+        color: '#ffffff',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
     },
 });
