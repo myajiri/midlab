@@ -1,105 +1,113 @@
-import { withLayoutContext } from 'expo-router';
-import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import type { MaterialTopTabNavigationOptions } from '@react-navigation/material-top-tabs';
-import type { ParamListBase, TabNavigationState } from '@react-navigation/native';
+// ============================================
+// Tab Layout
+// ============================================
+
+import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useIsSubScreenOpen } from '../../store/useUIStore';
+import { COLORS } from '../../src/constants';
 
-// Material Top Tab Navigatorを使用してスワイプを有効化
-const { Navigator } = createMaterialTopTabNavigator();
+type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
-// Expo Routerとの連携
-export const MaterialTopTabs = withLayoutContext<
-    MaterialTopTabNavigationOptions,
-    typeof Navigator,
-    TabNavigationState<ParamListBase>,
-    {}
->(Navigator);
+interface TabIconProps {
+  focused: boolean;
+  outlineName: IoniconsName;
+  filledName: IoniconsName;
+}
 
-// タブナビゲーションのレイアウト（スワイプ対応）
+const TabIcon = ({ focused, outlineName, filledName }: TabIconProps) => (
+  <Ionicons
+    name={focused ? filledName : outlineName}
+    size={24}
+    color={focused ? COLORS.primary : COLORS.text.secondary}
+  />
+);
+
 export default function TabLayout() {
-    // サブ画面が開いているときはスワイプを無効化
-    const isSubScreenOpen = useIsSubScreenOpen();
-
-    return (
-        <MaterialTopTabs
-            initialRouteName="index"
-            tabBarPosition="bottom"
-            screenOptions={{
-                // サブ画面が開いているときはスワイプ無効
-                swipeEnabled: !isSubScreenOpen,
-                // タブバーのスタイル
-                tabBarStyle: {
-                    backgroundColor: '#0a0a0f',
-                    borderTopColor: '#1a1a2e',
-                    borderTopWidth: 1,
-                    height: 88,
-                    paddingBottom: 30,
-                    paddingTop: 8,
-                },
-                // インジケーターのスタイル
-                tabBarIndicatorStyle: {
-                    backgroundColor: '#3b82f6',
-                    height: 3,
-                    top: 0,
-                },
-                // アクティブなタブの色
-                tabBarActiveTintColor: '#3b82f6',
-                // 非アクティブなタブの色
-                tabBarInactiveTintColor: '#6b7280',
-                // ラベルのスタイル
-                tabBarLabelStyle: {
-                    fontSize: 9,
-                    fontWeight: '600',
-                    textTransform: 'none',
-                    marginTop: 2,
-                },
-                // アイコンを表示
-                tabBarShowIcon: true,
-                // レイジーローディングを有効化
-                lazy: true,
-            }}
-        >
-            {/* ホームタブ */}
-            <MaterialTopTabs.Screen
-                name="index"
-                options={{
-                    title: 'ホーム',
-                    tabBarIcon: ({ color }) => (
-                        <Ionicons name="home" size={22} color={color} />
-                    ),
-                }}
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: COLORS.background.dark,
+          borderTopColor: 'rgba(255, 255, 255, 0.1)',
+          borderTopWidth: 1,
+          height: 85,
+          paddingTop: 8,
+          paddingBottom: 28,
+        },
+        tabBarActiveTintColor: COLORS.primary,
+        tabBarInactiveTintColor: COLORS.text.secondary,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '500',
+        },
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'ホーム',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              focused={focused}
+              outlineName="home-outline"
+              filledName="home"
             />
-            {/* 計画タブ */}
-            <MaterialTopTabs.Screen
-                name="plan"
-                options={{
-                    title: '計画',
-                    tabBarIcon: ({ color }) => (
-                        <Ionicons name="calendar" size={22} color={color} />
-                    ),
-                }}
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="test"
+        options={{
+          title: 'Test',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              focused={focused}
+              outlineName="speedometer-outline"
+              filledName="speedometer"
             />
-            {/* メニュータブ */}
-            <MaterialTopTabs.Screen
-                name="workout"
-                options={{
-                    title: 'メニュー',
-                    tabBarIcon: ({ color }) => (
-                        <Ionicons name="fitness" size={22} color={color} />
-                    ),
-                }}
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="plan"
+        options={{
+          title: '計画',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              focused={focused}
+              outlineName="calendar-outline"
+              filledName="calendar"
             />
-            {/* マイページタブ */}
-            <MaterialTopTabs.Screen
-                name="profile"
-                options={{
-                    title: 'マイページ',
-                    tabBarIcon: ({ color }) => (
-                        <Ionicons name="person" size={22} color={color} />
-                    ),
-                }}
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="workout"
+        options={{
+          title: 'メニュー',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              focused={focused}
+              outlineName="barbell-outline"
+              filledName="barbell"
             />
-        </MaterialTopTabs>
-    );
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: '設定',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              focused={focused}
+              outlineName="settings-outline"
+              filledName="settings"
+            />
+          ),
+        }}
+      />
+    </Tabs>
+  );
 }

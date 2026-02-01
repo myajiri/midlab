@@ -1,73 +1,74 @@
+// ============================================
+// Root Layout
+// ============================================
+
 import { useEffect, useState } from 'react';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { useAuthStore } from '../store/useAuthStore';
-import { useAppStore } from '../store/useAppStore';
-import { useSubscriptionStore } from '../store/useSubscriptionStore';
+import { View, StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ToastProvider } from '../src/components/ui';
+import { useSettingsStore } from '../src/stores/useAppStore';
+import { COLORS } from '../src/constants';
 
-// ルートレイアウト - アプリ全体のナビゲーション構造を定義
 export default function RootLayout() {
-    const initializeAuth = useAuthStore((state) => state.initialize);
-    const initializeSubscription = useSubscriptionStore((state) => state.initialize);
-    const isOnboardingComplete = useAppStore((state) => state.isOnboardingComplete);
-    const user = useAuthStore((state) => state.user);
-    const [isReady, setIsReady] = useState(false);
-    const router = useRouter();
-    const segments = useSegments();
+  const router = useRouter();
+  const segments = useSegments();
+  const onboardingComplete = useSettingsStore((state) => state.onboardingComplete);
 
-    // アプリ起動時に認証状態とサブスクリプションを初期化
-    useEffect(() => {
-        const init = async () => {
-            await initializeAuth();
-            // RevenueCat初期化（ユーザーIDがあれば紐付け）
-            await initializeSubscription(user?.id);
-            // Zustandの永続化が完了するまで少し待つ
-            setTimeout(() => setIsReady(true), 100);
-        };
-        init();
-    }, [initializeAuth, initializeSubscription, user?.id]);
+  // ナビゲーションの準備状態を確認
+  const navigationState = useRootNavigationState();
+  const [isNavigationReady, setIsNavigationReady] = useState(false);
 
-    // オンボーディング状態に応じてリダイレクト
-    useEffect(() => {
-        if (!isReady) return;
-
-        const inOnboarding = segments[0] === 'onboarding';
-
-        if (!isOnboardingComplete && !inOnboarding) {
-            // オンボーディング未完了かつオンボーディング画面にいない場合
-            router.replace('/onboarding');
-        } else if (isOnboardingComplete && inOnboarding) {
-            // オンボーディング完了済みでオンボーディング画面にいる場合
-            router.replace('/(tabs)');
-        }
-    }, [isReady, isOnboardingComplete, segments, router]);
-
-    // ローディング中
-    if (!isReady) {
-        return (
-            <View style={styles.loading}>
-                <ActivityIndicator size="large" color="#3B82F6" />
-            </View>
-        );
+  useEffect(() => {
+    if (navigationState?.key) {
+      setIsNavigationReady(true);
     }
+  }, [navigationState?.key]);
 
-    return (
-        <>
-            <StatusBar style="light" />
-            <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="onboarding" />
-                <Stack.Screen name="(tabs)" />
-            </Stack>
-        </>
-    );
+  useEffect(() => {
+    // ナビゲーションが準備できるまで待機
+    if (!isNavigationReady) return;
+
+    // オンボーディング未完了の場合、オンボーディング画面へ遷移
+    // ただし、既にオンボーディング画面にいる場合は遷移しない
+    const inOnboarding = segments[0] === 'onboarding';
+
+    if (!onboardingComplete && !inOnboarding) {
+      router.replace('/onboarding');
+    }
+  }, [onboardingComplete, segments, isNavigationReady]);
+
+  return (
+    <SafeAreaProvider>
+      <ToastProvider>
+        <View style={styles.container}>
+          <StatusBar style="light" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: COLORS.background.dark },
+              animation: 'fade',
+            }}
+          >
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="onboarding"
+              options={{
+                headerShown: false,
+                gestureEnabled: false,
+              }}
+            />
+          </Stack>
+        </View>
+      </ToastProvider>
+    </SafeAreaProvider>
+  );
 }
 
 const styles = StyleSheet.create({
-    loading: {
-        flex: 1,
-        backgroundColor: '#0a0a0f',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background.dark,
+  },
 });

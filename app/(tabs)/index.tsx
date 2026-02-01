@@ -1,520 +1,720 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Animated, Pressable, Image } from 'react-native';
+// ============================================
+// Dashboard - rise-test忠実再現版
+// ============================================
+
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  Pressable,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useAppStore, useProfile, useCurrentEtp, useCurrentLimiter, type TrainingPlan, type WeeklyPlan, type DaySchedule } from '../../store/useAppStore';
-import { LIMITER_CONFIG, ZONE_COEFFICIENTS, LIMITER_RACE_ADJUSTMENTS, type LimiterType, type ZoneKey } from '../../constants';
-import { formatKmPace, estimateVO2max, calculateZones, formatTime, getLevelFromEtp } from '../../utils/calculations';
-import { useRef, useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import {
+  useProfileStore,
+  useTestResultsStore,
+  usePlanStore,
+  useEffectiveValues,
+  useUserStage,
+  useTrainingZones,
+} from '../../src/stores/useAppStore';
+import {
+  formatTime,
+  formatKmPace,
+  estimateVO2max,
+  getLevelFromEtp,
+  getTodayWorkout,
+  getWeekProgress,
+  getNextTestRecommendation,
+  calculateRacePredictions,
+} from '../../src/utils';
+import { Button } from '../../src/components/ui';
+import { COLORS, ZONE_COEFFICIENTS_V3 } from '../../src/constants';
+import { ZoneName, LimiterType } from '../../src/types';
 
-// ============================================
-// アニメーション付きカードコンポーネント
-// ============================================
-
-interface AnimatedCardProps {
-    children: React.ReactNode;
-    onPress?: () => void;
-    style?: any;
-}
-
-const AnimatedCard = ({ children, onPress, style }: AnimatedCardProps) => {
-    const scaleAnim = useRef(new Animated.Value(1)).current;
-
-    const handlePressIn = useCallback(() => {
-        Animated.spring(scaleAnim, {
-            toValue: 0.97,
-            useNativeDriver: true,
-            speed: 50,
-            bounciness: 4,
-        }).start();
-    }, [scaleAnim]);
-
-    const handlePressOut = useCallback(() => {
-        Animated.spring(scaleAnim, {
-            toValue: 1,
-            useNativeDriver: true,
-            speed: 50,
-            bounciness: 4,
-        }).start();
-    }, [scaleAnim]);
-
-    return (
-        <Pressable
-            onPress={onPress}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-        >
-            <Animated.View style={[style, { transform: [{ scale: scaleAnim }] }]}>
-                {children}
-            </Animated.View>
-        </Pressable>
-    );
+// リミッターのIoniconsアイコン
+const LIMITER_ICON: Record<LimiterType, { name: string; color: string }> = {
+  cardio: { name: 'fitness', color: '#EF4444' },
+  muscular: { name: 'barbell', color: '#F97316' },
+  balanced: { name: 'scale', color: '#22C55E' },
 };
 
-// ============================================
-// メインコンポーネント
-// ============================================
+const LIMITER_LABEL: Record<LimiterType, string> = {
+  cardio: '心肺リミッター型',
+  muscular: '筋持久力リミッター型',
+  balanced: 'バランス型',
+};
 
 export default function HomeScreen() {
-    const router = useRouter();
+  const router = useRouter();
+  const profile = useProfileStore((state) => state.profile);
+  const results = useTestResultsStore((state) => state.results);
+  const activePlan = usePlanStore((state) => state.activePlan);
 
-    // Zustandストアから取得
-    const profile = useProfile();
-    const currentEtp = useCurrentEtp();
-    const currentLimiter = useCurrentLimiter();
-    const activePlan = useAppStore((state) => state.activePlan);
-    const workoutLogs = useAppStore((state) => state.workoutLogs);
+  const { etp, limiter, source } = useEffectiveValues();
+  const stage = useUserStage();
+  const zones = useTrainingZones();
+  const vo2max = estimateVO2max(etp);
+  const level = getLevelFromEtp(etp);
+  const predictions = calculateRacePredictions(etp, limiter);
 
-    // デフォルト値
-    const etp = currentEtp ?? 95;
-    const limiterType: LimiterType = currentLimiter ?? 'balanced';
-    const limiter = LIMITER_CONFIG[limiterType];
-    const hasTestResult = currentEtp !== null;
+  const todayWorkout = activePlan ? getTodayWorkout(activePlan) : null;
+  const weekProgress = activePlan ? getWeekProgress(activePlan) : null;
+  const testRecommendation = getNextTestRecommendation(results);
+  const latestResult = results.length > 0 ? results[0] : null;
 
-    // VO2max・レベル
-    const vo2max = estimateVO2max(etp);
-    const level = getLevelFromEtp(etp);
+  // 折りたたみ状態
+  const [showZones, setShowZones] = useState(false);
+  const [showPredictions, setShowPredictions] = useState(false);
 
-    // 今日の日付
-    const today = new Date();
-    const todayStr = today.toDateString();
-    const dayOfWeek = today.getDay();
-
-    // 今日のワークアウトを取得
-    const getTodayWorkout = (): DaySchedule | null => {
-        if (!activePlan) return null;
-        // 現在の週を探す
-        const currentWeek = activePlan.weeklyPlans.find((w: WeeklyPlan) => {
-            const weekStart = new Date(w.startDate);
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekEnd.getDate() + 6);
-            return today >= weekStart && today <= weekEnd;
-        });
-        if (!currentWeek) return null;
-        // 今日のスケジュール（日曜=0を日曜=6に変換）
-        const dayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        return currentWeek.days.find((d: DaySchedule) => d.dayOfWeek === dayIndex) ?? null;
-    };
-
-    const todayWorkout = getTodayWorkout();
-
-    // 今週の進捗
-    const getWeekProgress = () => {
-        const weekStart = new Date(today);
-        weekStart.setDate(today.getDate() - dayOfWeek);
-        weekStart.setHours(0, 0, 0, 0);
-
-        const days = [];
-        for (let i = 0; i < 7; i++) {
-            const date = new Date(weekStart);
-            date.setDate(weekStart.getDate() + i);
-            const dateStr = date.toISOString().split('T')[0];
-            const hasLog = workoutLogs.some(log => log.date.startsWith(dateStr));
-            const isToday = i === dayOfWeek;
-            days.push({ day: ['日', '月', '火', '水', '木', '金', '土'][i], done: hasLog, isToday });
-        }
-        return days;
-    };
-
-    const weekProgress = getWeekProgress();
-    const completedCount = weekProgress.filter(d => d.done).length;
-
-    // レースまでの日数
-    const getDaysToRace = () => {
-        if (!activePlan) return null;
-        const raceDate = new Date(activePlan.race.date);
-        const diff = Math.ceil((raceDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        return diff > 0 ? diff : null;
-    };
-
-    const daysToRace = getDaysToRace();
-
-    // ゾーン計算
-    const zonesData = calculateZones(etp, limiterType);
-    const zones = (Object.entries(ZONE_COEFFICIENTS) as [ZoneKey, { name: string; color: string }][]).map(
-        ([key, config]) => ({
-            key,
-            name: config.name,
-            color: config.color,
-            pace400m: zonesData[key],
-        })
-    );
-
-    // レース予測
-    const racePredictions = [
-        { distance: 800, label: '800m', laps: 2, coef: 0.835 },
-        { distance: 1500, label: '1500m', laps: 3.75, coef: 0.90 },
-        { distance: 3000, label: '3K', laps: 7.5, coef: 0.98 },
-        { distance: 5000, label: '5K', laps: 12.5, coef: 1.02 },
-    ].map(race => {
-        const limiterAdj = LIMITER_RACE_ADJUSTMENTS[`m${race.distance}` as keyof typeof LIMITER_RACE_ADJUSTMENTS]?.[limiterType] || 0;
-        const predictedTime = Math.round(etp * race.coef * race.laps + limiterAdj);
-        return { ...race, time: predictedTime, formatted: formatTime(predictedTime) };
-    });
-
-
+  // 新規ユーザー向けガイド
+  if (stage === 'new') {
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+          {/* RISE Logo */}
+          <View style={styles.logoContainer}>
+            <Text style={styles.logoText}>RISE</Text>
+            <Text style={styles.logoSubtitle}>Ramp to Individual Speed Exhaustion</Text>
+          </View>
 
-                {/* ヘッダー */}
-                <View style={styles.header}>
-                    <View style={styles.headerTop}>
-                        <View>
-                            <Text style={styles.greeting}>
-                                {new Date().getHours() < 12 ? 'おはようございます' : new Date().getHours() < 18 ? 'こんにちは' : 'おつかれさまです'}
-                            </Text>
-                            <Text style={styles.userName}>{profile?.displayName || 'ランナー'}さん</Text>
-                        </View>
-                        {profile?.avatarUri ? (
-                            <Image source={{ uri: profile.avatarUri }} style={styles.headerAvatar} />
-                        ) : (
-                            <View style={[styles.headerBadge, { backgroundColor: `${limiter.color}20`, borderColor: `${limiter.color}40` }]}>
-                                <Text style={styles.headerBadgeIcon}>{limiter.icon}</Text>
-                            </View>
-                        )}
-                    </View>
-                </View>
-
-                {/* eTPステータス（コンパクト横並び） */}
-                <View style={[styles.etpCompactContainer, { borderColor: `${limiter.color}30` }]}>
-                    {/* 左: メインeTP */}
-                    <View style={styles.etpCompactMain}>
-                        <View style={[
-                            styles.etpCompactCircle,
-                            { borderColor: limiter.color, backgroundColor: `${limiter.color}20`, shadowColor: limiter.color }
-                        ]}>
-                            <Text style={styles.etpCompactValue}>{etp}</Text>
-                        </View>
-                        <View style={styles.etpCompactInfo}>
-                            <Text style={styles.etpCompactLabel}>{hasTestResult ? 'eTP' : '推定eTP'}</Text>
-                            <Text style={styles.etpCompactPace}>{formatKmPace(etp)}</Text>
-                        </View>
-                    </View>
-                    {/* 右: サブ指標 */}
-                    <View style={styles.etpCompactSubs}>
-                        <View style={styles.etpCompactSubItem}>
-                            <Text style={styles.etpCompactSubValue}>{level ?? '-'}</Text>
-                            <Text style={styles.etpCompactSubLabel}>Lv</Text>
-                        </View>
-                        <View style={styles.etpCompactSubItem}>
-                            <Text style={styles.etpCompactSubValue}>{vo2max ?? '-'}</Text>
-                            <Text style={styles.etpCompactSubLabel}>VO2</Text>
-                        </View>
-                        <View style={styles.etpCompactSubItem}>
-                            <Text style={[styles.etpCompactSubValue, { color: limiter.color }]}>{limiter.icon}</Text>
-                            <Text style={styles.etpCompactSubLabel}>タイプ</Text>
-                        </View>
-                    </View>
-                </View>
-
-                {/* RISEテストCTA（マイページと統一デザイン） */}
-                <TouchableOpacity style={styles.testCta} onPress={() => router.push('/test')}>
-                    <Text style={styles.testCtaIcon}>🏃</Text>
-                    <View style={styles.testCtaText}>
-                        <Text style={styles.testCtaTitle}>テストを実施</Text>
-                        <Text style={styles.testCtaDesc}>eTPとリミッターを測定</Text>
-                    </View>
-                    <Text style={styles.testCtaArrow}>→</Text>
-                </TouchableOpacity>
-
-                {/* テスト未実施時のガイドバナー */}
-                {!hasTestResult && (
-                    <TouchableOpacity
-                        style={styles.testGuideCard}
-                        onPress={() => router.push('/test')}
-                        activeOpacity={0.9}
-                    >
-                        <LinearGradient
-                            colors={['rgba(249, 115, 22, 0.15)', 'rgba(234, 88, 12, 0.25)']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.testGuideGradient}
-                        >
-                            <View style={styles.testGuideHeader}>
-                                <Text style={styles.testGuideIcon}>🎯</Text>
-                                <Text style={styles.testGuideTitle}>まずはRISE Testを実施しよう</Text>
-                            </View>
-                            <Text style={styles.testGuideDescription}>
-                                10〜15分のテストで持久力タイプを診断します
-                            </Text>
-                            <View style={styles.testGuideCta}>
-                                <Text style={styles.testGuideCtaText}>テストを始める →</Text>
-                            </View>
-                        </LinearGradient>
-                    </TouchableOpacity>
-                )}
-
-                {/* レースまでの日数 */}
-                {daysToRace && (
-                    <View style={styles.raceCountdown}>
-                        <Text style={styles.raceCountdownLabel}>🏁 {activePlan?.race.name}</Text>
-                        <Text style={styles.raceCountdownValue}>あと <Text style={styles.raceCountdownNumber}>{daysToRace}</Text> 日</Text>
-                    </View>
-                )}
-
-                {/* 今日のワークアウト */}
-                {todayWorkout ? (
-                    <TouchableOpacity
-                        style={styles.todayCard}
-                        onPress={() => router.push('/(tabs)/plan')}
-                        activeOpacity={0.9}
-                    >
-                        <LinearGradient
-                            colors={['rgba(59, 130, 246, 0.15)', 'rgba(139, 92, 246, 0.15)']}
-                            style={styles.todayCardGradient}
-                        >
-                            <Text style={styles.todayLabel}>📅 今日のワークアウト</Text>
-                            {todayWorkout.type === 'rest' ? (
-                                <View style={styles.todayContent}>
-                                    <Text style={styles.todayRestIcon}>🛏</Text>
-                                    <Text style={styles.todayRestText}>休養日</Text>
-                                </View>
-                            ) : (
-                                <View style={styles.todayContent}>
-                                    <Text style={styles.todayWorkoutName}>{todayWorkout.label}</Text>
-                                </View>
-                            )}
-                            <Text style={styles.todayTapHint}>タップして詳細を見る →</Text>
-                        </LinearGradient>
-                    </TouchableOpacity>
-                ) : hasTestResult && !activePlan ? (
-                    <TouchableOpacity
-                        style={styles.createPlanCard}
-                        onPress={() => router.push('/(tabs)/plan')}
-                    >
-                        <Text style={styles.createPlanIcon}>📋</Text>
-                        <View style={styles.createPlanText}>
-                            <Text style={styles.createPlanTitle}>計画を作成しよう</Text>
-                            <Text style={styles.createPlanDesc}>レース目標に向けたトレーニング計画を作成</Text>
-                        </View>
-                        <Text style={styles.createPlanArrow}>→</Text>
-                    </TouchableOpacity>
-                ) : null}
-
-                {/* 今週の進捗 */}
-                <View style={styles.weekProgressCard}>
-                    <View style={styles.weekProgressHeader}>
-                        <Text style={styles.weekProgressTitle}>📊 今週の進捗</Text>
-                        <Text style={styles.weekProgressCount}>{completedCount}/7</Text>
-                    </View>
-                    <View style={styles.weekProgressDots}>
-                        {weekProgress.map((day, i) => (
-                            <View key={i} style={styles.weekProgressDay}>
-                                <View style={[
-                                    styles.weekProgressDot,
-                                    day.done && styles.weekProgressDotDone,
-                                    day.isToday && styles.weekProgressDotToday,
-                                ]}>
-                                    {day.done && <Text style={styles.weekProgressCheck}>✓</Text>}
-                                </View>
-                                <Text style={[styles.weekProgressDayLabel, day.isToday && styles.weekProgressDayLabelToday]}>
-                                    {day.day}
-                                </Text>
-                            </View>
-                        ))}
-                    </View>
-                </View>
-
-
-
-                {/* 最近のワークアウト */}
-                {workoutLogs.length > 0 && (
-                    <View style={styles.recentSection}>
-                        <Text style={styles.sectionTitle}>🏃 最近の記録</Text>
-                        {workoutLogs.slice(0, 3).map((log) => {
-                            const logDate = new Date(log.date);
-                            const dateStr = `${logDate.getMonth() + 1}/${logDate.getDate()}`;
-                            return (
-                                <View key={log.id} style={styles.recentItem}>
-                                    <Text style={styles.recentDate}>{dateStr}</Text>
-                                    <Text style={styles.recentName}>{log.workoutName}</Text>
-                                    <Text style={styles.recentCheck}>✓</Text>
-                                </View>
-                            );
-                        })}
-                    </View>
-                )}
-
-                {/* レース予測（Bento Grid） */}
-                <View style={styles.predictionsSection}>
-                    <Text style={styles.sectionTitle}>🏁 レース予測</Text>
-                    <View style={styles.bentoGrid}>
-                        {racePredictions.map((race) => (
-                            <View key={race.distance} style={styles.bentoCard}>
-                                <Text style={styles.predictionDistance}>{race.label}</Text>
-                                <Text style={styles.predictionTime}>{race.formatted}</Text>
-                            </View>
-                        ))}
-                    </View>
-                </View>
-
-                {/* トレーニングゾーン */}
-                <View style={styles.zonesSection}>
-                    <Text style={styles.sectionTitle}>🎯 トレーニングゾーン</Text>
-                    <View style={styles.zonesContainer}>
-                        {zones.map((zone) => (
-                            <View key={zone.key} style={styles.zoneRow}>
-                                <View style={[styles.zoneIndicator, { backgroundColor: zone.color }]} />
-                                <Text style={styles.zoneName}>{zone.name}</Text>
-                                <Text style={styles.zonePace}>{zone.pace400m}秒 ({formatKmPace(zone.pace400m)})</Text>
-                            </View>
-                        ))}
-                    </View>
-                </View>
-
-                <View style={styles.bottomSpacer} />
-            </ScrollView>
-        </SafeAreaView>
+          {/* Empty State */}
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>まだプロファイルが設定されていません</Text>
+            <Button
+              title="プロファイルを設定"
+              onPress={() => router.push('/settings')}
+              style={styles.emptyButton}
+            />
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     );
+  }
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        {/* ヘッダー */}
+        <Text style={styles.pageTitle}>ダッシュボード</Text>
+
+        {/* ステータスカード */}
+        <View style={styles.statusCard}>
+          <View style={styles.etpDisplay}>
+            <View style={styles.etpLabelRow}>
+              <Text style={styles.etpLabel}>eTP</Text>
+              <View style={styles.etpSourceBadge}>
+                <Text style={styles.etpSourceText}>
+                  {source === 'estimated' ? '推定' : source === 'measured' ? '測定' : 'デフォルト'}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.etpValue}>{etp}秒</Text>
+            <Text style={styles.etpKmPace}>{formatKmPace(etp)}</Text>
+
+            {/* リミッターバッジ */}
+            <View style={styles.limiterBadge}>
+              <Ionicons
+                name={LIMITER_ICON[limiter].name as any}
+                size={18}
+                color={LIMITER_ICON[limiter].color}
+              />
+              <Text style={styles.limiterLabel}>{LIMITER_LABEL[limiter]}</Text>
+            </View>
+
+            {/* レベルとVO2max */}
+            <View style={styles.metricsRow}>
+              <View style={styles.metricItem}>
+                <Text style={styles.metricLabel}>レベル</Text>
+                <Text style={styles.metricValueBlue}>{level || '-'}</Text>
+              </View>
+              <View style={styles.metricDivider} />
+              <View style={styles.metricItem}>
+                <Text style={styles.metricLabel}>推定VO2max</Text>
+                <Text style={styles.metricValueGreen}>{vo2max || '-'}</Text>
+              </View>
+            </View>
+
+            {/* 最終測定日 */}
+            {latestResult && (
+              <Text style={styles.lastTestDate}>
+                最終測定: {new Date(latestResult.date).toLocaleDateString('ja-JP')}
+              </Text>
+            )}
+          </View>
+        </View>
+
+        {/* アクティブ計画カード */}
+        {activePlan && (
+          <View style={styles.planCard}>
+            <Text style={styles.sectionLabel}>目標レース</Text>
+            <Pressable
+              style={styles.planContent}
+              onPress={() => router.push('/plan')}
+            >
+              <Text style={styles.planName}>{activePlan.race.name}</Text>
+              <Text style={styles.planMeta}>
+                {new Date(activePlan.race.date).toLocaleDateString('ja-JP')} | {activePlan.race.distance}m
+              </Text>
+              <Text style={styles.planTarget}>
+                目標: {formatTime(activePlan.race.targetTime)}
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* 今日のメニュー */}
+        {todayWorkout && todayWorkout.type !== 'rest' && (
+          <View style={styles.todayWorkout}>
+            <Text style={styles.sectionLabel}>今日のメニュー</Text>
+            <Pressable
+              style={styles.todayContent}
+              onPress={() => router.push('/workout')}
+            >
+              <Text style={styles.todayLabel}>{todayWorkout.label}</Text>
+              <Text style={styles.todayHint}>タップして詳細を見る →</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* 週間進捗 */}
+        {weekProgress && (
+          <View style={styles.weekProgress}>
+            <Text style={styles.sectionLabel}>
+              今週の進捗 ({weekProgress.completed}/{weekProgress.total})
+            </Text>
+            <View style={styles.progressBar}>
+              {weekProgress.days.map((completed, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.progressDay,
+                    completed && styles.progressDayCompleted,
+                  ]}
+                />
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* 次回RISE Test推奨 */}
+        {testRecommendation && (
+          <Pressable
+            style={styles.testRecommendation}
+            onPress={() => router.push('/test')}
+          >
+            <Text style={styles.testRecommendationTitle}>次回RISE Test推奨</Text>
+            <Text style={styles.testRecommendationText}>{testRecommendation.reason}</Text>
+          </Pressable>
+        )}
+
+        {/* トレーニングゾーン（折りたたみ可能） */}
+        <View style={styles.collapsibleSection}>
+          <Pressable
+            style={[
+              styles.collapsibleHeader,
+              showZones && styles.collapsibleHeaderOpen,
+            ]}
+            onPress={() => setShowZones(!showZones)}
+          >
+            <View style={styles.collapsibleTitleRow}>
+              <Ionicons name="flag" size={16} color="#F97316" />
+              <Text style={styles.collapsibleTitle}>トレーニングゾーン</Text>
+            </View>
+            <Text style={[
+              styles.collapsibleArrow,
+              showZones && styles.collapsibleArrowOpen,
+            ]}>
+              ▼
+            </Text>
+          </Pressable>
+          {showZones && (
+            <View style={styles.collapsibleContent}>
+              {(Object.entries(zones) as [ZoneName, number][]).map(([zone, pace]) => (
+                <View key={zone} style={styles.zoneRow}>
+                  <View style={styles.zoneInfo}>
+                    <View
+                      style={[
+                        styles.zoneIndicator,
+                        { backgroundColor: ZONE_COEFFICIENTS_V3[zone].color },
+                      ]}
+                    />
+                    <Text style={styles.zoneName}>
+                      {ZONE_COEFFICIENTS_V3[zone].label}
+                      {zone === 'jog' && (
+                        <Text style={styles.zoneNote}> (目安)</Text>
+                      )}
+                    </Text>
+                  </View>
+                  <View style={styles.zonePaces}>
+                    <Text style={styles.zonePace400}>{formatTime(pace)}秒</Text>
+                    <Text style={styles.zonePaceKm}>{formatKmPace(pace)}</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
+        {/* 予測タイム（折りたたみ可能） */}
+        <View style={styles.collapsibleSection}>
+          <Pressable
+            style={[
+              styles.collapsibleHeader,
+              showPredictions && styles.collapsibleHeaderOpen,
+            ]}
+            onPress={() => setShowPredictions(!showPredictions)}
+          >
+            <View style={styles.collapsibleTitleRow}>
+              <Ionicons name="stopwatch" size={16} color="#3B82F6" />
+              <Text style={styles.collapsibleTitle}>予測タイム</Text>
+            </View>
+            <Text style={[
+              styles.collapsibleArrow,
+              showPredictions && styles.collapsibleArrowOpen,
+            ]}>
+              ▼
+            </Text>
+          </Pressable>
+          {showPredictions && (
+            <View style={styles.collapsibleContent}>
+              {[
+                { key: 'm800' as const, label: '800m' },
+                { key: 'm1500' as const, label: '1500m' },
+                { key: 'm3000' as const, label: '3000m' },
+                { key: 'm5000' as const, label: '5000m' },
+              ].map(({ key, label }) => {
+                const pb = profile?.pbs?.[key];
+                return (
+                  <View key={key} style={styles.predictionRow}>
+                    <Text style={styles.predictionLabel}>{label}</Text>
+                    <View style={styles.predictionValues}>
+                      <Text style={styles.predictionTime}>
+                        {formatTime(predictions[key].min)} - {formatTime(predictions[key].max)}
+                      </Text>
+                      {pb && (
+                        <Text style={styles.predictionPB}>PB: {formatTime(pb)}</Text>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+              <Text style={styles.predictionNote}>
+                {LIMITER_LABEL[limiter]}として調整済み
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* クイックアクション */}
+        <View style={styles.quickActions}>
+          <Pressable
+            style={styles.actionButton}
+            onPress={() => router.push('/test')}
+          >
+            <Ionicons name="stats-chart" size={18} color="#8B5CF6" />
+            <Text style={styles.actionText}>RISE Test</Text>
+          </Pressable>
+          <Pressable
+            style={styles.actionButton}
+            onPress={() => router.push('/plan')}
+          >
+            <Ionicons name="document-text" size={18} color="#F97316" />
+            <Text style={styles.actionText}>計画を見る</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
 }
 
-// ============================================
-// スタイル定義
-// ============================================
-
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#0a0a0f' },
-    scrollView: { flex: 1, paddingHorizontal: 20 },
-    header: { marginTop: 16, marginBottom: 16 },
-    headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    greeting: { fontSize: 14, color: '#6b7280' },
-    userName: { fontSize: 24, fontWeight: '700', color: '#fff', marginTop: 2 },
-    headerBadge: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center', borderWidth: 1 },
-    headerBadgeIcon: { fontSize: 22 },
-    headerAvatar: { width: 44, height: 44, borderRadius: 22 },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background.dark,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 32,
+  },
 
-    // テストガイドバナー
-    testGuideCard: { marginBottom: 16, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(249,115,22,0.4)' },
-    testGuideGradient: { padding: 20 },
-    testGuideHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
-    testGuideIcon: { fontSize: 22, marginRight: 8 },
-    testGuideTitle: { fontSize: 17, fontWeight: '700', color: '#fff' },
-    testGuideDescription: { fontSize: 13, color: '#d1d5db', marginBottom: 16 },
-    testGuideCta: { backgroundColor: 'rgba(249,115,22,0.2)', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
-    testGuideCtaText: { color: '#F97316', fontSize: 15, fontWeight: '600' },
+  // Logo (for new users)
+  logoContainer: {
+    alignItems: 'center',
+    paddingTop: 60,
+    marginBottom: 40,
+  },
+  logoText: {
+    fontSize: 48,
+    fontWeight: '800',
+    color: COLORS.text.primary,
+    letterSpacing: 4,
+  },
+  logoSubtitle: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    marginTop: 8,
+    letterSpacing: 1,
+  },
+  emptyState: {
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 15,
+    color: COLORS.text.secondary,
+    marginBottom: 16,
+  },
+  emptyButton: {
+    minWidth: 180,
+  },
 
-    // レースカウントダウン
-    raceCountdown: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'rgba(34,197,94,0.1)', borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(34,197,94,0.3)' },
-    raceCountdownLabel: { color: '#22c55e', fontSize: 14, fontWeight: '500' },
-    raceCountdownValue: { color: '#9ca3af', fontSize: 14 },
-    raceCountdownNumber: { color: '#22c55e', fontSize: 22, fontWeight: '700' },
+  // Page Title
+  pageTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 20,
+  },
 
-    // 今日のワークアウト
-    todayCard: { marginBottom: 16, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(59,130,246,0.3)' },
-    todayCardGradient: { padding: 20 },
-    todayLabel: { color: '#9ca3af', fontSize: 13, marginBottom: 8 },
-    todayContent: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-    todayWorkoutName: { color: '#fff', fontSize: 20, fontWeight: '700' },
-    todayWorkoutDistance: { color: '#60a5fa', fontSize: 16, marginLeft: 12 },
-    todayRestIcon: { fontSize: 28, marginRight: 12 },
-    todayRestText: { color: '#9ca3af', fontSize: 18 },
-    todayTapHint: { color: '#6b7280', fontSize: 12 },
+  // Status Card
+  statusCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: 20,
+  },
+  etpDisplay: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  etpLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  etpLabel: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+  },
+  etpSourceBadge: {
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  etpSourceText: {
+    fontSize: 11,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  etpValue: {
+    fontSize: 48,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  etpKmPace: {
+    fontSize: 16,
+    color: COLORS.text.secondary,
+    marginTop: 4,
+  },
+  limiterBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  // limiterIcon removed - using Ionicons directly
+  limiterLabel: {
+    fontSize: 13,
+    color: COLORS.text.primary,
+    fontWeight: '500',
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 8,
+  },
+  metricItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  metricLabel: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginBottom: 4,
+  },
+  metricValueBlue: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  metricValueGreen: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.success,
+  },
+  metricDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  lastTestDate: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginTop: 8,
+  },
 
-    // 計画作成カード
-    createPlanCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(139,92,246,0.1)', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(139,92,246,0.3)' },
-    createPlanIcon: { fontSize: 28, marginRight: 12 },
-    createPlanText: { flex: 1 },
-    createPlanTitle: { color: '#fff', fontSize: 15, fontWeight: '600' },
-    createPlanDesc: { color: '#6b7280', fontSize: 12, marginTop: 2 },
-    createPlanArrow: { color: '#8B5CF6', fontSize: 20 },
+  // Section Label
+  sectionLabel: {
+    fontSize: 14,
+    color: COLORS.text.muted,
+    marginBottom: 8,
+  },
 
-    // 進捗インジケータ
-    weekProgressCard: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 16, marginBottom: 16 },
-    weekProgressHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-    weekProgressTitle: { color: '#9ca3af', fontSize: 13 },
-    weekProgressCount: { color: '#6b7280', fontSize: 13 },
-    weekProgressDots: { flexDirection: 'row', justifyContent: 'space-between' },
-    weekProgressDay: { alignItems: 'center' },
-    weekProgressDot: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center', marginBottom: 4 },
-    weekProgressDotDone: { backgroundColor: 'rgba(34,197,94,0.3)' },
-    weekProgressDotToday: { borderWidth: 2, borderColor: '#3B82F6' },
-    weekProgressCheck: { color: '#22c55e', fontSize: 14, fontWeight: '700' },
-    weekProgressDayLabel: { color: '#6b7280', fontSize: 10 },
-    weekProgressDayLabelToday: { color: '#3B82F6', fontWeight: '600' },
+  // Plan Card
+  planCard: {
+    marginBottom: 20,
+  },
+  planContent: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  planName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 4,
+  },
+  planMeta: {
+    fontSize: 14,
+    color: COLORS.text.muted,
+  },
+  planTarget: {
+    fontSize: 14,
+    color: COLORS.primary,
+    marginTop: 8,
+  },
 
-    // eTPコンパクト横並びレイアウト
-    etpCompactContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.06)',
-    },
-    etpCompactMain: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    etpCompactCircle: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        borderWidth: 3,
-        justifyContent: 'center',
-        alignItems: 'center',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.4,
-        shadowRadius: 12,
-    },
-    etpCompactValue: { fontSize: 22, fontWeight: '800', color: '#fff' },
-    etpCompactInfo: { marginLeft: 12 },
-    etpCompactLabel: { color: '#9ca3af', fontSize: 12 },
-    etpCompactPace: { color: '#fff', fontSize: 16, fontWeight: '600', marginTop: 2 },
-    etpCompactSubs: {
-        flexDirection: 'row',
-        gap: 16,
-    },
-    etpCompactSubItem: { alignItems: 'center' },
-    etpCompactSubValue: { fontSize: 18, fontWeight: '700', color: '#fff' },
-    etpCompactSubLabel: { color: '#6b7280', fontSize: 10, marginTop: 2 },
+  // Today Workout
+  todayWorkout: {
+    marginBottom: 20,
+  },
+  todayContent: {
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+  },
+  todayLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  todayHint: {
+    fontSize: 13,
+    color: '#a78bfa',
+    marginTop: 4,
+  },
 
-    // 最近のワークアウト
-    recentSection: { marginBottom: 16 },
-    sectionTitle: { color: '#9ca3af', fontSize: 13, marginBottom: 10 },
-    recentItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: 12, marginBottom: 6 },
-    recentDate: { color: '#6b7280', fontSize: 12, width: 40 },
-    recentName: { flex: 1, color: '#fff', fontSize: 13 },
-    recentCheck: { color: '#22c55e', fontSize: 14 },
+  // Week Progress
+  weekProgress: {
+    marginBottom: 20,
+  },
+  progressBar: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  progressDay: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  progressDayCompleted: {
+    backgroundColor: COLORS.primary,
+  },
 
-    // レース予測（Bento Grid）
-    predictionsSection: { marginBottom: 20 },
-    bentoGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-    },
-    bentoCard: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 16,
-        padding: 16,
-        width: '48%',
-        marginBottom: 10,
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: 'rgba(255, 255, 255, 0.06)',
-    },
-    predictionDistance: { color: '#9ca3af', fontSize: 13, fontWeight: '500' },
-    predictionTime: { color: '#fff', fontSize: 22, fontWeight: '700', marginTop: 6 },
+  // Test Recommendation
+  testRecommendation: {
+    backgroundColor: 'rgba(234, 179, 8, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(234, 179, 8, 0.3)',
+    marginBottom: 20,
+  },
+  testRecommendationTitle: {
+    fontSize: 14,
+    color: COLORS.warning,
+    marginBottom: 4,
+  },
+  testRecommendationText: {
+    fontSize: 13,
+    color: COLORS.text.muted,
+  },
 
-    // トレーニングゾーン
-    zonesSection: { marginBottom: 16 },
-    zonesContainer: { backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 12 },
-    zoneRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
-    zoneIndicator: { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
-    zoneName: { flex: 1, color: '#fff', fontSize: 13 },
-    zonePace: { color: '#9ca3af', fontSize: 12 },
+  // Collapsible Sections
+  collapsibleSection: {
+    marginBottom: 12,
+  },
+  collapsibleHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 14,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  collapsibleHeaderOpen: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderBottomWidth: 0,
+  },
+  collapsibleTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  collapsibleTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+  },
+  collapsibleArrow: {
+    fontSize: 14,
+    color: COLORS.text.muted,
+  },
+  collapsibleArrowOpen: {
+    transform: [{ rotate: '180deg' }],
+  },
+  collapsibleContent: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderBottomLeftRadius: 12,
+    borderBottomRightRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderTopWidth: 0,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
 
-    // テストCTA（マイページと統一）
-    testCta: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(59,130,246,0.1)', borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(59,130,246,0.3)' },
-    testCtaIcon: { fontSize: 24, marginRight: 12 },
-    testCtaText: { flex: 1 },
-    testCtaTitle: { color: '#fff', fontSize: 16, fontWeight: '600' },
-    testCtaDesc: { color: '#9ca3af', fontSize: 12, marginTop: 2 },
-    testCtaArrow: { color: '#3B82F6', fontSize: 20, fontWeight: '600' },
+  // Zones Table
+  zoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  zoneInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  zoneIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  zoneName: {
+    fontSize: 14,
+    color: COLORS.text.primary,
+  },
+  zoneNote: {
+    fontSize: 10,
+    color: COLORS.text.muted,
+  },
+  zonePaces: {
+    alignItems: 'flex-end',
+  },
+  zonePace400: {
+    fontSize: 14,
+    color: COLORS.text.primary,
+  },
+  zonePaceKm: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+  },
 
-    bottomSpacer: { height: 40 },
+  // Predictions
+  predictionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 8,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  predictionLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  predictionValues: {
+    alignItems: 'flex-end',
+  },
+  predictionTime: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+    color: COLORS.text.primary,
+  },
+  predictionPB: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginTop: 2,
+  },
+  predictionNote: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+
+  // Quick Actions
+  quickActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  // actionEmoji removed - using Ionicons directly
+  actionText: {
+    fontSize: 14,
+    color: COLORS.text.primary,
+    fontWeight: '500',
+  },
 });
