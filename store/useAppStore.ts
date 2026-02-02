@@ -23,7 +23,7 @@ export interface TestResult {
     dist5min?: number;
     dist30min?: number;
 
-    // RISEテスト結果
+    // ランプテスト結果
     level?: string;
     completedLaps?: number;
     lcp?: number;

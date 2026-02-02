@@ -120,7 +120,7 @@ export default function OnboardingPB() {
                             <Text style={styles.previewPace}>{formatKmPace(estimatedEtp)}</Text>
                         </View>
                         <Text style={styles.previewNote}>
-                            ※ RISEテストを実施するとより正確な値が得られます
+                            ※ ランプテストを実施するとより正確な値が得られます
                         </Text>
                     </View>
                 )}

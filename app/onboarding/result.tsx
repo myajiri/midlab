@@ -66,7 +66,7 @@ export default function OnboardingResult() {
                 <Text style={styles.subtitle}>
                     {estimatedEtp
                         ? 'PBから推定したあなたの初期データです'
-                        : 'RISEテストを実施してあなたのデータを取得しましょう'}
+                        : 'ランプテストを実施してあなたのデータを取得しましょう'}
                 </Text>
 
                 {estimatedEtp ? (
@@ -108,7 +108,7 @@ export default function OnboardingResult() {
 
                         <View style={styles.noteCard}>
                             <Text style={styles.noteText}>
-                                💡 より正確なeTPとリミッター判定のために、RISEテストの実施をおすすめします
+                                💡 より正確なeTPとリミッター判定のために、ランプテストの実施をおすすめします
                             </Text>
                         </View>
                     </>
@@ -117,7 +117,7 @@ export default function OnboardingResult() {
                         <Text style={styles.noDataIcon}>📊</Text>
                         <Text style={styles.noDataTitle}>データがありません</Text>
                         <Text style={styles.noDataText}>
-                            RISEテストを実施すると、あなたの持久力タイプとトレーニングゾーンが判定されます
+                            ランプテストを実施すると、あなたの持久力タイプとトレーニングゾーンが判定されます
                         </Text>
                     </View>
                 )}
@@ -127,7 +127,7 @@ export default function OnboardingResult() {
                     <Text style={styles.nextStepsTitle}>次のステップ</Text>
                     <View style={styles.stepItem}>
                         <Text style={styles.stepNumber}>1</Text>
-                        <Text style={styles.stepText}>テストタブからRISEテストを実施</Text>
+                        <Text style={styles.stepText}>テストタブからランプテストを実施</Text>
                     </View>
                     <View style={styles.stepItem}>
                         <Text style={styles.stepNumber}>2</Text>
