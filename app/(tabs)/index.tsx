@@ -28,7 +28,6 @@ import {
   getLevelFromEtp,
   getTodayWorkout,
   getWeekProgress,
-  getNextTestRecommendation,
 } from '../../src/utils';
 import { Button } from '../../src/components/ui';
 import { COLORS, ZONE_COEFFICIENTS_V3, RACE_COEFFICIENTS } from '../../src/constants';
@@ -62,7 +61,6 @@ export default function HomeScreen() {
 
   const todayWorkout = activePlan ? getTodayWorkout(activePlan) : null;
   const weekProgress = activePlan ? getWeekProgress(activePlan) : null;
-  const testRecommendation = getNextTestRecommendation(results);
   const latestResult = results.length > 0 ? results[0] : null;
 
   // 新規ユーザー向けガイド
@@ -142,6 +140,44 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* テスト未実施の場合の促進 */}
+        {source !== 'measured' && (
+          <Pressable
+            style={styles.promptCard}
+            onPress={() => router.push('/test')}
+          >
+            <View style={styles.promptIconContainer}>
+              <Ionicons name="stats-chart" size={24} color="#8B5CF6" />
+            </View>
+            <View style={styles.promptContent}>
+              <Text style={styles.promptTitle}>ランプテストを実施しましょう</Text>
+              <Text style={styles.promptText}>
+                テストを実施すると、あなたの正確なeTPとリミッタータイプが測定できます
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
+          </Pressable>
+        )}
+
+        {/* 計画未作成の場合の促進 */}
+        {!activePlan && (
+          <Pressable
+            style={styles.promptCard}
+            onPress={() => router.push('/plan')}
+          >
+            <View style={[styles.promptIconContainer, styles.promptIconOrange]}>
+              <Ionicons name="calendar" size={24} color="#F97316" />
+            </View>
+            <View style={styles.promptContent}>
+              <Text style={styles.promptTitle}>トレーニング計画を作成しましょう</Text>
+              <Text style={styles.promptText}>
+                目標レースに向けた週間トレーニング計画を自動生成します
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
+          </Pressable>
+        )}
+
         {/* アクティブ計画カード */}
         {activePlan && (
           <View style={styles.planCard}>
@@ -195,17 +231,6 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* 次回ランプテスト推奨 */}
-        {testRecommendation && (
-          <Pressable
-            style={styles.testRecommendation}
-            onPress={() => router.push('/test')}
-          >
-            <Text style={styles.testRecommendationTitle}>次回ランプテスト推奨</Text>
-            <Text style={styles.testRecommendationText}>{testRecommendation.reason}</Text>
-          </Pressable>
-        )}
-
         {/* レース予測タイム */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>レース予測タイム</Text>
@@ -251,44 +276,6 @@ export default function HomeScreen() {
             ))}
           </View>
         </View>
-
-        {/* テスト未実施の場合の促進 */}
-        {source !== 'measured' && (
-          <Pressable
-            style={styles.promptCard}
-            onPress={() => router.push('/test')}
-          >
-            <View style={styles.promptIconContainer}>
-              <Ionicons name="stats-chart" size={24} color="#8B5CF6" />
-            </View>
-            <View style={styles.promptContent}>
-              <Text style={styles.promptTitle}>ランプテストを実施しましょう</Text>
-              <Text style={styles.promptText}>
-                テストを実施すると、あなたの正確なeTPとリミッタータイプが測定できます
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
-          </Pressable>
-        )}
-
-        {/* 計画未作成の場合の促進 */}
-        {!activePlan && (
-          <Pressable
-            style={styles.promptCard}
-            onPress={() => router.push('/plan')}
-          >
-            <View style={[styles.promptIconContainer, styles.promptIconOrange]}>
-              <Ionicons name="calendar" size={24} color="#F97316" />
-            </View>
-            <View style={styles.promptContent}>
-              <Text style={styles.promptTitle}>トレーニング計画を作成しましょう</Text>
-              <Text style={styles.promptText}>
-                目標レースに向けた週間トレーニング計画を自動生成します
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
-          </Pressable>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -515,25 +502,6 @@ const styles = StyleSheet.create({
   },
   progressDayCompleted: {
     backgroundColor: COLORS.primary,
-  },
-
-  // Test Recommendation
-  testRecommendation: {
-    backgroundColor: 'rgba(234, 179, 8, 0.1)',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(234, 179, 8, 0.3)',
-    marginBottom: 20,
-  },
-  testRecommendationTitle: {
-    fontSize: 14,
-    color: COLORS.warning,
-    marginBottom: 4,
-  },
-  testRecommendationText: {
-    fontSize: 13,
-    color: COLORS.text.muted,
   },
 
   // Card Style
