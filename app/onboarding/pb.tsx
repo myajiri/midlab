@@ -7,20 +7,43 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useAppStore } from '../../store/useAppStore';
-import { estimateEtpFromMultiplePBs, formatKmPace } from '../../utils/calculations';
+import { useProfileStore } from '../../src/stores/useAppStore';
+import { formatKmPace } from '../../src/utils';
+import { PBs } from '../../src/types';
 
 const PB_FIELDS = [
-    { key: 'm800', label: '800m', placeholder: '例: 2:30' },
-    { key: 'm1500', label: '1500m', placeholder: '例: 5:00' },
-    { key: 'm3000', label: '3000m', placeholder: '例: 11:00' },
-    { key: 'm5000', label: '5000m', placeholder: '例: 20:00' },
+    { key: 'm800', label: '800m', placeholder: '例: 2:30', distance: 800 },
+    { key: 'm1500', label: '1500m', placeholder: '例: 5:00', distance: 1500 },
+    { key: 'm3000', label: '3000m', placeholder: '例: 11:00', distance: 3000 },
+    { key: 'm5000', label: '5000m', placeholder: '例: 20:00', distance: 5000 },
 ] as const;
+
+// PBsオブジェクトからeTPを推定（複数PBから最も信頼性の高いものを使用）
+const estimateEtpFromPbs = (pbs: Record<string, number>): number | null => {
+    const coefficients: Record<string, { coef: number; distance: number }> = {
+        m800: { coef: 0.82, distance: 800 },
+        m1500: { coef: 0.88, distance: 1500 },
+        m3000: { coef: 0.96, distance: 3000 },
+        m5000: { coef: 1.00, distance: 5000 },
+    };
+
+    // 優先順位: 5000m > 3000m > 1500m > 800m
+    const priority = ['m5000', 'm3000', 'm1500', 'm800'];
+
+    for (const key of priority) {
+        if (pbs[key] && pbs[key] > 0) {
+            const { coef, distance } = coefficients[key];
+            const distanceRatio = distance / 400;
+            return Math.round(pbs[key] / (coef * distanceRatio));
+        }
+    }
+    return null;
+};
 
 export default function OnboardingPB() {
     const router = useRouter();
-    const setProfile = useAppStore((state) => state.setProfile);
-    const profile = useAppStore((state) => state.profile);
+    const updatePBs = useProfileStore((state) => state.updatePBs);
+    const profile = useProfileStore((state) => state.profile);
 
     const [pbs, setPbs] = useState<Record<string, string>>({});
     const [parsedPbs, setParsedPbs] = useState<Record<string, number>>({});
@@ -40,10 +63,10 @@ export default function OnboardingPB() {
     };
 
     // 推定eTPを計算
-    const estimatedEtp = estimateEtpFromMultiplePBs(parsedPbs as any);
+    const estimatedEtp = Object.keys(parsedPbs).length > 0 ? estimateEtpFromPbs(parsedPbs) : null;
 
     const handleNext = () => {
-        setProfile({ pbs: parsedPbs as any });
+        updatePBs(parsedPbs as PBs);
         router.push('/onboarding/result');
     };
 

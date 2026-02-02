@@ -31,6 +31,7 @@ import { Button } from '../../src/components/ui';
 import {
   COLORS,
   LEVELS,
+  PACE_INCREMENT,
 } from '../../src/constants';
 import {
   LevelName,
@@ -71,15 +72,23 @@ export default function TestScreen() {
       const level = getLevelFromEtp(profile.estimated.etp);
       if (level) return level;
     }
-    // 4. 1500m PBから推奨レベルを算定
+    // 4. 1500m PBからeTPを推定してレベルを算定
     if (profile?.pbs?.m1500) {
-      const rec = recommendTestLevel(profile.pbs.m1500);
+      // 1500m PBからeTPを推定（PB / 3.30）
+      const estimatedEtp = Math.round(profile.pbs.m1500 / 3.30);
+      const rec = recommendTestLevel(
+        estimatedEtp,
+        profile?.ageCategory || 'senior',
+        profile?.experience || 'intermediate'
+      );
       if (rec?.recommended) return rec.recommended;
     }
     return 'A';
   };
 
   const [showInput, setShowInput] = useState(false);
+  const [showResult, setShowResult] = useState(false);
+  const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
   const [level, setLevel] = useState<LevelName>(() => getRecommendedLevel());
   const [isFirstTest, setIsFirstTest] = useState(false);
   const [completedLaps, setCompletedLaps] = useState(5);
@@ -93,10 +102,10 @@ export default function TestScreen() {
   const schedule = useMemo(() => generateLapSchedule(effectiveLevel), [effectiveLevel]);
   const maxLaps = LEVELS[level].maxLaps;
 
-  // LCP計算
+  // LCP計算（Last Completed Pace）
   const calculateLCP = (lvl: LevelName, laps: number): number => {
     const cfg = LEVELS[lvl];
-    return cfg.startPace - (laps - 1) * cfg.decrementPerLap;
+    return cfg.startPace - (laps - 1) * PACE_INCREMENT;
   };
   const lcp = calculateLCP(level, completedLaps);
 
@@ -130,8 +139,80 @@ export default function TestScreen() {
 
     addResult(testResult);
     setCurrent(etp, limiterResult.type);
+    setLastTestResult(testResult);
     setShowInput(false);
+    setShowResult(true);
   };
+
+  // リミッター表示用
+  const LIMITER_DISPLAY: Record<string, { icon: string; name: string; color: string }> = {
+    cardio: { icon: 'heart', name: '心肺リミッター型', color: '#EF4444' },
+    muscular: { icon: 'fitness', name: '筋持久力リミッター型', color: '#F97316' },
+    balanced: { icon: 'git-compare', name: 'バランス型', color: '#22C55E' },
+  };
+
+  // 結果表示画面
+  if (showResult && lastTestResult) {
+    const limiterInfo = LIMITER_DISPLAY[lastTestResult.limiterType];
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
+          {/* ヘッダー */}
+          <View style={styles.resultHeader}>
+            <Text style={styles.resultHeaderTitle}>テスト結果</Text>
+            <Text style={styles.resultHeaderDate}>
+              {new Date(lastTestResult.date).toLocaleDateString('ja-JP')}
+            </Text>
+          </View>
+
+          {/* eTPカード */}
+          <View style={styles.etpResultCard}>
+            <Text style={styles.etpResultLabel}>あなたのeTP</Text>
+            <Text style={styles.etpResultValue}>{lastTestResult.eTP}秒</Text>
+            <Text style={styles.etpResultPace}>{formatKmPace(lastTestResult.eTP)}</Text>
+          </View>
+
+          {/* リミッタータイプ */}
+          <View style={[styles.limiterResultCard, { borderColor: limiterInfo.color }]}>
+            <Ionicons name={limiterInfo.icon as any} size={28} color={limiterInfo.color} />
+            <View style={styles.limiterResultInfo}>
+              <Text style={[styles.limiterResultName, { color: limiterInfo.color }]}>
+                {limiterInfo.name}
+              </Text>
+              <Text style={styles.limiterResultConfidence}>
+                確信度: {lastTestResult.limiterConfidence === 'confirmed' ? '高' : '中'}
+              </Text>
+            </View>
+          </View>
+
+          {/* テスト詳細 */}
+          <View style={styles.testDetailCard}>
+            <Text style={styles.testDetailTitle}>テスト詳細</Text>
+            <View style={styles.testDetailRow}>
+              <Text style={styles.testDetailLabel}>レベル</Text>
+              <Text style={styles.testDetailValue}>{lastTestResult.level}</Text>
+            </View>
+            <View style={styles.testDetailRow}>
+              <Text style={styles.testDetailLabel}>完走周回数</Text>
+              <Text style={styles.testDetailValue}>{lastTestResult.completedLaps}周</Text>
+            </View>
+            <View style={styles.testDetailRow}>
+              <Text style={styles.testDetailLabel}>最終ペース</Text>
+              <Text style={styles.testDetailValue}>{lastTestResult.lastCompletedPace}秒/400m</Text>
+            </View>
+          </View>
+
+          {/* ボタン */}
+          <Button
+            title="完了"
+            onPress={() => setShowResult(false)}
+            fullWidth
+            style={styles.completeBtn}
+          />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   // 結果入力フォーム
   if (showInput) {
@@ -712,5 +793,98 @@ const styles = StyleSheet.create({
   // Submit Button
   submitBtn: {
     marginTop: 12,
+  },
+
+  // Result Screen
+  resultHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  resultHeaderTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: 4,
+  },
+  resultHeaderDate: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+  },
+  etpResultCard: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  etpResultLabel: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    marginBottom: 8,
+  },
+  etpResultValue: {
+    fontSize: 48,
+    fontWeight: '800',
+    color: COLORS.text.primary,
+  },
+  etpResultPace: {
+    fontSize: 18,
+    color: COLORS.text.secondary,
+    marginTop: 4,
+  },
+  limiterResultCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    gap: 12,
+  },
+  limiterResultInfo: {
+    flex: 1,
+  },
+  limiterResultName: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  limiterResultConfidence: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+  },
+  testDetailCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  testDetailTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+    marginBottom: 12,
+  },
+  testDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  testDetailLabel: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+  },
+  testDetailValue: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+  },
+  completeBtn: {
+    marginTop: 8,
   },
 });

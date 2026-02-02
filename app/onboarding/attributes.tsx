@@ -7,22 +7,26 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useAppStore } from '../../store/useAppStore';
-import { LIMITER_CONFIG, type LimiterType } from '../../constants';
+import { useProfileStore } from '../../src/stores/useAppStore';
+import { LIMITER_CONFIG } from '../../constants';
+import { LimiterType, AgeCategory, Experience } from '../../src/types';
 
-const AGE_CATEGORIES = [
-    { key: 'junior', label: '中学生', desc: '12-15歳' },
-    { key: 'youth', label: '高校生・大学生', desc: '16-22歳' },
-    { key: 'senior', label: '一般', desc: '23-39歳' },
-    { key: 'master', label: 'マスターズ', desc: '40歳以上' },
-] as const;
+const AGE_CATEGORIES: { key: AgeCategory; label: string; desc: string }[] = [
+    { key: 'junior_high', label: '中学生', desc: '12-15歳' },
+    { key: 'high_school', label: '高校生', desc: '15-18歳' },
+    { key: 'collegiate', label: '大学生', desc: '18-22歳' },
+    { key: 'senior', label: '一般', desc: '22-39歳' },
+    { key: 'masters_40', label: 'マスターズ40代', desc: '40-49歳' },
+    { key: 'masters_50', label: 'マスターズ50代', desc: '50-59歳' },
+    { key: 'masters_60', label: 'マスターズ60歳以上', desc: '60歳以上' },
+];
 
-const EXPERIENCE_LEVELS = [
+const EXPERIENCE_LEVELS: { key: Experience; label: string; desc: string }[] = [
     { key: 'beginner', label: '初心者', desc: '走歴1年未満' },
     { key: 'intermediate', label: '中級者', desc: '走歴1-3年' },
     { key: 'advanced', label: '上級者', desc: '走歴3年以上' },
     { key: 'elite', label: 'エリート', desc: '競技経験あり' },
-] as const;
+];
 
 const LIMITER_TYPES: { key: LimiterType; label: string; desc: string }[] = [
     { key: 'cardio', label: '心肺型', desc: '心肺機能が制限要因' },
@@ -35,16 +39,19 @@ export default function OnboardingAttributes() {
     const { edit } = useLocalSearchParams<{ edit?: string }>();
     const isEditMode = edit === 'true';
 
-    const setProfile = useAppStore((state) => state.setProfile);
-    const profile = useAppStore((state) => state.profile);
+    const updateAttributes = useProfileStore((state) => state.updateAttributes);
+    const setLimiterTypeStore = useProfileStore((state) => state.setLimiterType);
+    const profile = useProfileStore((state) => state.profile);
 
-    const [displayName, setDisplayName] = useState(profile.displayName || '');
-    const [ageCategory, setAgeCategory] = useState<typeof AGE_CATEGORIES[number]['key']>(profile.ageCategory);
-    const [experience, setExperience] = useState<typeof EXPERIENCE_LEVELS[number]['key']>(profile.experience);
-    const [limiterType, setLimiterType] = useState<LimiterType>(profile.selfReportedLimiter ?? 'balanced');
+    const [displayName, setDisplayName] = useState('');
+    const [ageCategory, setAgeCategory] = useState<AgeCategory>(profile.ageCategory);
+    const [experience, setExperience] = useState<Experience>(profile.experience);
+    const [limiterType, setLimiterType] = useState<LimiterType>(profile.estimated?.limiterType ?? 'balanced');
 
     const handleNext = () => {
-        setProfile({ displayName: displayName.trim() || 'ゲスト', ageCategory, experience, selfReportedLimiter: limiterType });
+        updateAttributes({ ageCategory, experience });
+        // リミッタータイプのみを保存（eTPはPB入力後に計算される）
+        setLimiterTypeStore(limiterType);
         if (isEditMode) {
             router.back();
         } else {
