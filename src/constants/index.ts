@@ -19,12 +19,12 @@ export const ETP_COEFFICIENT = 1.12;
 
 // 6ゾーン係数
 export const ZONE_COEFFICIENTS_V3: Record<ZoneName, { coef: number; name: string; label: string; color: string; description: string; note?: string }> = {
-  jog: { coef: 1.40, name: 'リカバリーJog', label: 'リカバリーJog', color: '#9CA3AF', description: '回復ペース', note: '目安' },
-  easy: { coef: 1.275, name: 'Easy', label: 'Easy', color: '#3B82F6', description: '有酸素ベース' },
-  marathon: { coef: 1.125, name: 'Marathon', label: 'Marathon', color: '#22C55E', description: 'マラソンペース' },
-  threshold: { coef: 1.025, name: 'Threshold', label: 'Threshold', color: '#EAB308', description: '乳酸閾値' },
-  interval: { coef: 0.945, name: 'Interval', label: 'Interval', color: '#F97316', description: 'VO2max' },
-  repetition: { coef: 0.875, name: 'Rep', label: 'Rep', color: '#EF4444', description: 'スピード' },
+  jog: { coef: 1.40, name: 'リカバリー', label: 'リカバリー', color: '#9CA3AF', description: '回復ペース', note: '目安' },
+  easy: { coef: 1.275, name: 'イージー', label: 'イージー', color: '#3B82F6', description: '有酸素ベース' },
+  marathon: { coef: 1.125, name: 'マラソン', label: 'マラソン', color: '#22C55E', description: 'マラソンペース' },
+  threshold: { coef: 1.025, name: '閾値', label: '閾値', color: '#EAB308', description: '乳酸閾値' },
+  interval: { coef: 0.945, name: 'インターバル', label: 'インターバル', color: '#F97316', description: 'VO2max' },
+  repetition: { coef: 0.875, name: 'レペティション', label: 'レペティション', color: '#EF4444', description: 'スピード' },
 };
 
 // リミッター別ゾーン調整
