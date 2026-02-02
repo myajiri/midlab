@@ -4,9 +4,19 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import Constants from 'expo-constants';
 
-const supabaseUrl = 'https://sxbeyuapdwyeefwwgvgo.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN4YmV5dWFwZHd5ZWVmd3dndmdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk2Njg4ODYsImV4cCI6MjA4NTI0NDg4Nn0.IPP9QUQCs-M6hnw208eMk9orgFjeUGhxkOxgYvLatUw';
+// 環境変数から設定を取得
+const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || '';
+const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey || '';
+
+// 開発時の警告（本番では環境変数が必須）
+if (__DEV__ && (!supabaseUrl || !supabaseAnonKey)) {
+    console.warn(
+        '[Supabase] 環境変数が設定されていません。\n' +
+        '.env.example を参考に .env ファイルを作成してください。'
+    );
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {

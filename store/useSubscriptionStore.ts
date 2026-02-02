@@ -68,7 +68,9 @@ export const useSubscriptionStore = create<SubscriptionState>()(
                         initialized: true,
                     });
                 } catch (error: any) {
-                    console.error('Subscription init error:', error);
+                    if (__DEV__) {
+                        console.error('Subscription init error:', error);
+                    }
                     set({
                         loading: false,
                         error: error.message,
@@ -119,7 +121,9 @@ export const useSubscriptionStore = create<SubscriptionState>()(
                     await loginPurchases(userId);
                     await get().refreshStatus();
                 } catch (error) {
-                    console.error('Purchase login error:', error);
+                    if (__DEV__) {
+                        console.error('Purchase login error:', error);
+                    }
                 }
             },
 
@@ -128,7 +132,9 @@ export const useSubscriptionStore = create<SubscriptionState>()(
                     await logoutPurchases();
                     set({ isPremium: false, customerInfo: null });
                 } catch (error) {
-                    console.error('Purchase logout error:', error);
+                    if (__DEV__) {
+                        console.error('Purchase logout error:', error);
+                    }
                 }
             },
         }),
