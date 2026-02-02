@@ -20,7 +20,7 @@ import {
   useEffectiveValues,
 } from '../../src/stores/useAppStore';
 import { formatTime, formatKmPace, parseTime } from '../../src/utils';
-import { Card, Button } from '../../src/components/ui';
+import { Card, Button, SwipeableRow } from '../../src/components/ui';
 import { PremiumGate } from '../../components/PremiumGate';
 import {
   COLORS,
@@ -571,47 +571,54 @@ export default function PlanScreen() {
               if (!day) return null;
               const dayNames = ['月', '火', '水', '木', '金', '土', '日'];
               const focus = day.focusKey ? PHYSIOLOGICAL_FOCUS_CATEGORIES[day.focusKey] : null;
+              const isRestDay = day.type === 'rest';
               return (
-                <Pressable
+                <SwipeableRow
                   key={i}
-                  style={[
-                    styles.dayRow,
-                    day.completed && styles.dayRowCompleted,
-                    focus && { borderLeftColor: focus.color, borderLeftWidth: 3 },
-                  ]}
-                  onPress={() => {
-                    if (day && !day.completed) {
-                      markWorkoutComplete(weekPlan.weekNumber, day.id);
-                    }
-                  }}
+                  onSwipeComplete={() => markWorkoutComplete(weekPlan.weekNumber, day.id)}
+                  disabled={isRestDay}
+                  completed={day.completed}
                 >
-                  <Text style={styles.dayName}>{dayNames[i]}</Text>
-                  <View style={styles.dayContent}>
-                    <View style={styles.dayMainRow}>
-                      {(() => {
-                        const iconInfo = getWorkoutIconInfo(day.type);
-                        return <Ionicons name={iconInfo.name as any} size={14} color={iconInfo.color} style={styles.dayIconStyle} />;
-                      })()}
-                      <Text style={[styles.dayLabel, day.isKey && styles.dayLabelKey]}>
-                        {day.label}
-                      </Text>
-                      {day.isKey && <Text style={styles.dayKeyBadge}>Key</Text>}
+                  <View
+                    style={[
+                      styles.dayRow,
+                      day.completed && styles.dayRowCompleted,
+                      focus && { borderLeftColor: focus.color, borderLeftWidth: 3 },
+                    ]}
+                  >
+                    <Text style={styles.dayName}>{dayNames[i]}</Text>
+                    <View style={styles.dayContent}>
+                      <View style={styles.dayMainRow}>
+                        {(() => {
+                          const iconInfo = getWorkoutIconInfo(day.type);
+                          return <Ionicons name={iconInfo.name as any} size={14} color={iconInfo.color} style={styles.dayIconStyle} />;
+                        })()}
+                        <Text style={[styles.dayLabel, day.isKey && styles.dayLabelKey]}>
+                          {day.label}
+                        </Text>
+                        {day.isKey && <Text style={styles.dayKeyBadge}>Key</Text>}
+                      </View>
+                      {focus && day.type === 'workout' && (
+                        <Text style={[styles.dayFocusDesc, { color: focus.color }]}>
+                          {focus.description}
+                        </Text>
+                      )}
                     </View>
-                    {focus && day.type === 'workout' && (
-                      <Text style={[styles.dayFocusDesc, { color: focus.color }]}>
-                        {focus.description}
-                      </Text>
+                    {day.completed ? (
+                      <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
+                    ) : isRestDay ? (
+                      <View style={styles.dayRestIndicator} />
+                    ) : (
+                      <Text style={styles.swipeHint}>→</Text>
                     )}
                   </View>
-                  {day.completed ? (
-                    <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
-                  ) : (
-                    <View style={styles.dayCheckbox} />
-                  )}
-                </Pressable>
+                </SwipeableRow>
               );
             })}
           </View>
+
+          {/* スワイプヒント */}
+          <Text style={styles.swipeHintText}>← 右にスワイプで完了</Text>
 
           {/* ナビゲーション */}
           <View style={styles.weekNavigation}>
@@ -1833,6 +1840,22 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLORS.text.muted,
     borderRadius: 12,
+  },
+  dayRestIndicator: {
+    width: 24,
+    height: 24,
+  },
+  swipeHint: {
+    fontSize: 18,
+    color: COLORS.text.muted,
+    opacity: 0.5,
+  },
+  swipeHintText: {
+    fontSize: 11,
+    color: COLORS.text.muted,
+    textAlign: 'center',
+    marginTop: 8,
+    opacity: 0.7,
   },
   weekNavigation: {
     flexDirection: 'row',
