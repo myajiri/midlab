@@ -162,7 +162,7 @@ export interface WeeklyPlan {
   keyFocusCategories: string[];
   focusKeys: string[];
   isRecoveryWeek: boolean;
-  isRiseTestWeek: boolean;
+  isRampTestWeek: boolean;
 }
 
 // レースプラン
@@ -176,7 +176,7 @@ export interface RacePlan {
   };
   phases: Phase[];
   weeklyPlans: WeeklyPlan[];
-  riseTestDates: string[];
+  rampTestDates: string[];
 }
 
 // ワークアウトセグメント

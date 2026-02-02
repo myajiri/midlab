@@ -541,7 +541,7 @@ export default function PlanScreen() {
                 <Text style={styles.recoveryBadgeText}>回復週</Text>
               </View>
             )}
-            {weekPlan.isRiseTestWeek && (
+            {weekPlan.isRampTestWeek && (
               <View style={styles.testBadge}>
                 <Text style={styles.testBadgeText}>ランプテスト週</Text>
               </View>
@@ -718,7 +718,7 @@ export default function PlanScreen() {
                       <Text style={styles.fullWeekNumber}>W{week.weekNumber}</Text>
                       <Text style={styles.fullWeekPhase}>{phase?.label}</Text>
                       {week.isRecoveryWeek && <Text style={styles.fullWeekRecovery}>回復週</Text>}
-                      {week.isRiseTestWeek && <Text style={styles.fullWeekTest}>Test</Text>}
+                      {week.isRampTestWeek && <Text style={styles.fullWeekTest}>Test</Text>}
                     </View>
                     {(week.targetDistance != null || week.loadPercent != null) && (
                       <View style={styles.fullWeekMeta}>
@@ -998,19 +998,19 @@ function generatePlan({ race, baseline }: GeneratePlanParams): RacePlan {
   });
 
   // 月1回のランプテストを設定（約4週間ごと）
-  const riseTestWeeks: number[] = [];
+  const rampTestWeeks: number[] = [];
   const testInterval = 4;
   for (let w = testInterval; w <= weeksUntilRace && w < 20; w += testInterval) {
     const weekPhase = phases.find(p => w >= p.startWeek && w <= p.endWeek);
     if (weekPhase && weekPhase.type !== 'taper') {
-      riseTestWeeks.push(w);
+      rampTestWeeks.push(w);
     }
   }
   // 基礎期の終わりにもテストを推奨
   const basePhase = phases.find(p => p.type === 'base');
-  if (basePhase && !riseTestWeeks.includes(basePhase.endWeek)) {
-    riseTestWeeks.push(basePhase.endWeek);
-    riseTestWeeks.sort((a, b) => a - b);
+  if (basePhase && !rampTestWeeks.includes(basePhase.endWeek)) {
+    rampTestWeeks.push(basePhase.endWeek);
+    rampTestWeeks.sort((a, b) => a - b);
   }
 
   // 週間プラン生成
@@ -1065,14 +1065,14 @@ function generatePlan({ race, baseline }: GeneratePlanParams): RacePlan {
     const phaseFocusKeys = KEY_WORKOUTS_BY_PHASE[phaseType]?.focusKeys || ['aerobic'];
 
     // ランプテストの週かどうか
-    const isRiseTestWeek = riseTestWeeks.includes(weekNumber);
+    const isRampTestWeek = rampTestWeeks.includes(weekNumber);
 
     // 日ごとのスケジュール
     const days = generateWeeklySchedule(
       phaseType,
       phaseFocusKeys,
       isRecoveryWeek,
-      isRiseTestWeek,
+      isRampTestWeek,
       baseline.limiterType,
       weekNumber
     );
@@ -1091,7 +1091,7 @@ function generatePlan({ race, baseline }: GeneratePlanParams): RacePlan {
       keyFocusCategories: phaseKeyCategories,
       focusKeys: phaseFocusKeys,
       isRecoveryWeek,
-      isRiseTestWeek,
+      isRampTestWeek,
     });
   }
 
@@ -1108,7 +1108,7 @@ function generatePlan({ race, baseline }: GeneratePlanParams): RacePlan {
   });
 
   // ランプテスト日程をISO文字列に変換
-  const riseTestDates = riseTestWeeks.map(w => {
+  const rampTestDates = rampTestWeeks.map(w => {
     const weekPlan = weeklyPlans.find(wp => wp.weekNumber === w);
     if (weekPlan) {
       const testDate = new Date(weekPlan.startDate);
@@ -1133,7 +1133,7 @@ function generatePlan({ race, baseline }: GeneratePlanParams): RacePlan {
     },
     phases: phasesForPlan,
     weeklyPlans,
-    riseTestDates,
+    rampTestDates,
   };
 }
 
@@ -1141,7 +1141,7 @@ function generateWeeklySchedule(
   phaseType: PhaseType,
   focusKeys: string[],
   isRecoveryWeek: boolean,
-  isRiseTestWeek: boolean,
+  isRampTestWeek: boolean,
   limiterType: LimiterType,
   weekNumber: number
 ): (ScheduledWorkout | null)[] {
@@ -1159,7 +1159,7 @@ function generateWeeklySchedule(
       { id: `w${weekNumber}-d5`, dayOfWeek: 5, type: 'long', label: '有酸素ベース（Long）', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
       { id: `w${weekNumber}-d6`, dayOfWeek: 6, type: 'rest', label: '休養', isKey: false, completed: false },
     );
-  } else if (isRiseTestWeek) {
+  } else if (isRampTestWeek) {
     // ランプテスト週
     const focus = PHYSIOLOGICAL_FOCUS_CATEGORIES[focusKeys[0]];
     days.push(

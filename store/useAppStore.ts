@@ -98,7 +98,7 @@ export interface WeeklyPlan {
     days: DaySchedule[];
     keyWorkouts: string[];
     isRecoveryWeek: boolean;
-    isRiseTestWeek: boolean;
+    isRampTestWeek: boolean;
 }
 
 // フェーズ情報
@@ -126,7 +126,7 @@ export interface TrainingPlan {
     };
     phases: PlanPhase[];
     weeklyPlans: WeeklyPlan[];
-    riseTestDates: number[];  // テスト推奨週
+    rampTestDates: number[];  // テスト推奨週
 }
 
 // ストア状態
