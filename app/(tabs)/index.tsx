@@ -37,14 +37,6 @@ import { ZoneName, LimiterType } from '../../src/types';
 
 const { width } = Dimensions.get('window');
 
-// 距離ごとの色
-const DISTANCE_COLORS: Record<string, string> = {
-  m800: '#EF4444',   // 赤
-  m1500: '#F97316',  // オレンジ
-  m3000: '#22C55E',  // 緑
-  m5000: '#3B82F6',  // 青
-};
-
 // リミッターのIoniconsアイコン
 const LIMITER_ICON: Record<LimiterType, { name: string; color: string }> = {
   cardio: { name: 'fitness', color: '#EF4444' },
@@ -219,15 +211,15 @@ export default function HomeScreen() {
         {/* 自己ベスト */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>自己ベスト</Text>
-          <View style={styles.gridContainer}>
+          <View style={styles.predictionsGrid}>
             {(['m800', 'm1500', 'm3000', 'm5000'] as const).map((key) => {
               const pb = profile?.pbs?.[key];
               return (
-                <View key={key} style={styles.pbGridItem}>
-                  <Text style={styles.pbGridLabel}>
+                <View key={key} style={styles.predictionItem}>
+                  <Text style={styles.predictionDistance}>
                     {RACE_COEFFICIENTS[key].label}
                   </Text>
-                  <Text style={[styles.gridValue, !pb && styles.gridValueEmpty]}>
+                  <Text style={[styles.predictionTime, !pb && styles.predictionTimeEmpty]}>
                     {pb ? formatTime(pb) : '-'}
                   </Text>
                 </View>
@@ -269,28 +261,17 @@ export default function HomeScreen() {
         {/* レース予測タイム */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>レース予測タイム</Text>
-          <View style={styles.gridContainer}>
+          <View style={styles.predictionsGrid}>
             {Object.entries(RACE_COEFFICIENTS).map(([key, coef]) => {
               const predictedTime = Math.round(etp * coef.coefficient * coef.laps);
               return (
-                <View
-                  key={key}
-                  style={[
-                    styles.gridItem,
-                    { borderLeftColor: DISTANCE_COLORS[key] },
-                  ]}
-                >
-                  <Text style={[styles.gridLabel, { color: DISTANCE_COLORS[key] }]}>
-                    {coef.label}
-                  </Text>
-                  <Text style={styles.gridValue}>{formatTime(predictedTime)}</Text>
+                <View key={key} style={styles.predictionItem}>
+                  <Text style={styles.predictionDistance}>{coef.label}</Text>
+                  <Text style={styles.predictionTime}>{formatTime(predictedTime)}</Text>
                 </View>
               );
             })}
           </View>
-          <Text style={styles.limiterNote}>
-            {LIMITER_LABEL[limiter]}として調整
-          </Text>
         </View>
 
         {/* クイックアクション */}
@@ -578,52 +559,31 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  // Grid Layout
-  gridContainer: {
+  // レース予測・自己ベストグリッド（設定画面と同じ）
+  predictionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  gridItem: {
+  predictionItem: {
     width: (width - 64) / 2 - 4,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
-    borderLeftWidth: 3,
   },
-  gridLabel: {
+  predictionDistance: {
     fontSize: 12,
-    fontWeight: '600',
+    color: COLORS.text.muted,
     marginBottom: 4,
   },
-  gridValue: {
+  predictionTime: {
     fontSize: 18,
     fontWeight: '700',
     color: COLORS.text.primary,
   },
-  gridValueEmpty: {
+  predictionTimeEmpty: {
     color: COLORS.text.muted,
-  },
-  // PB Grid (no color)
-  pbGridItem: {
-    width: (width - 64) / 2 - 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-  },
-  pbGridLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.text.muted,
-    marginBottom: 4,
-  },
-  limiterNote: {
-    fontSize: 11,
-    color: COLORS.text.muted,
-    textAlign: 'center',
-    marginTop: 12,
   },
 
   // Zones Table
