@@ -30,7 +30,7 @@ export default function OnboardingWelcome() {
                 {/* ロゴ・アイコン */}
                 <View style={styles.logoContainer}>
                     <Text style={styles.logo}>⚡</Text>
-                    <Text style={styles.appName}>Zone2Peak</Text>
+                    <Text style={styles.appName}>MidLab</Text>
                     <Text style={styles.tagline}>RISEテストで最適なトレーニングを</Text>
                 </View>
 

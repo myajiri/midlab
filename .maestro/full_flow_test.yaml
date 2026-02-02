@@ -1,6 +1,6 @@
 appId: host.exp.Exponent
 ---
-# Zone2Peak - 全フローテスト
+# MidLab - 全フローテスト
 # Expo GoでアプリをQRコードで開いた状態で実行すること
 
 - launchApp:

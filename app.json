@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Zone2Peak",
-    "slug": "zone2peak",
+    "name": "MidLab",
+    "slug": "midlab",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "zone2peak",
+    "scheme": "midlab",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
@@ -15,14 +15,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.zone2peak.app"
+      "bundleIdentifier": "com.midlab.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#0a0a0f"
       },
-      "package": "com.zone2peak.app"
+      "package": "com.midlab.app"
     },
     "web": {
       "bundler": "metro",

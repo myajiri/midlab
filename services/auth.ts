@@ -194,7 +194,7 @@ export const signInWithGoogle = async () => {
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-            redirectTo: 'zone2peak://auth/callback',
+            redirectTo: 'midlab://auth/callback',
             skipBrowserRedirect: true,
         },
     });

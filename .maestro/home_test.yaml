@@ -1,6 +1,6 @@
 appId: host.exp.Exponent
 ---
-# Zone2Peak - ホーム画面テスト
+# MidLab - ホーム画面テスト
 # Expo GoでアプリをQRコードで開いた状態で実行すること
 
 - launchApp:

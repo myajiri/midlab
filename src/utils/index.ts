@@ -579,3 +579,6 @@ export const estimateLimiterFromSpeedIndex = (
     return { type: 'cardio', confidence: 'high', reason: '持久型（長距離寄り）' };
   }
 };
+
+// 移行ユーティリティをエクスポート
+export { migrateStorageKeys, resetMigration } from './migration';
