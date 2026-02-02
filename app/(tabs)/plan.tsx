@@ -20,7 +20,7 @@ import {
   useEffectiveValues,
 } from '../../src/stores/useAppStore';
 import { formatTime, formatKmPace, parseTime } from '../../src/utils';
-import { Card, Button, SwipeableRow } from '../../src/components/ui';
+import { Card, Button, SwipeableRow, DatePickerModal, TimePickerModal } from '../../src/components/ui';
 import { PremiumGate } from '../../components/PremiumGate';
 import { useIsPremium } from '../../store/useSubscriptionStore';
 import {
@@ -141,37 +141,30 @@ export default function PlanScreen() {
 
   // 計画作成フォーム
   const [raceName, setRaceName] = useState('');
-  const [raceDate, setRaceDate] = useState('');
+  const [raceDate, setRaceDate] = useState<Date | null>(null);
   const [distance, setDistance] = useState<RaceDistance>(1500);
-  const [targetTime, setTargetTime] = useState('');
+  const [targetTime, setTargetTime] = useState<number | null>(null);
+
+  // モーダル状態
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   // 日付バリデーション
-  const validateDate = (dateStr: string): { valid: boolean; error?: string } => {
-    if (!dateStr) return { valid: false };
-
-    // YYYY-MM-DD形式チェック
-    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
-    if (!datePattern.test(dateStr)) {
-      return { valid: false, error: 'YYYY-MM-DD形式で入力' };
-    }
-
-    const parsedDate = new Date(dateStr);
-    if (isNaN(parsedDate.getTime())) {
-      return { valid: false, error: '無効な日付' };
-    }
+  const validateDate = (date: Date | null): { valid: boolean; error?: string } => {
+    if (!date) return { valid: false };
 
     // 過去日付チェック（今日以降であること）
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    if (parsedDate < today) {
+    if (date < today) {
       return { valid: false, error: '過去の日付です' };
     }
 
     // 最低4週間後であること
     const minDate = new Date();
     minDate.setDate(minDate.getDate() + 28);
-    if (parsedDate < minDate) {
-      return { valid: false, error: '最低4週間後' };
+    if (date < minDate) {
+      return { valid: false, error: '最低4週間後の日付を選択してください' };
     }
 
     return { valid: true };
@@ -179,24 +172,39 @@ export default function PlanScreen() {
 
   const dateValidation = useMemo(() => validateDate(raceDate), [raceDate]);
 
+  // 日付の最小値（4週間後）
+  const minDateForPicker = useMemo(() => {
+    const min = new Date();
+    min.setDate(min.getDate() + 28);
+    return min;
+  }, []);
+
+  // 日付フォーマット（表示用）
+  const formatDateDisplay = (date: Date | null): string => {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}/${month}/${day}`;
+  };
+
   const handleCreatePlan = () => {
-    if (!raceName || !dateValidation.valid) {
+    if (!raceName || !dateValidation.valid || !raceDate) {
       Alert.alert('エラー', 'レース名と有効な日付を入力してください');
       return;
     }
 
-    const parsedTarget = parseTime(targetTime);
-    if (!parsedTarget) {
-      Alert.alert('エラー', '目標タイムをM:SS形式で入力してください');
+    if (!targetTime || targetTime <= 0) {
+      Alert.alert('エラー', '目標タイムを選択してください');
       return;
     }
 
     const plan = generatePlan({
       race: {
         name: raceName,
-        date: new Date(raceDate).toISOString(),
+        date: raceDate.toISOString(),
         distance,
-        targetTime: parsedTarget,
+        targetTime: targetTime,
       },
       baseline: { etp, limiterType: limiter },
     });
@@ -246,13 +254,14 @@ export default function PlanScreen() {
           {/* レース日 */}
           <View style={styles.inputSection}>
             <Text style={styles.inputLabel}>レース日</Text>
-            <TextInput
-              style={[styles.input, dateValidation.error && styles.inputError]}
-              value={raceDate}
-              onChangeText={setRaceDate}
-              placeholder="2024-06-15"
-              placeholderTextColor={COLORS.text.muted}
-            />
+            <Pressable
+              style={[styles.input, styles.inputPressable, dateValidation.error && styles.inputError]}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text style={[styles.inputPressableText, !raceDate && styles.inputPlaceholder]}>
+                {raceDate ? formatDateDisplay(raceDate) : '日付を選択'}
+              </Text>
+            </Pressable>
             {dateValidation.error && (
               <Text style={styles.inputErrorText}>{dateValidation.error}</Text>
             )}
@@ -279,14 +288,14 @@ export default function PlanScreen() {
           {/* 目標タイム */}
           <View style={styles.inputSection}>
             <Text style={styles.inputLabel}>目標タイム</Text>
-            <TextInput
-              style={styles.input}
-              value={targetTime}
-              onChangeText={setTargetTime}
-              placeholder="4:15"
-              placeholderTextColor={COLORS.text.muted}
-              keyboardType="numbers-and-punctuation"
-            />
+            <Pressable
+              style={[styles.input, styles.inputPressable]}
+              onPress={() => setShowTimePicker(true)}
+            >
+              <Text style={[styles.inputPressableText, !targetTime && styles.inputPlaceholder]}>
+                {targetTime ? formatTime(targetTime) : 'タイムを選択'}
+              </Text>
+            </Pressable>
           </View>
 
           {/* 現在の状態 */}
@@ -300,11 +309,32 @@ export default function PlanScreen() {
             title="計画を生成"
             onPress={handleCreatePlan}
             fullWidth
-            disabled={!raceName || !dateValidation.valid || !parseTime(targetTime)}
+            disabled={!raceName || !dateValidation.valid || !targetTime}
             style={StyleSheet.flatten([
               styles.createBtn,
-              (!raceName || !dateValidation.valid || !parseTime(targetTime)) && styles.createBtnDisabled,
+              (!raceName || !dateValidation.valid || !targetTime) && styles.createBtnDisabled,
             ])}
+          />
+
+          {/* 日付ピッカーモーダル */}
+          <DatePickerModal
+            visible={showDatePicker}
+            onClose={() => setShowDatePicker(false)}
+            onSelect={(date) => setRaceDate(date)}
+            value={raceDate || undefined}
+            minDate={minDateForPicker}
+            title="レース日を選択"
+          />
+
+          {/* タイムピッカーモーダル */}
+          <TimePickerModal
+            visible={showTimePicker}
+            onClose={() => setShowTimePicker(false)}
+            onSelect={(seconds) => setTargetTime(seconds)}
+            value={targetTime || undefined}
+            title="目標タイムを選択"
+            minMinutes={1}
+            maxMinutes={30}
           />
 
           {activePlan && (
@@ -1326,6 +1356,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
     marginLeft: 2,
+  },
+  inputPressable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  inputPressableText: {
+    fontSize: 16,
+    color: COLORS.text.primary,
+  },
+  inputPlaceholder: {
+    color: COLORS.text.muted,
   },
   distanceTabs: {
     flexDirection: 'row',

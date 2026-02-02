@@ -24,6 +24,7 @@ import {
   useEffectiveValues,
 } from '../../src/stores/useAppStore';
 import { formatTime, formatKmPace, parseTime, estimateEtpFromPb } from '../../src/utils';
+import { InputModal, TimePickerModal } from '../../src/components/ui';
 import {
   COLORS,
   AGE_CATEGORY_CONFIG,
@@ -79,6 +80,10 @@ export default function SettingsScreen() {
 
   // 編集モード状態
   const [editingProfile, setEditingProfile] = useState(false);
+
+  // モーダル状態
+  const [showDisplayNameModal, setShowDisplayNameModal] = useState(false);
+  const [showPbModal, setShowPbModal] = useState<string | null>(null);
 
   // 一時編集用の状態
   const [tempDisplayName, setTempDisplayName] = useState(profile.displayName || '');
@@ -397,15 +402,25 @@ export default function SettingsScreen() {
         {/* ニックネーム */}
         <View style={styles.card}>
           <Text style={styles.inputLabel}>ニックネーム</Text>
-          <TextInput
+          <Pressable
             style={styles.displayNameInput}
-            value={tempDisplayName}
-            onChangeText={setTempDisplayName}
-            placeholder="例: たろう"
-            placeholderTextColor={COLORS.text.muted}
-            maxLength={20}
-          />
+            onPress={() => setShowDisplayNameModal(true)}
+          >
+            <Text style={[styles.displayNameInputText, !tempDisplayName && styles.inputPlaceholder]}>
+              {tempDisplayName || '例: たろう'}
+            </Text>
+          </Pressable>
         </View>
+
+        <InputModal
+          visible={showDisplayNameModal}
+          onClose={() => setShowDisplayNameModal(false)}
+          onConfirm={(value) => setTempDisplayName(value)}
+          value={tempDisplayName}
+          title="ニックネーム"
+          placeholder="例: たろう"
+          maxLength={20}
+        />
 
         {/* 年齢カテゴリ */}
         <View style={styles.card}>
@@ -500,18 +515,19 @@ export default function SettingsScreen() {
           <Text style={styles.inputLabel}>自己ベスト（PB）</Text>
           {PB_FIELDS.map(({ key, label, placeholder }) => {
             const error = getInputError(key, pbInputs[key]);
+            const currentValue = pbInputs[key] ? parseTime(pbInputs[key]) || 0 : 0;
             return (
               <View key={key} style={styles.pbInputRow}>
                 <Text style={styles.pbInputLabel}>{label}</Text>
                 <View style={styles.pbInputWrapper}>
-                  <TextInput
+                  <Pressable
                     style={[styles.pbInput, error && styles.pbInputError]}
-                    value={pbInputs[key]}
-                    onChangeText={(text) => setPbInputs((prev) => ({ ...prev, [key]: text }))}
-                    placeholder={placeholder}
-                    placeholderTextColor={COLORS.text.muted}
-                    keyboardType="numbers-and-punctuation"
-                  />
+                    onPress={() => setShowPbModal(key)}
+                  >
+                    <Text style={[styles.pbInputText, !pbInputs[key] && styles.inputPlaceholder]}>
+                      {pbInputs[key] || placeholder}
+                    </Text>
+                  </Pressable>
                   {error && <Text style={styles.errorText}>{error}</Text>}
                   {key === 'm1500' && pbInputs.m1500 && !error && estimatedEtpFrom1500 && (
                     <Text style={styles.estimatedEtp}>
@@ -523,6 +539,24 @@ export default function SettingsScreen() {
             );
           })}
         </View>
+
+        {/* PBタイムピッカーモーダル */}
+        {PB_FIELDS.map(({ key, label }) => (
+          <TimePickerModal
+            key={`modal-${key}`}
+            visible={showPbModal === key}
+            onClose={() => setShowPbModal(null)}
+            onSelect={(seconds) => {
+              const formatted = formatTime(seconds);
+              setPbInputs((prev) => ({ ...prev, [key]: formatted }));
+              setShowPbModal(null);
+            }}
+            value={pbInputs[key] ? parseTime(pbInputs[key]) || 0 : 0}
+            title={`${label} タイムを選択`}
+            minMinutes={key === 'm800' ? 1 : key === 'm1500' ? 3 : key === 'm3000' ? 7 : 13}
+            maxMinutes={key === 'm800' ? 4 : key === 'm1500' ? 8 : key === 'm3000' ? 15 : 30}
+          />
+        ))}
 
         {/* リミッタータイプ選択 */}
         <View style={styles.card}>
@@ -833,8 +867,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 14,
+  },
+  displayNameInputText: {
     fontSize: 16,
     color: COLORS.text.primary,
+  },
+  inputPlaceholder: {
+    color: COLORS.text.muted,
   },
 
   // オプション選択（年齢カテゴリ、性別、競技歴）
@@ -894,6 +933,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 14,
+  },
+  pbInputText: {
     fontSize: 16,
     color: COLORS.text.primary,
   },
