@@ -278,9 +278,6 @@ export default function HomeScreen() {
                     />
                     <Text style={styles.zoneName}>
                       {ZONE_COEFFICIENTS_V3[zone].label}
-                      {zone === 'jog' && (
-                        <Text style={styles.zoneNote}> (目安)</Text>
-                      )}
                     </Text>
                   </View>
                   <View style={styles.zonePaces}>
@@ -594,10 +591,6 @@ const styles = StyleSheet.create({
   zoneName: {
     fontSize: 14,
     color: COLORS.text.primary,
-  },
-  zoneNote: {
-    fontSize: 10,
-    color: COLORS.text.muted,
   },
   zonePaces: {
     alignItems: 'flex-end',
