@@ -15,9 +15,17 @@ import {
     getOfferings,
     loginPurchases,
     logoutPurchases,
+    isPurchasesEnabled,
     type PurchasesPackage,
     type CustomerInfo,
 } from '../lib/purchases';
+
+// ============================================
+// 開発用モック設定
+// DEV_FORCE_PREMIUM を true にするとプレミアム状態を強制
+// Expo Go環境でも課金UIの確認が可能
+// ============================================
+const DEV_FORCE_PREMIUM = __DEV__ && false; // trueで強制プレミアム
 
 interface SubscriptionState {
     isPremium: boolean;
@@ -34,12 +42,14 @@ interface SubscriptionState {
     restore: () => Promise<boolean>;
     onUserLogin: (userId: string) => Promise<void>;
     onUserLogout: () => Promise<void>;
+    // 開発用
+    setDevPremium: (isPremium: boolean) => void;
 }
 
 export const useSubscriptionStore = create<SubscriptionState>()(
     persist(
         (set, get) => ({
-            isPremium: false,
+            isPremium: DEV_FORCE_PREMIUM,
             customerInfo: null,
             packages: [],
             loading: false,
@@ -48,6 +58,18 @@ export const useSubscriptionStore = create<SubscriptionState>()(
 
             initialize: async (userId) => {
                 if (get().initialized) return;
+
+                // 開発用モック: 強制プレミアムの場合は即座に完了
+                if (DEV_FORCE_PREMIUM) {
+                    set({ isPremium: true, loading: false, initialized: true });
+                    return;
+                }
+
+                // 課金機能が無効の場合もスキップ
+                if (!isPurchasesEnabled()) {
+                    set({ loading: false, initialized: true });
+                    return;
+                }
 
                 set({ loading: true, error: null });
                 try {
@@ -135,6 +157,13 @@ export const useSubscriptionStore = create<SubscriptionState>()(
                     if (__DEV__) {
                         console.error('Purchase logout error:', error);
                     }
+                }
+            },
+
+            // 開発用: プレミアム状態を手動で切り替え
+            setDevPremium: (isPremium) => {
+                if (__DEV__) {
+                    set({ isPremium });
                 }
             },
         }),
