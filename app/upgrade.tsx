@@ -1,5 +1,5 @@
 // ============================================
-// プレミアムアップグレード画面
+// プレミアムアップグレード画面（コンパクト版）
 // ============================================
 
 import React, { useCallback, useState } from 'react';
@@ -7,7 +7,6 @@ import {
     View,
     Text,
     StyleSheet,
-    ScrollView,
     Pressable,
     ActivityIndicator,
     Alert,
@@ -36,14 +35,12 @@ const COLORS = {
     text: { primary: '#ffffff', secondary: '#a1a1aa', muted: '#71717a' },
 };
 
-// プレミアム機能リスト
+// プレミアム機能リスト（コンパクト版）
 const PREMIUM_FEATURES = [
-    { icon: 'calendar-outline', title: '詳細なトレーニング計画', description: '目標レースに向けた最適な計画を自動生成' },
-    { icon: 'create-outline', title: '計画の編集・カスタマイズ', description: 'あなたのスケジュールに合わせて調整' },
-    { icon: 'fitness-outline', title: '全ワークアウトテンプレート', description: '8種類以上の専門的なワークアウト' },
-    { icon: 'analytics-outline', title: 'レース予測の詳細表示', description: '5K〜マラソンまでの予測タイム' },
-    { icon: 'trending-up-outline', title: '進捗グラフ・分析機能', description: 'eTPの推移とパフォーマンス分析' },
-    { icon: 'time-outline', title: 'テスト履歴の詳細分析', description: '過去のテスト結果を比較・分析' },
+    { icon: 'calendar', text: 'トレーニング計画' },
+    { icon: 'barbell', text: 'ワークアウト' },
+    { icon: 'analytics', text: 'レース予測' },
+    { icon: 'trending-up', text: '進捗分析' },
 ];
 
 export default function UpgradeScreen() {
@@ -134,67 +131,54 @@ export default function UpgradeScreen() {
     const purchasesEnabled = isPurchasesEnabled();
 
     return (
-        <SafeAreaView style={styles.container} edges={['top']}>
+        <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+            {/* ヘッダー */}
             <View style={styles.header}>
                 <Pressable onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
                 </Pressable>
-                <Text style={styles.headerTitle}>プレミアムにアップグレード</Text>
+                <Text style={styles.headerTitle}>プレミアム</Text>
                 <View style={{ width: 40 }} />
             </View>
 
-            <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+            <View style={styles.content}>
                 {/* ヒーローセクション */}
                 <LinearGradient
-                    colors={['rgba(245, 158, 11, 0.3)', 'rgba(245, 158, 11, 0.05)']}
+                    colors={['rgba(245, 158, 11, 0.25)', 'rgba(245, 158, 11, 0.05)']}
                     style={styles.heroSection}
                 >
                     <Text style={styles.heroIcon}>👑</Text>
                     <Text style={styles.heroTitle}>MidLab Premium</Text>
                     <Text style={styles.heroSubtitle}>
                         {feature
-                            ? `「${feature}」を利用するにはプレミアムプランが必要です`
-                            : 'あなたのランニングを次のレベルへ'}
+                            ? `「${feature}」はプレミアム限定です`
+                            : 'すべての機能をアンロック'}
                     </Text>
                 </LinearGradient>
 
-                {/* 機能リスト */}
-                <View style={styles.featuresSection}>
-                    <Text style={styles.sectionTitle}>プレミアム機能</Text>
-                    {PREMIUM_FEATURES.map((feature, index) => (
+                {/* 機能リスト（横並び） */}
+                <View style={styles.featuresRow}>
+                    {PREMIUM_FEATURES.map((item, index) => (
                         <View key={index} style={styles.featureItem}>
-                            <View style={styles.featureIcon}>
-                                <Ionicons
-                                    name={feature.icon as any}
-                                    size={24}
-                                    color={COLORS.premium}
-                                />
-                            </View>
-                            <View style={styles.featureContent}>
-                                <Text style={styles.featureTitle}>{feature.title}</Text>
-                                <Text style={styles.featureDescription}>{feature.description}</Text>
-                            </View>
+                            <Ionicons name={item.icon as any} size={20} color={COLORS.premium} />
+                            <Text style={styles.featureText}>{item.text}</Text>
                         </View>
                     ))}
                 </View>
 
-                {/* 価格セクション */}
-                <View style={styles.pricingSection}>
-                    <View style={styles.pricingCard}>
-                        <View style={styles.pricingHeader}>
+                {/* 価格カード */}
+                <View style={styles.pricingCard}>
+                    <View style={styles.pricingRow}>
+                        <View>
                             <Text style={styles.pricingTitle}>月額プラン</Text>
-                            <View style={styles.trialBadge}>
-                                <Text style={styles.trialBadgeText}>初回1週間無料</Text>
+                            <View style={styles.priceRow}>
+                                <Text style={styles.price}>¥780</Text>
+                                <Text style={styles.period}>/月</Text>
                             </View>
                         </View>
-                        <View style={styles.pricingAmount}>
-                            <Text style={styles.currency}>¥</Text>
-                            <Text style={styles.price}>780</Text>
-                            <Text style={styles.period}>/月</Text>
+                        <View style={styles.trialBadge}>
+                            <Text style={styles.trialBadgeText}>初回1週間無料</Text>
                         </View>
-                        <Text style={styles.pricingNote}>
-                            無料トライアル後、月額¥780で自動更新されます
-                        </Text>
                     </View>
                 </View>
 
@@ -237,10 +221,9 @@ export default function UpgradeScreen() {
                         </>
                     ) : (
                         <View style={styles.unavailableContainer}>
-                            <Ionicons name="information-circle-outline" size={24} color={COLORS.text.muted} />
+                            <Ionicons name="information-circle-outline" size={20} color={COLORS.text.muted} />
                             <Text style={styles.unavailableText}>
-                                この環境では課金機能をご利用いただけません。{'\n'}
-                                ネイティブビルドでお試しください。
+                                この環境では課金機能をご利用いただけません
                             </Text>
                         </View>
                     )}
@@ -249,19 +232,14 @@ export default function UpgradeScreen() {
                 {/* 利用規約・プライバシーポリシー */}
                 <View style={styles.legalSection}>
                     <Text style={styles.legalText}>
-                        購入を行うことで、
-                        <Text style={styles.legalLink}> 利用規約 </Text>
-                        および
-                        <Text style={styles.legalLink}> プライバシーポリシー </Text>
-                        に同意したことになります。
+                        購入により<Text style={styles.legalLink}>利用規約</Text>・
+                        <Text style={styles.legalLink}>プライバシーポリシー</Text>に同意
                     </Text>
                     <Text style={styles.legalNote}>
-                        サブスクリプションは期間終了の24時間前までにキャンセルしない限り自動更新されます。
+                        無料トライアル後、月額¥780で自動更新
                     </Text>
                 </View>
-
-                <View style={{ height: 40 }} />
-            </ScrollView>
+            </View>
         </SafeAreaView>
     );
 }
@@ -276,7 +254,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingVertical: 10,
         borderBottomWidth: 1,
         borderBottomColor: 'rgba(255, 255, 255, 0.1)',
     },
@@ -290,90 +268,86 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
+        justifyContent: 'space-between',
+        paddingBottom: 16,
     },
     heroSection: {
-        padding: 32,
+        paddingVertical: 24,
+        paddingHorizontal: 20,
         alignItems: 'center',
-        marginBottom: 24,
     },
     heroIcon: {
-        fontSize: 64,
-        marginBottom: 16,
-    },
-    heroTitle: {
-        fontSize: 28,
-        fontWeight: '700',
-        color: COLORS.text.primary,
+        fontSize: 48,
         marginBottom: 8,
     },
+    heroTitle: {
+        fontSize: 24,
+        fontWeight: '700',
+        color: COLORS.text.primary,
+        marginBottom: 4,
+    },
     heroSubtitle: {
-        fontSize: 16,
+        fontSize: 14,
         color: COLORS.text.secondary,
         textAlign: 'center',
     },
-    featuresSection: {
+    featuresRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        gap: 12,
         paddingHorizontal: 20,
-        marginBottom: 24,
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: COLORS.text.primary,
-        marginBottom: 16,
     },
     featureItem: {
         flexDirection: 'row',
-        marginBottom: 16,
-    },
-    featureIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 12,
-        backgroundColor: 'rgba(245, 158, 11, 0.1)',
         alignItems: 'center',
-        justifyContent: 'center',
-        marginRight: 12,
+        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 20,
+        gap: 6,
     },
-    featureContent: {
-        flex: 1,
-        justifyContent: 'center',
-    },
-    featureTitle: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: COLORS.text.primary,
-        marginBottom: 2,
-    },
-    featureDescription: {
+    featureText: {
         fontSize: 13,
-        color: COLORS.text.secondary,
-    },
-    pricingSection: {
-        paddingHorizontal: 20,
-        marginBottom: 24,
+        color: COLORS.text.primary,
+        fontWeight: '500',
     },
     pricingCard: {
+        marginHorizontal: 20,
         backgroundColor: COLORS.background.light,
         borderRadius: 16,
-        padding: 24,
+        padding: 20,
         borderWidth: 2,
         borderColor: COLORS.premium,
     },
-    pricingHeader: {
+    pricingRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 16,
     },
     pricingTitle: {
-        fontSize: 18,
-        fontWeight: '600',
+        fontSize: 14,
+        color: COLORS.text.secondary,
+        marginBottom: 4,
+    },
+    priceRow: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+    },
+    price: {
+        fontSize: 32,
+        fontWeight: '700',
         color: COLORS.text.primary,
+    },
+    period: {
+        fontSize: 14,
+        color: COLORS.text.secondary,
+        marginLeft: 2,
     },
     trialBadge: {
         backgroundColor: COLORS.premium,
-        paddingHorizontal: 10,
-        paddingVertical: 4,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
         borderRadius: 12,
     },
     trialBadgeText: {
@@ -381,82 +355,55 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#000',
     },
-    pricingAmount: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        marginBottom: 8,
-    },
-    currency: {
-        fontSize: 24,
-        fontWeight: '600',
-        color: COLORS.text.primary,
-    },
-    price: {
-        fontSize: 48,
-        fontWeight: '700',
-        color: COLORS.text.primary,
-    },
-    period: {
-        fontSize: 16,
-        color: COLORS.text.secondary,
-        marginLeft: 4,
-    },
-    pricingNote: {
-        fontSize: 13,
-        color: COLORS.text.muted,
-    },
     purchaseSection: {
         paddingHorizontal: 20,
-        marginBottom: 24,
     },
     purchaseButton: {
         borderRadius: 12,
         overflow: 'hidden',
-        marginBottom: 12,
+        marginBottom: 8,
     },
     purchaseButtonDisabled: {
         opacity: 0.7,
     },
     purchaseButtonGradient: {
-        paddingVertical: 16,
+        paddingVertical: 14,
         alignItems: 'center',
     },
     purchaseButtonText: {
-        fontSize: 17,
+        fontSize: 16,
         fontWeight: '600',
         color: '#000',
     },
     restoreButton: {
-        paddingVertical: 12,
+        paddingVertical: 8,
         alignItems: 'center',
     },
     restoreButtonText: {
-        fontSize: 15,
+        fontSize: 14,
         color: COLORS.text.secondary,
     },
     unavailableContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         backgroundColor: COLORS.background.light,
-        padding: 16,
+        padding: 14,
         borderRadius: 12,
+        gap: 8,
     },
     unavailableText: {
-        flex: 1,
         fontSize: 13,
         color: COLORS.text.muted,
-        marginLeft: 12,
-        lineHeight: 18,
     },
     legalSection: {
         paddingHorizontal: 20,
+        alignItems: 'center',
     },
     legalText: {
-        fontSize: 12,
+        fontSize: 11,
         color: COLORS.text.muted,
         textAlign: 'center',
-        lineHeight: 18,
-        marginBottom: 8,
     },
     legalLink: {
         color: COLORS.primary,
@@ -464,8 +411,7 @@ const styles = StyleSheet.create({
     legalNote: {
         fontSize: 11,
         color: COLORS.text.muted,
-        textAlign: 'center',
-        lineHeight: 16,
+        marginTop: 2,
     },
     premiumActiveContainer: {
         flex: 1,
@@ -478,20 +424,20 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     premiumActiveIcon: {
-        fontSize: 64,
-        marginBottom: 16,
+        fontSize: 56,
+        marginBottom: 12,
     },
     premiumActiveTitle: {
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: '700',
         color: COLORS.text.primary,
         marginBottom: 8,
     },
     premiumActiveDescription: {
-        fontSize: 15,
+        fontSize: 14,
         color: COLORS.text.secondary,
         textAlign: 'center',
-        marginBottom: 24,
+        marginBottom: 20,
     },
     manageButton: {
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -500,7 +446,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
     },
     manageButtonText: {
-        fontSize: 15,
+        fontSize: 14,
         fontWeight: '500',
         color: COLORS.text.primary,
     },
