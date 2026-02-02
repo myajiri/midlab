@@ -200,10 +200,10 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* 今日のメニュー */}
+        {/* 今日のトレーニング */}
         {todayWorkout && todayWorkout.type !== 'rest' && (
           <View style={styles.todayWorkout}>
-            <Text style={styles.sectionLabel}>今日のメニュー</Text>
+            <Text style={styles.sectionLabel}>今日のトレーニング</Text>
             <Pressable
               style={styles.todayContent}
               onPress={() => router.push('/workout')}

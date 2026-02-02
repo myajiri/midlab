@@ -453,7 +453,7 @@ export default function PlanScreen() {
             <View style={styles.calendarLegendItems}>
               <View style={styles.calendarLegendItem}>
                 <Ionicons name="fitness" size={14} color="#F97316" style={styles.calendarLegendIcon} />
-                <Text style={styles.calendarLegendText}>ワークアウト</Text>
+                <Text style={styles.calendarLegendText}>トレーニング</Text>
               </View>
               <View style={styles.calendarLegendItem}>
                 <Ionicons name="walk" size={14} color="#3B82F6" style={styles.calendarLegendIcon} />
@@ -683,7 +683,7 @@ export default function PlanScreen() {
               return (
                 <>
                   <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>キーワークアウト達成</Text>
+                    <Text style={styles.summaryLabel}>キートレーニング達成</Text>
                     <Text style={styles.summaryValue}>{completedKeyWorkouts} / {totalKeyWorkouts}</Text>
                   </View>
                   <View style={styles.progressBarContainer}>
@@ -867,11 +867,11 @@ export default function PlanScreen() {
               </View>
             )}
 
-            {/* キーワークアウト */}
+            {/* キートレーニング */}
             <View style={styles.keyWorkoutsSection}>
               <View style={styles.keyWorkoutsTitleRow}>
                 <Ionicons name="document-text" size={14} color="#F97316" />
-                <Text style={styles.keyWorkoutsTitle}>今週のキーワークアウト</Text>
+                <Text style={styles.keyWorkoutsTitle}>今週のキートレーニング</Text>
               </View>
               {currentWeekPlan.days.filter((d) => d?.isKey).map((d, i) => {
                 const dayNames = ['月', '火', '水', '木', '金', '土', '日'];

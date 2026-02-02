@@ -53,7 +53,7 @@ export default function OnboardingWelcome() {
                     <View style={styles.featureItem}>
                         <Text style={styles.featureIcon}>🎯</Text>
                         <View style={styles.featureText}>
-                            <Text style={styles.featureTitle}>パーソナルメニュー</Text>
+                            <Text style={styles.featureTitle}>パーソナルトレーニング</Text>
                             <Text style={styles.featureDesc}>リミッター別のアドバイス</Text>
                         </View>
                     </View>

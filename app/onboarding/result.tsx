@@ -134,7 +134,7 @@ export default function OnboardingResult() {
                     </View>
                     <View style={styles.stepItem}>
                         <Text style={styles.stepNumber}>3</Text>
-                        <Text style={styles.stepText}>メニュータブでワークアウトを選択</Text>
+                        <Text style={styles.stepText}>トレーニングタブでトレーニングを選択</Text>
                     </View>
                 </View>
             </ScrollView>
