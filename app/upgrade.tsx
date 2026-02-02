@@ -40,7 +40,7 @@ const COLORS = {
 // プレミアム機能リスト（コンパクト版）
 const PREMIUM_FEATURES = [
     { icon: 'calendar', text: 'トレーニング計画' },
-    { icon: 'barbell', text: 'ワークアウト' },
+    { icon: 'barbell', text: 'トレーニング' },
     { icon: 'analytics', text: 'レース予測' },
     { icon: 'trending-up', text: '進捗分析' },
 ];

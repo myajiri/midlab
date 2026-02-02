@@ -95,7 +95,7 @@ export default function WorkoutScreen() {
   // プレミアム機能チェック
   if (!isPremium) {
     return (
-      <PremiumGate featureName="ワークアウトメニュー">
+      <PremiumGate featureName="トレーニング">
         <View />
       </PremiumGate>
     );
@@ -138,7 +138,7 @@ export default function WorkoutScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
-        <Text style={styles.sectionTitle}>ワークアウト</Text>
+        <Text style={styles.sectionTitle}>トレーニング</Text>
 
         {/* eTP/リミッター設定ボックス */}
         <View style={styles.etpBox}>
@@ -323,8 +323,8 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
         {/* 説明 */}
         <Text style={styles.detailDescription}>{workout.description}</Text>
 
-        {/* メニュー詳細セクション */}
-        <Text style={styles.sectionLabel}>メニュー詳細</Text>
+        {/* トレーニング詳細セクション */}
+        <Text style={styles.sectionLabel}>トレーニング詳細</Text>
         <View style={styles.segmentsContainer}>
           {expandedSegments.map((seg, i) => {
             const pace =
