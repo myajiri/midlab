@@ -292,7 +292,7 @@ export default function PlanScreen() {
           {/* 現在の状態 */}
           <View style={styles.currentStatus}>
             <Text style={styles.currentStatusTitle}>現在の状態</Text>
-            <Text style={styles.currentStatusText}>eTP: {etp}秒 ({formatKmPace(etp)})</Text>
+            <Text style={styles.currentStatusText}>eTP: {formatKmPace(etp)} ({etp}秒/400m)</Text>
             <Text style={styles.currentStatusText}>リミッター: {LIMITER_LABEL[limiter]}</Text>
           </View>
 

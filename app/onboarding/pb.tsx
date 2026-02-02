@@ -116,8 +116,8 @@ export default function OnboardingPB() {
                     <View style={styles.previewCard}>
                         <Text style={styles.previewLabel}>推定eTP</Text>
                         <View style={styles.previewRow}>
-                            <Text style={styles.previewValue}>{estimatedEtp}秒</Text>
                             <Text style={styles.previewPace}>{formatKmPace(estimatedEtp)}</Text>
+                            <Text style={styles.previewValue}>({estimatedEtp}秒/400m)</Text>
                         </View>
                         <Text style={styles.previewNote}>
                             ※ ランプテストを実施するとより正確な値が得られます

@@ -198,7 +198,7 @@ export default function TestScreen() {
             </View>
             <View style={styles.testDetailRow}>
               <Text style={styles.testDetailLabel}>最終ペース</Text>
-              <Text style={styles.testDetailValue}>{lastTestResult.lastCompletedPace}秒/400m</Text>
+              <Text style={styles.testDetailValue}>{formatKmPace(lastTestResult.lastCompletedPace)} ({lastTestResult.lastCompletedPace}秒/400m)</Text>
             </View>
           </View>
 
@@ -222,7 +222,7 @@ export default function TestScreen() {
                     <View style={[styles.zoneResultDot, { backgroundColor: label.color }]} />
                     <Text style={styles.zoneResultName}>{label.name}</Text>
                   </View>
-                  <Text style={styles.zoneResultPace}>{pace}秒 ({formatKmPace(pace)})</Text>
+                  <Text style={styles.zoneResultPace}>{formatKmPace(pace)} ({pace}秒/400m)</Text>
                 </View>
               );
             })}
@@ -340,7 +340,7 @@ export default function TestScreen() {
             </View>
             <View style={styles.lcpDisplay}>
               <Text style={styles.lcpText}>
-                → LCP: <Text style={styles.lcpValue}>{lcp}秒</Text> ({formatKmPace(lcp)})
+                → LCP: <Text style={styles.lcpValue}>{formatKmPace(lcp)}</Text> ({lcp}秒/400m)
               </Text>
             </View>
           </View>
@@ -510,7 +510,7 @@ export default function TestScreen() {
         <View style={styles.scheduleHeader}>
           <Text style={styles.scheduleTitle}>レベル{effectiveLevel} 進行表</Text>
           <Text style={styles.scheduleInfo}>
-            開始: {config.startPace}秒 ({formatKmPace(config.startPace)}) / 最大: {config.maxLaps}周
+            開始: {formatKmPace(config.startPace)} ({config.startPace}秒/400m) / 最大: {config.maxLaps}周
           </Text>
         </View>
 
@@ -519,17 +519,17 @@ export default function TestScreen() {
           {/* ヘッダー行 */}
           <View style={styles.scheduleRow}>
             <Text style={[styles.scheduleCell, styles.scheduleCellHeader, styles.colLap]}>周</Text>
+            <Text style={[styles.scheduleCell, styles.scheduleCellHeader, styles.colKm]}>ペース/km</Text>
             <Text style={[styles.scheduleCell, styles.scheduleCellHeader, styles.col400m]}>400m</Text>
             <Text style={[styles.scheduleCell, styles.scheduleCellHeader, styles.col100m]}>100m</Text>
-            <Text style={[styles.scheduleCell, styles.scheduleCellHeader, styles.colKm]}>キロ換算</Text>
           </View>
           {/* データ行 */}
           {schedule.map((lap) => (
             <View key={lap.lap} style={styles.scheduleRow}>
               <Text style={[styles.scheduleCell, styles.colLap]}>{lap.lap}</Text>
+              <Text style={[styles.scheduleCell, styles.colKm]}>{formatKmPace(lap.pace)}</Text>
               <Text style={[styles.scheduleCell, styles.col400m]}>{lap.pace}秒</Text>
               <Text style={[styles.scheduleCell, styles.col100m]}>{(lap.pace / 4).toFixed(1)}秒</Text>
-              <Text style={[styles.scheduleCell, styles.colKm]}>{formatKmPace(lap.pace)}</Text>
             </View>
           ))}
         </View>
@@ -560,8 +560,8 @@ export default function TestScreen() {
                 <View style={styles.historyItemContent}>
                   <View style={styles.historyEtp}>
                     <Text style={styles.historyEtpLabel}>eTP</Text>
-                    <Text style={styles.historyEtpValue}>{result.eTP}秒</Text>
                     <Text style={styles.historyEtpPace}>{formatKmPace(result.eTP)}</Text>
+                    <Text style={styles.historyEtpValue}>({result.eTP}秒/400m)</Text>
                   </View>
                   <View style={styles.historyMeta}>
                     <Text style={styles.historyMetaText}>

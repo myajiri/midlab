@@ -78,11 +78,10 @@ export default function OnboardingResult() {
                                 style={styles.etpGradient}
                             >
                                 <Text style={styles.etpLabel}>推定eTP</Text>
-                                <View style={styles.etpRow}>
-                                    <Text style={styles.etpValue}>{estimatedEtp}</Text>
-                                    <Text style={styles.etpUnit}>秒/400m</Text>
-                                </View>
                                 <Text style={styles.etpPace}>{formatKmPace(estimatedEtp)}</Text>
+                                <View style={styles.etpRow}>
+                                    <Text style={styles.etpUnit}>({estimatedEtp}秒/400m)</Text>
+                                </View>
 
                                 {vo2max && (
                                     <View style={styles.vo2Section}>
