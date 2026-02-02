@@ -835,12 +835,12 @@ const styles = StyleSheet.create({
   zonePaces: {
     alignItems: 'flex-end',
   },
-  zonePace400: {
+  zonePaceKm: {
     fontSize: 15,
     fontWeight: '600',
     color: COLORS.text.primary,
   },
-  zonePaceKm: {
+  zonePace400: {
     fontSize: 11,
     color: COLORS.text.secondary,
     marginTop: 2,
