@@ -23,8 +23,8 @@ export const PremiumGate: React.FC<PremiumGateProps> = ({ featureName, children 
 
     useEffect(() => {
         if (!isPremium) {
-            // アップグレード画面へリダイレクト（機能名をパラメータとして渡す）
-            router.replace({
+            // アップグレード画面へ遷移（機能名をパラメータとして渡す）
+            router.push({
                 pathname: '/upgrade',
                 params: { feature: featureName },
             });
