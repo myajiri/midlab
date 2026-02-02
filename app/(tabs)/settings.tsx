@@ -43,6 +43,16 @@ import { PremiumBadge } from '../../components/PremiumGate';
 // 定数
 // ============================================
 
+const { width } = Dimensions.get('window');
+
+// 距離ごとの色
+const DISTANCE_COLORS: Record<string, string> = {
+  m800: '#EF4444',   // 赤
+  m1500: '#F97316',  // オレンジ
+  m3000: '#22C55E',  // 緑
+  m5000: '#3B82F6',  // 青
+};
+
 const PB_FIELDS = [
   { key: 'm800', label: '800m', placeholder: '2:05' },
   { key: 'm1500', label: '1500m', placeholder: '4:15' },
@@ -272,9 +282,19 @@ export default function SettingsScreen() {
                 {PB_FIELDS.map(({ key, label }) => {
                   const value = profile.pbs[key as keyof typeof profile.pbs];
                   return (
-                    <View key={key} style={styles.pbItem}>
-                      <Text style={styles.pbLabel}>{label}</Text>
-                      <Text style={styles.pbValue}>{value ? formatTime(value) : '-'}</Text>
+                    <View
+                      key={key}
+                      style={[
+                        styles.pbItem,
+                        { borderLeftColor: DISTANCE_COLORS[key] },
+                      ]}
+                    >
+                      <Text style={[styles.pbLabel, { color: DISTANCE_COLORS[key] }]}>
+                        {label}
+                      </Text>
+                      <Text style={[styles.pbValue, !value && styles.pbValueEmpty]}>
+                        {value ? formatTime(value) : '-'}
+                      </Text>
                     </View>
                   );
                 })}
@@ -753,21 +773,25 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pbItem: {
-    width: (width - 64) / 3 - 6,
+    width: (width - 64) / 2 - 4,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 8,
-    padding: 10,
+    padding: 12,
     alignItems: 'center',
+    borderLeftWidth: 3,
   },
   pbLabel: {
-    fontSize: 11,
-    color: COLORS.text.muted,
-    marginBottom: 2,
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 4,
   },
   pbValue: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: COLORS.text.primary,
+  },
+  pbValueEmpty: {
+    color: COLORS.text.muted,
   },
 
   // リミッター表示
