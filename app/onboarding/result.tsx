@@ -7,29 +7,43 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useAppStore } from '../../store/useAppStore';
-import { estimateEtpFromMultiplePBs, estimateVO2max, formatKmPace, calculateSpeedIndex, estimateLimiterFromSpeedIndex } from '../../utils/calculations';
+import { useProfileStore, useSettingsStore } from '../../src/stores/useAppStore';
+import { estimateVO2max, formatKmPace } from '../../src/utils';
 import { LIMITER_CONFIG } from '../../constants';
+import { LimiterType } from '../../src/types';
+
+// Speed Index計算（PBから推定）
+const calculateSpeedIndex = (pbs: Record<string, number | undefined>): number | null => {
+    const short = pbs.m400 || pbs.m800;
+    const long = pbs.m3000 || pbs.m5000;
+    if (!short || !long) return null;
+    return short / (long / (pbs.m5000 ? 12.5 : 7.5));
+};
+
+// Speed Indexからリミッター推定
+const estimateLimiterFromSpeedIndex = (speedIndex: number | null): { type: LimiterType; confidence: 'high' | 'medium' | 'low' } => {
+    if (!speedIndex) return { type: 'balanced', confidence: 'low' };
+    if (speedIndex < 0.95) return { type: 'muscular', confidence: speedIndex < 0.9 ? 'high' : 'medium' };
+    if (speedIndex > 1.05) return { type: 'cardio', confidence: speedIndex > 1.1 ? 'high' : 'medium' };
+    return { type: 'balanced', confidence: 'medium' };
+};
 
 export default function OnboardingResult() {
     const router = useRouter();
-    const profile = useAppStore((state) => state.profile);
-    const completeOnboarding = useAppStore((state) => state.completeOnboarding);
-    const setEstimatedEtp = useAppStore((state) => state.setEstimatedEtp);
+    const profile = useProfileStore((state) => state.profile);
+    const setOnboardingComplete = useSettingsStore((state) => state.setOnboardingComplete);
 
-    // PBからeTPを推定
-    const estimatedEtp = estimateEtpFromMultiplePBs(profile.pbs);
+    // ストアに保存された推定値を使用（attributes.tsxで選択したリミッタータイプを保持）
+    const estimatedEtp = profile.estimated?.etp || null;
+    const userSelectedLimiter = profile.estimated?.limiterType || 'balanced';
     const vo2max = estimatedEtp ? estimateVO2max(estimatedEtp) : null;
-    const speedIndex = calculateSpeedIndex(profile.pbs);
-    const limiterEstimate = estimateLimiterFromSpeedIndex(speedIndex);
-    const limiterConfig = LIMITER_CONFIG[limiterEstimate.type];
+
+    // 表示用にユーザーが選択したリミッタータイプを使用
+    const limiterConfig = LIMITER_CONFIG[userSelectedLimiter];
 
     const handleComplete = () => {
-        // PBから推定したeTPとリミッターをストアに保存
-        if (estimatedEtp) {
-            setEstimatedEtp(estimatedEtp, limiterEstimate.type);
-        }
-        completeOnboarding();
+        // 既にストアに保存されているので、オンボーディング完了フラグのみ設定
+        setOnboardingComplete(true);
         router.replace('/(tabs)');
     };
 
@@ -79,20 +93,18 @@ export default function OnboardingResult() {
                             </LinearGradient>
                         </View>
 
-                        {/* リミッター推定 */}
-                        {speedIndex && (
-                            <View style={[styles.limiterCard, { borderColor: limiterConfig.color }]}>
-                                <Text style={styles.limiterIcon}>{limiterConfig.icon}</Text>
-                                <View style={styles.limiterInfo}>
-                                    <Text style={[styles.limiterName, { color: limiterConfig.color }]}>
-                                        {limiterConfig.name}
-                                    </Text>
-                                    <Text style={styles.limiterDesc}>
-                                        （PBから推定・信頼度: {limiterEstimate.confidence === 'high' ? '高' : limiterEstimate.confidence === 'medium' ? '中' : '低'}）
-                                    </Text>
-                                </View>
+                        {/* リミッタータイプ */}
+                        <View style={[styles.limiterCard, { borderColor: limiterConfig.color }]}>
+                            <Text style={styles.limiterIcon}>{limiterConfig.icon}</Text>
+                            <View style={styles.limiterInfo}>
+                                <Text style={[styles.limiterName, { color: limiterConfig.color }]}>
+                                    {limiterConfig.name}
+                                </Text>
+                                <Text style={styles.limiterDesc}>
+                                    （選択したタイプ）
+                                </Text>
                             </View>
-                        )}
+                        </View>
 
                         <View style={styles.noteCard}>
                             <Text style={styles.noteText}>

@@ -35,6 +35,7 @@ interface ProfileState {
     gender?: Profile['gender'];
     experience?: Experience;
   }) => void;
+  setLimiterType: (limiterType: LimiterType) => void;
   setEstimated: (etp: number, limiterType: LimiterType) => void;
   updateEstimated: (data: { etp: number; limiterType: LimiterType; confidence: 'low' | 'medium' | 'high' }) => void;
   setCurrent: (etp: number, limiterType: LimiterType) => void;
@@ -70,7 +71,8 @@ export const useProfileStore = create<ProfileState>()(
               etp: etpResult.adjustedEtp,
               confidence: etpResult.confidence,
               adjustments: etpResult.adjustments,
-            } : null,
+              limiterType: current.estimated?.limiterType || 'balanced',
+            } : current.estimated,
           },
         });
       },
@@ -91,7 +93,24 @@ export const useProfileStore = create<ProfileState>()(
               etp: etpResult.adjustedEtp,
               confidence: etpResult.confidence,
               adjustments: etpResult.adjustments,
-            } : null,
+              limiterType: current.estimated?.limiterType || 'balanced',
+            } : current.estimated,
+          },
+        });
+      },
+
+      setLimiterType: (limiterType) => {
+        const current = get().profile;
+        set({
+          profile: {
+            ...current,
+            estimated: {
+              ...current.estimated,
+              etp: current.estimated?.etp || 0,
+              confidence: current.estimated?.confidence || 'low',
+              adjustments: current.estimated?.adjustments || [],
+              limiterType,
+            },
           },
         });
       },

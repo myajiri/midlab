@@ -7,17 +7,20 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { useSettingsStore } from '../../src/stores/useAppStore';
 
 const { width } = Dimensions.get('window');
 
 export default function OnboardingWelcome() {
     const router = useRouter();
+    const setOnboardingComplete = useSettingsStore((state) => state.setOnboardingComplete);
 
     const handleStart = () => {
         router.push('/onboarding/attributes');
     };
 
     const handleSkip = () => {
+        setOnboardingComplete(true);
         router.replace('/(tabs)');
     };
 
