@@ -304,7 +304,7 @@ export default function SettingsScreen() {
           {/* トレーニングゾーン */}
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>トレーニングゾーン</Text>
-            <Text style={styles.etpBadge}>eTP: {etp}秒/400m</Text>
+            <Text style={styles.etpBadge}>eTP: {formatKmPace(etp)} ({etp}秒/400m)</Text>
             <View style={styles.zonesTable}>
               {(Object.entries(zones) as [ZoneName, number][]).map(([zone, pace]) => (
                 <View key={zone} style={styles.zoneRow}>
@@ -318,8 +318,8 @@ export default function SettingsScreen() {
                     <Text style={styles.zoneName}>{ZONE_COEFFICIENTS_V3[zone].label}</Text>
                   </View>
                   <View style={styles.zonePaces}>
-                    <Text style={styles.zonePace400}>{formatTime(pace)}</Text>
                     <Text style={styles.zonePaceKm}>{formatKmPace(pace)}</Text>
+                    <Text style={styles.zonePace400}>({formatTime(pace)}/400m)</Text>
                   </View>
                 </View>
               ))}
@@ -559,7 +559,7 @@ export default function SettingsScreen() {
                   {error && <Text style={styles.errorText}>{error}</Text>}
                   {key === 'm1500' && pbInputs.m1500 && !error && estimatedEtpFrom1500 && (
                     <Text style={styles.estimatedEtp}>
-                      → 推定eTP: {estimatedEtpFrom1500}秒/400m
+                      → 推定eTP: {formatKmPace(estimatedEtpFrom1500)} ({estimatedEtpFrom1500}秒/400m)
                     </Text>
                   )}
                 </View>

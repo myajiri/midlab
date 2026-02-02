@@ -143,7 +143,7 @@ export default function WorkoutScreen() {
         {/* eTP/リミッター設定ボックス */}
         <View style={styles.etpBox}>
           <View style={styles.etpRow}>
-            <Text style={styles.etpLabel}>eTP: {etp}秒 ({formatKmPace(etp)})</Text>
+            <Text style={styles.etpLabel}>eTP: {formatKmPace(etp)} ({etp}秒/400m)</Text>
             <View style={styles.limiterBadge}>
               <Text style={styles.limiterEmoji}>{LIMITER_EMOJI[limiter]}</Text>
               <Text style={styles.limiterText}>{LIMITER_LABEL[limiter]}</Text>
@@ -350,8 +350,8 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
                 </View>
                 {seg.zone !== 'rest' && pace > 0 && (
                   <View style={styles.segmentItemPace}>
-                    <Text style={styles.segmentItemPaceValue}>{pace}秒/400m</Text>
                     <Text style={styles.segmentItemPaceKm}>{formatKmPace(pace)}</Text>
+                    <Text style={styles.segmentItemPaceValue}>({pace}秒/400m)</Text>
                   </View>
                 )}
               </View>

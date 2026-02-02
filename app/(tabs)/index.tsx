@@ -250,8 +250,8 @@ export default function HomeScreen() {
                     </Text>
                   </View>
                   <View style={styles.zonePaces}>
-                    <Text style={styles.zonePace400}>{formatTime(pace)}秒</Text>
                     <Text style={styles.zonePaceKm}>{formatKmPace(pace)}</Text>
+                    <Text style={styles.zonePace400}>({formatTime(pace)}/400m)</Text>
                   </View>
                 </View>
               ))}
