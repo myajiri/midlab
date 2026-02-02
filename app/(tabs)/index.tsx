@@ -1,14 +1,15 @@
 // ============================================
-// Dashboard - rise-test忠実再現版
+// Dashboard - MidLabホーム画面
 // ============================================
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   Pressable,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -28,12 +29,13 @@ import {
   getLevelFromEtp,
   getTodayWorkout,
   getWeekProgress,
-  getNextTestRecommendation,
   calculateRacePredictions,
 } from '../../src/utils';
 import { Button } from '../../src/components/ui';
-import { COLORS, ZONE_COEFFICIENTS_V3 } from '../../src/constants';
+import { COLORS, ZONE_COEFFICIENTS_V3, RACE_COEFFICIENTS } from '../../src/constants';
 import { ZoneName, LimiterType } from '../../src/types';
+
+const { width } = Dimensions.get('window');
 
 // リミッターのIoniconsアイコン
 const LIMITER_ICON: Record<LimiterType, { name: string; color: string }> = {
@@ -59,26 +61,20 @@ export default function HomeScreen() {
   const zones = useTrainingZones();
   const vo2max = estimateVO2max(etp);
   const level = getLevelFromEtp(etp);
-  const predictions = calculateRacePredictions(etp, limiter);
 
   const todayWorkout = activePlan ? getTodayWorkout(activePlan) : null;
   const weekProgress = activePlan ? getWeekProgress(activePlan) : null;
-  const testRecommendation = getNextTestRecommendation(results);
   const latestResult = results.length > 0 ? results[0] : null;
-
-  // 折りたたみ状態
-  const [showZones, setShowZones] = useState(false);
-  const [showPredictions, setShowPredictions] = useState(false);
 
   // 新規ユーザー向けガイド
   if (stage === 'new') {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          {/* RISE Logo */}
+          {/* MidLab Logo */}
           <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>RISE</Text>
-            <Text style={styles.logoSubtitle}>Ramp to Individual Speed Exhaustion</Text>
+            <Text style={styles.logoText}>MidLab</Text>
+            <Text style={styles.logoSubtitle}>Middle Distance Training Lab</Text>
           </View>
 
           {/* Empty State */}
@@ -147,6 +143,44 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* テスト未実施の場合の促進 */}
+        {source !== 'measured' && (
+          <Pressable
+            style={styles.promptCard}
+            onPress={() => router.push('/test')}
+          >
+            <View style={styles.promptIconContainer}>
+              <Ionicons name="stats-chart" size={24} color="#8B5CF6" />
+            </View>
+            <View style={styles.promptContent}>
+              <Text style={styles.promptTitle}>ランプテストを実施しましょう</Text>
+              <Text style={styles.promptText}>
+                テストを実施すると、あなたの正確なeTPとリミッタータイプが測定できます
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
+          </Pressable>
+        )}
+
+        {/* 計画未作成の場合の促進 */}
+        {!activePlan && (
+          <Pressable
+            style={styles.promptCard}
+            onPress={() => router.push('/plan')}
+          >
+            <View style={[styles.promptIconContainer, styles.promptIconOrange]}>
+              <Ionicons name="calendar" size={24} color="#F97316" />
+            </View>
+            <View style={styles.promptContent}>
+              <Text style={styles.promptTitle}>トレーニング計画を作成しましょう</Text>
+              <Text style={styles.promptText}>
+                目標レースに向けた週間トレーニング計画を自動生成します
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
+          </Pressable>
+        )}
+
         {/* アクティブ計画カード */}
         {activePlan && (
           <View style={styles.planCard}>
@@ -166,10 +200,10 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* 今日のメニュー */}
+        {/* 今日のトレーニング */}
         {todayWorkout && todayWorkout.type !== 'rest' && (
           <View style={styles.todayWorkout}>
-            <Text style={styles.sectionLabel}>今日のメニュー</Text>
+            <Text style={styles.sectionLabel}>今日のトレーニング</Text>
             <Pressable
               style={styles.todayContent}
               onPress={() => router.push('/workout')}
@@ -200,40 +234,40 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* 次回RISE Test推奨 */}
-        {testRecommendation && (
-          <Pressable
-            style={styles.testRecommendation}
-            onPress={() => router.push('/test')}
-          >
-            <Text style={styles.testRecommendationTitle}>次回RISE Test推奨</Text>
-            <Text style={styles.testRecommendationText}>{testRecommendation.reason}</Text>
-          </Pressable>
-        )}
+        {/* レース予測タイム */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>レース予測タイム</Text>
+          <View style={styles.predictionsGrid}>
+            {(() => {
+              const predictions = calculateRacePredictions(etp, limiter);
+              return Object.entries(predictions).map(([key, prediction]) => {
+                const pb = profile?.pbs?.[key as keyof typeof profile.pbs];
+                return (
+                  <View key={key} style={styles.predictionItem}>
+                    <Text style={styles.predictionDistance}>
+                      {RACE_COEFFICIENTS[key as keyof typeof RACE_COEFFICIENTS].label}
+                    </Text>
+                    <Text style={styles.predictionTime}>
+                      {formatTime(prediction.min)}-{formatTime(prediction.max)}
+                    </Text>
+                    {pb && (
+                      <Text style={styles.predictionPb}>PB: {formatTime(pb)}</Text>
+                    )}
+                  </View>
+                );
+              });
+            })()}
+          </View>
+        </View>
 
-        {/* トレーニングゾーン（折りたたみ可能） */}
-        <View style={styles.collapsibleSection}>
-          <Pressable
-            style={[
-              styles.collapsibleHeader,
-              showZones && styles.collapsibleHeaderOpen,
-            ]}
-            onPress={() => setShowZones(!showZones)}
-          >
-            <View style={styles.collapsibleTitleRow}>
-              <Ionicons name="flag" size={16} color="#F97316" />
-              <Text style={styles.collapsibleTitle}>トレーニングゾーン</Text>
-            </View>
-            <Text style={[
-              styles.collapsibleArrow,
-              showZones && styles.collapsibleArrowOpen,
-            ]}>
-              ▼
-            </Text>
-          </Pressable>
-          {showZones && (
-            <View style={styles.collapsibleContent}>
-              {(Object.entries(zones) as [ZoneName, number][]).map(([zone, pace]) => (
+        {/* トレーニングゾーン */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>トレーニングゾーン</Text>
+          <Text style={styles.etpBadge}>eTP: {formatKmPace(etp)} ({etp}秒/400m)</Text>
+          <View style={styles.zonesTable}>
+            {(['jog', 'easy', 'marathon', 'threshold', 'interval', 'repetition'] as ZoneName[]).map((zone) => {
+              const pace = zones[zone];
+              return (
                 <View key={zone} style={styles.zoneRow}>
                   <View style={styles.zoneInfo}>
                     <View
@@ -244,87 +278,16 @@ export default function HomeScreen() {
                     />
                     <Text style={styles.zoneName}>
                       {ZONE_COEFFICIENTS_V3[zone].label}
-                      {zone === 'jog' && (
-                        <Text style={styles.zoneNote}> (目安)</Text>
-                      )}
                     </Text>
                   </View>
                   <View style={styles.zonePaces}>
-                    <Text style={styles.zonePace400}>{formatTime(pace)}秒</Text>
                     <Text style={styles.zonePaceKm}>{formatKmPace(pace)}</Text>
+                    <Text style={styles.zonePace400}>({pace}秒/400m)</Text>
                   </View>
                 </View>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* 予測タイム（折りたたみ可能） */}
-        <View style={styles.collapsibleSection}>
-          <Pressable
-            style={[
-              styles.collapsibleHeader,
-              showPredictions && styles.collapsibleHeaderOpen,
-            ]}
-            onPress={() => setShowPredictions(!showPredictions)}
-          >
-            <View style={styles.collapsibleTitleRow}>
-              <Ionicons name="stopwatch" size={16} color="#3B82F6" />
-              <Text style={styles.collapsibleTitle}>予測タイム</Text>
-            </View>
-            <Text style={[
-              styles.collapsibleArrow,
-              showPredictions && styles.collapsibleArrowOpen,
-            ]}>
-              ▼
-            </Text>
-          </Pressable>
-          {showPredictions && (
-            <View style={styles.collapsibleContent}>
-              {[
-                { key: 'm800' as const, label: '800m' },
-                { key: 'm1500' as const, label: '1500m' },
-                { key: 'm3000' as const, label: '3000m' },
-                { key: 'm5000' as const, label: '5000m' },
-              ].map(({ key, label }) => {
-                const pb = profile?.pbs?.[key];
-                return (
-                  <View key={key} style={styles.predictionRow}>
-                    <Text style={styles.predictionLabel}>{label}</Text>
-                    <View style={styles.predictionValues}>
-                      <Text style={styles.predictionTime}>
-                        {formatTime(predictions[key].min)} - {formatTime(predictions[key].max)}
-                      </Text>
-                      {pb && (
-                        <Text style={styles.predictionPB}>PB: {formatTime(pb)}</Text>
-                      )}
-                    </View>
-                  </View>
-                );
-              })}
-              <Text style={styles.predictionNote}>
-                {LIMITER_LABEL[limiter]}として調整済み
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* クイックアクション */}
-        <View style={styles.quickActions}>
-          <Pressable
-            style={styles.actionButton}
-            onPress={() => router.push('/test')}
-          >
-            <Ionicons name="stats-chart" size={18} color="#8B5CF6" />
-            <Text style={styles.actionText}>RISE Test</Text>
-          </Pressable>
-          <Pressable
-            style={styles.actionButton}
-            onPress={() => router.push('/plan')}
-          >
-            <Ionicons name="document-text" size={18} color="#F97316" />
-            <Text style={styles.actionText}>計画を見る</Text>
-          </Pressable>
+              );
+            })}
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -554,73 +517,61 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
 
-  // Test Recommendation
-  testRecommendation: {
-    backgroundColor: 'rgba(234, 179, 8, 0.1)',
+  // Card Style
+  card: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 12,
     padding: 16,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(234, 179, 8, 0.3)',
-    marginBottom: 20,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
-  testRecommendationTitle: {
+  sectionTitle: {
     fontSize: 14,
-    color: COLORS.warning,
-    marginBottom: 4,
-  },
-  testRecommendationText: {
-    fontSize: 13,
-    color: COLORS.text.muted,
-  },
-
-  // Collapsible Sections
-  collapsibleSection: {
+    fontWeight: '600',
+    color: COLORS.text.primary,
     marginBottom: 12,
   },
-  collapsibleHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 14,
-    paddingHorizontal: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+  etpBadge: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    marginBottom: 12,
   },
-  collapsibleHeaderOpen: {
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    borderBottomWidth: 0,
+
+  // レース予測・自己ベストグリッド（設定画面と同じ）
+  predictionsGrid: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    justifyContent: 'space-between' as const,
   },
-  collapsibleTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  predictionItem: {
+    width: '48%' as any,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center' as const,
+    marginBottom: 8,
   },
-  collapsibleTitle: {
-    fontSize: 14,
-    fontWeight: '500',
+  predictionDistance: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginBottom: 4,
+  },
+  predictionTime: {
+    fontSize: 16,
+    fontWeight: '700',
     color: COLORS.text.primary,
   },
-  collapsibleArrow: {
-    fontSize: 14,
+  predictionPb: {
+    fontSize: 11,
     color: COLORS.text.muted,
-  },
-  collapsibleArrowOpen: {
-    transform: [{ rotate: '180deg' }],
-  },
-  collapsibleContent: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderTopWidth: 0,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    marginTop: 4,
   },
 
   // Zones Table
+  zonesTable: {
+    gap: 4,
+  },
   zoneRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -630,7 +581,7 @@ const styles = StyleSheet.create({
   zoneInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   zoneIndicator: {
     width: 12,
@@ -641,80 +592,55 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text.primary,
   },
-  zoneNote: {
-    fontSize: 10,
-    color: COLORS.text.muted,
-  },
   zonePaces: {
     alignItems: 'flex-end',
   },
-  zonePace400: {
-    fontSize: 14,
-    color: COLORS.text.primary,
-  },
   zonePaceKm: {
-    fontSize: 12,
-    color: COLORS.text.muted,
-  },
-
-  // Predictions
-  predictionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 8,
-    paddingHorizontal: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  predictionLabel: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: COLORS.text.primary,
   },
-  predictionValues: {
-    alignItems: 'flex-end',
-  },
-  predictionTime: {
-    fontSize: 14,
-    fontFamily: 'monospace',
-    color: COLORS.text.primary,
-  },
-  predictionPB: {
-    fontSize: 12,
-    color: COLORS.text.muted,
+  zonePace400: {
+    fontSize: 11,
+    color: COLORS.text.secondary,
     marginTop: 2,
   },
-  predictionNote: {
-    fontSize: 12,
-    color: COLORS.text.muted,
-    textAlign: 'center',
-    marginTop: 8,
-  },
 
-  // Quick Actions
-  quickActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  actionButton: {
-    flex: 1,
+  // 促進カード
+  promptCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    padding: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    gap: 12,
   },
-  // actionEmoji removed - using Ionicons directly
-  actionText: {
+  promptIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  promptIconOrange: {
+    backgroundColor: 'rgba(249, 115, 22, 0.15)',
+  },
+  promptContent: {
+    flex: 1,
+  },
+  promptTitle: {
     fontSize: 14,
+    fontWeight: '600',
     color: COLORS.text.primary,
-    fontWeight: '500',
+    marginBottom: 4,
+  },
+  promptText: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    lineHeight: 16,
   },
 });

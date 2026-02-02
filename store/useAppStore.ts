@@ -17,13 +17,13 @@ import { calculateZones, predict5kTime, estimateVO2max, getZonesList } from '../
 export interface TestResult {
     id: string;
     date: string;
-    testType: 'midlab' | 'rise';
+    testType: 'midlab' | 'ramp';
 
     // MidLabテスト結果
     dist5min?: number;
     dist30min?: number;
 
-    // RISEテスト結果
+    // ランプテスト結果
     level?: string;
     completedLaps?: number;
     lcp?: number;
@@ -98,7 +98,7 @@ export interface WeeklyPlan {
     days: DaySchedule[];
     keyWorkouts: string[];
     isRecoveryWeek: boolean;
-    isRiseTestWeek: boolean;
+    isRampTestWeek: boolean;
 }
 
 // フェーズ情報
@@ -126,7 +126,7 @@ export interface TrainingPlan {
     };
     phases: PlanPhase[];
     weeklyPlans: WeeklyPlan[];
-    riseTestDates: number[];  // テスト推奨週
+    rampTestDates: number[];  // テスト推奨週
 }
 
 // ストア状態

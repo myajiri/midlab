@@ -31,6 +31,7 @@ interface ProfileState {
   setProfile: (profile: Profile) => void;
   updatePBs: (pbs: PBs) => void;
   updateAttributes: (attrs: {
+    displayName?: string;
     ageCategory?: AgeCategory;
     gender?: Profile['gender'];
     experience?: Experience;

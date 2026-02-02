@@ -1,5 +1,5 @@
 // ============================================
-// Test Screen - Single MeasureTab (rise-test style)
+// Test Screen - ランプテスト実施画面
 // ============================================
 
 import React, { useState, useMemo } from 'react';
@@ -198,7 +198,51 @@ export default function TestScreen() {
             </View>
             <View style={styles.testDetailRow}>
               <Text style={styles.testDetailLabel}>最終ペース</Text>
-              <Text style={styles.testDetailValue}>{lastTestResult.lastCompletedPace}秒/400m</Text>
+              <Text style={styles.testDetailValue}>{formatKmPace(lastTestResult.lastCompletedPace)} ({lastTestResult.lastCompletedPace}秒/400m)</Text>
+            </View>
+          </View>
+
+          {/* トレーニングゾーン */}
+          <View style={styles.zonesResultCard}>
+            <Text style={styles.zonesResultTitle}>トレーニングゾーン</Text>
+            {Object.entries(lastTestResult.zones).map(([zone, pace]) => {
+              const zoneLabels: Record<string, { name: string; color: string }> = {
+                jog: { name: 'Jog', color: '#9CA3AF' },
+                easy: { name: 'Easy', color: '#3B82F6' },
+                marathon: { name: 'Marathon', color: '#22C55E' },
+                threshold: { name: 'Threshold', color: '#EAB308' },
+                interval: { name: 'Interval', color: '#F97316' },
+                repetition: { name: 'Rep', color: '#EF4444' },
+              };
+              const label = zoneLabels[zone];
+              if (!label) return null;
+              return (
+                <View key={zone} style={styles.zoneResultRow}>
+                  <View style={styles.zoneResultInfo}>
+                    <View style={[styles.zoneResultDot, { backgroundColor: label.color }]} />
+                    <Text style={styles.zoneResultName}>{label.name}</Text>
+                  </View>
+                  <Text style={styles.zoneResultPace}>{formatKmPace(pace)} ({pace}秒/400m)</Text>
+                </View>
+              );
+            })}
+          </View>
+
+          {/* レース予測 */}
+          <View style={styles.predictionsResultCard}>
+            <Text style={styles.predictionsResultTitle}>レース予測タイム</Text>
+            <View style={styles.predictionsResultGrid}>
+              {Object.entries(lastTestResult.predictions).map(([distance, prediction]) => {
+                const labels: Record<string, string> = {
+                  m800: '800m', m1500: '1500m', m3000: '3000m', m5000: '5000m'
+                };
+                return (
+                  <View key={distance} style={styles.predictionResultItem}>
+                    <Text style={styles.predictionResultDistance}>{labels[distance]}</Text>
+                    <Text style={styles.predictionResultTime}>{formatTime(prediction.min)}</Text>
+                  </View>
+                );
+              })}
             </View>
           </View>
 
@@ -225,6 +269,33 @@ export default function TestScreen() {
               <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
             </Pressable>
             <Text style={styles.inputHeaderTitle}>結果入力</Text>
+          </View>
+
+          {/* ステップインジケーター */}
+          <View style={styles.stepIndicator}>
+            <View style={styles.stepItem}>
+              <View style={[styles.stepDot, styles.stepDotCompleted]}>
+                <Ionicons name="checkmark" size={12} color="#fff" />
+              </View>
+              <Text style={styles.stepLabel}>準備</Text>
+            </View>
+            <View style={[styles.stepLine, styles.stepLineCompleted]} />
+            <View style={styles.stepItem}>
+              <View style={[styles.stepDot, styles.stepDotCompleted]}>
+                <Ionicons name="checkmark" size={12} color="#fff" />
+              </View>
+              <Text style={styles.stepLabel}>テスト</Text>
+            </View>
+            <View style={[styles.stepLine, styles.stepLineCompleted]} />
+            <View style={styles.stepItem}>
+              <View style={[styles.stepDot, styles.stepDotActive]} />
+              <Text style={[styles.stepLabel, styles.stepLabelActive]}>入力</Text>
+            </View>
+            <View style={styles.stepLine} />
+            <View style={styles.stepItem}>
+              <View style={styles.stepDot} />
+              <Text style={styles.stepLabel}>結果</Text>
+            </View>
           </View>
 
           {/* 実施レベル */}
@@ -269,7 +340,7 @@ export default function TestScreen() {
             </View>
             <View style={styles.lcpDisplay}>
               <Text style={styles.lcpText}>
-                → LCP: <Text style={styles.lcpValue}>{lcp}秒</Text> ({formatKmPace(lcp)})
+                → LCP: <Text style={styles.lcpValue}>{formatKmPace(lcp)}</Text> ({lcp}秒/400m)
               </Text>
             </View>
           </View>
@@ -373,6 +444,32 @@ export default function TestScreen() {
       <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
         <Text style={styles.sectionTitle}>テスト測定</Text>
 
+        {/* ガイダンス */}
+        <View style={styles.guidanceCard}>
+          <View style={styles.guidanceHeader}>
+            <Ionicons name="information-circle" size={20} color={COLORS.primary} />
+            <Text style={styles.guidanceTitle}>ランプテストの実施方法</Text>
+          </View>
+          <View style={styles.guidanceContent}>
+            <View style={styles.guidanceStep}>
+              <Text style={styles.guidanceStepNum}>1</Text>
+              <Text style={styles.guidanceStepText}>400mトラックで実施（GPSウォッチがあれば別の場所でも可）</Text>
+            </View>
+            <View style={styles.guidanceStep}>
+              <Text style={styles.guidanceStepNum}>2</Text>
+              <Text style={styles.guidanceStepText}>各周回の目標ペースで走り、4秒ずつ加速</Text>
+            </View>
+            <View style={styles.guidanceStep}>
+              <Text style={styles.guidanceStepNum}>3</Text>
+              <Text style={styles.guidanceStepText}>目標タイムより2秒以上遅れたら終了</Text>
+            </View>
+            <View style={styles.guidanceStep}>
+              <Text style={styles.guidanceStepNum}>4</Text>
+              <Text style={styles.guidanceStepText}>テスト後、下の「結果を入力する」から登録</Text>
+            </View>
+          </View>
+        </View>
+
         {/* レベルタブ */}
         <View style={styles.levelTabs}>
           {(Object.keys(LEVELS) as LevelName[]).map((key) => (
@@ -413,7 +510,7 @@ export default function TestScreen() {
         <View style={styles.scheduleHeader}>
           <Text style={styles.scheduleTitle}>レベル{effectiveLevel} 進行表</Text>
           <Text style={styles.scheduleInfo}>
-            開始: {config.startPace}秒 ({formatKmPace(config.startPace)}) / 最大: {config.maxLaps}周
+            開始: {formatKmPace(config.startPace)} ({config.startPace}秒/400m) / 最大: {config.maxLaps}周
           </Text>
         </View>
 
@@ -422,17 +519,17 @@ export default function TestScreen() {
           {/* ヘッダー行 */}
           <View style={styles.scheduleRow}>
             <Text style={[styles.scheduleCell, styles.scheduleCellHeader, styles.colLap]}>周</Text>
+            <Text style={[styles.scheduleCell, styles.scheduleCellHeader, styles.colKm]}>ペース/km</Text>
             <Text style={[styles.scheduleCell, styles.scheduleCellHeader, styles.col400m]}>400m</Text>
             <Text style={[styles.scheduleCell, styles.scheduleCellHeader, styles.col100m]}>100m</Text>
-            <Text style={[styles.scheduleCell, styles.scheduleCellHeader, styles.colKm]}>キロ換算</Text>
           </View>
           {/* データ行 */}
           {schedule.map((lap) => (
             <View key={lap.lap} style={styles.scheduleRow}>
               <Text style={[styles.scheduleCell, styles.colLap]}>{lap.lap}</Text>
+              <Text style={[styles.scheduleCell, styles.colKm]}>{formatKmPace(lap.pace)}</Text>
               <Text style={[styles.scheduleCell, styles.col400m]}>{lap.pace}秒</Text>
               <Text style={[styles.scheduleCell, styles.col100m]}>{(lap.pace / 4).toFixed(1)}秒</Text>
-              <Text style={[styles.scheduleCell, styles.colKm]}>{formatKmPace(lap.pace)}</Text>
             </View>
           ))}
         </View>
@@ -447,6 +544,38 @@ export default function TestScreen() {
           fullWidth
           style={styles.inputButton}
         />
+
+        {/* テスト履歴 */}
+        {results && results.length > 0 && (
+          <View style={styles.historySection}>
+            <Text style={styles.historySectionTitle}>過去のテスト結果</Text>
+            {results.slice(0, 5).map((result, index) => (
+              <View key={result.id} style={styles.historyItem}>
+                <View style={styles.historyItemHeader}>
+                  <Text style={styles.historyDate}>
+                    {new Date(result.date).toLocaleDateString('ja-JP')}
+                  </Text>
+                  <Text style={styles.historyLevel}>レベル {result.level}</Text>
+                </View>
+                <View style={styles.historyItemContent}>
+                  <View style={styles.historyEtp}>
+                    <Text style={styles.historyEtpLabel}>eTP</Text>
+                    <Text style={styles.historyEtpPace}>{formatKmPace(result.eTP)}</Text>
+                    <Text style={styles.historyEtpValue}>({result.eTP}秒/400m)</Text>
+                  </View>
+                  <View style={styles.historyMeta}>
+                    <Text style={styles.historyMetaText}>
+                      {result.completedLaps}周完走
+                    </Text>
+                    <Text style={styles.historyMetaText}>
+                      {result.limiterType === 'cardio' ? '心肺' : result.limiterType === 'muscular' ? '筋持久力' : 'バランス'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -475,6 +604,53 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text.primary,
     marginBottom: 20,
+  },
+
+  // Guidance
+  guidanceCard: {
+    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.2)',
+  },
+  guidanceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  guidanceTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+  guidanceContent: {
+    gap: 8,
+  },
+  guidanceStep: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  guidanceStepNum: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary,
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 20,
+    overflow: 'hidden',
+  },
+  guidanceStepText: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    lineHeight: 18,
   },
 
   // Level Tabs
@@ -616,6 +792,75 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
 
+  // History Section
+  historySection: {
+    marginTop: 32,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  historySectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 16,
+  },
+  historyItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  historyItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  historyDate: {
+    fontSize: 13,
+    color: COLORS.text.muted,
+  },
+  historyLevel: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  historyItemContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  historyEtp: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+  },
+  historyEtpLabel: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+  },
+  historyEtpValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  historyEtpPace: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+  },
+  historyMeta: {
+    alignItems: 'flex-end',
+    gap: 2,
+  },
+  historyMetaText: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+  },
+
   // Input Form
   inputHeader: {
     flexDirection: 'row',
@@ -631,6 +876,52 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text.primary,
   },
+
+  // Step Indicator
+  stepIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+    paddingVertical: 12,
+  },
+  stepItem: {
+    alignItems: 'center',
+  },
+  stepDot: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  stepDotCompleted: {
+    backgroundColor: '#22C55E',
+  },
+  stepDotActive: {
+    backgroundColor: COLORS.primary,
+  },
+  stepLine: {
+    width: 32,
+    height: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginHorizontal: 4,
+    marginBottom: 16,
+  },
+  stepLineCompleted: {
+    backgroundColor: '#22C55E',
+  },
+  stepLabel: {
+    fontSize: 10,
+    color: COLORS.text.muted,
+  },
+  stepLabelActive: {
+    color: COLORS.primary,
+    fontWeight: '500',
+  },
+
   inputSection: {
     marginBottom: 20,
   },
@@ -886,5 +1177,81 @@ const styles = StyleSheet.create({
   },
   completeBtn: {
     marginTop: 8,
+  },
+
+  // Zones Result
+  zonesResultCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  zonesResultTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.muted,
+    marginBottom: 12,
+  },
+  zoneResultRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  zoneResultInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  zoneResultDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  zoneResultName: {
+    fontSize: 14,
+    color: COLORS.text.primary,
+  },
+  zoneResultPace: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+  },
+
+  // Predictions Result
+  predictionsResultCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  predictionsResultTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.muted,
+    marginBottom: 12,
+  },
+  predictionsResultGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  predictionResultItem: {
+    width: '48%',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+  },
+  predictionResultDistance: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginBottom: 4,
+  },
+  predictionResultTime: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text.primary,
   },
 });

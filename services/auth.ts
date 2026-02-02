@@ -105,7 +105,9 @@ export const deleteAccount = async (): Promise<{ complete: boolean }> => {
         }
     } catch (e) {
         // Edge Functionが利用できない場合は無視
-        console.log('Edge Function not available, falling back to sign out only');
+        if (__DEV__) {
+            console.log('Edge Function not available, falling back to sign out only');
+        }
     }
 
     // ローカルセッションをクリア

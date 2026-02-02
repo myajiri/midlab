@@ -18,7 +18,9 @@ export const migrateStorageKeys = async (): Promise<boolean> => {
       return false; // 既に移行済み
     }
 
-    console.log('[Migration] Starting storage key migration from zone2peak to midlab...');
+    if (__DEV__) {
+      console.log('[Migration] Starting storage key migration from zone2peak to midlab...');
+    }
 
     const keyMappings = [
       { legacy: LEGACY_STORAGE_KEYS.profile, current: STORAGE_KEYS.profile },
@@ -42,28 +44,40 @@ export const migrateStorageKeys = async (): Promise<boolean> => {
 
           if (currentData === null) {
             await AsyncStorage.setItem(current, legacyData);
-            console.log(`[Migration] Migrated: ${legacy} → ${current}`);
+            if (__DEV__) {
+              console.log(`[Migration] Migrated: ${legacy} → ${current}`);
+            }
             migratedCount++;
           } else {
-            console.log(`[Migration] Skipped (already exists): ${current}`);
+            if (__DEV__) {
+              console.log(`[Migration] Skipped (already exists): ${current}`);
+            }
           }
 
           // 旧キーを削除
           await AsyncStorage.removeItem(legacy);
-          console.log(`[Migration] Removed legacy key: ${legacy}`);
+          if (__DEV__) {
+            console.log(`[Migration] Removed legacy key: ${legacy}`);
+          }
         }
       } catch (error) {
-        console.error(`[Migration] Error migrating ${legacy}:`, error);
+        if (__DEV__) {
+          console.error(`[Migration] Error migrating ${legacy}:`, error);
+        }
       }
     }
 
     // 移行完了フラグを設定
     await AsyncStorage.setItem('midlab_migration_complete', 'true');
-    console.log(`[Migration] Complete. Migrated ${migratedCount} keys.`);
+    if (__DEV__) {
+      console.log(`[Migration] Complete. Migrated ${migratedCount} keys.`);
+    }
 
     return migratedCount > 0;
   } catch (error) {
-    console.error('[Migration] Migration failed:', error);
+    if (__DEV__) {
+      console.error('[Migration] Migration failed:', error);
+    }
     return false;
   }
 };
@@ -73,5 +87,7 @@ export const migrateStorageKeys = async (): Promise<boolean> => {
  */
 export const resetMigration = async (): Promise<void> => {
   await AsyncStorage.removeItem('midlab_migration_complete');
-  console.log('[Migration] Migration flag reset');
+  if (__DEV__) {
+    console.log('[Migration] Migration flag reset');
+  }
 };

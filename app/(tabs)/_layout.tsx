@@ -59,7 +59,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="test"
         options={{
-          title: 'Test',
+          title: 'テスト',
           tabBarIcon: ({ focused }) => (
             <TabIcon
               focused={focused}
@@ -85,7 +85,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="workout"
         options={{
-          title: 'メニュー',
+          title: 'トレーニング',
           tabBarIcon: ({ focused }) => (
             <TabIcon
               focused={focused}

@@ -11,7 +11,7 @@ export const LEVELS: Record<LevelName, { name: string; description: string; star
   S: { name: 'S', description: '1500m 3:30-4:00', startPace: 88, maxLaps: 8, etpRange: { min: 62, max: 71 } },    // 210-240秒
   A: { name: 'A', description: '1500m 4:00-4:30', startPace: 96, maxLaps: 10, etpRange: { min: 71, max: 80 } },   // 240-270秒
   B: { name: 'B', description: '1500m 4:30-5:00', startPace: 108, maxLaps: 10, etpRange: { min: 80, max: 89 } },  // 270-300秒
-  C: { name: 'C', description: '1500m 5:00-5:30', startPace: 120, maxLaps: 10, etpRange: { min: 89, max: 98 } },  // 300-330秒
+  C: { name: 'C', description: '1500m 5:00以上', startPace: 120, maxLaps: 10, etpRange: { min: 89, max: 999 } },  // 300秒以上
 };
 
 export const PACE_INCREMENT = 4;
@@ -19,12 +19,12 @@ export const ETP_COEFFICIENT = 1.12;
 
 // 6ゾーン係数
 export const ZONE_COEFFICIENTS_V3: Record<ZoneName, { coef: number; name: string; label: string; color: string; description: string; note?: string }> = {
-  jog: { coef: 1.40, name: 'リカバリーJog', label: 'リカバリーJog', color: '#9CA3AF', description: '回復ペース', note: '目安' },
-  easy: { coef: 1.275, name: 'Easy', label: 'Easy', color: '#3B82F6', description: '有酸素ベース' },
-  marathon: { coef: 1.125, name: 'Marathon', label: 'Marathon', color: '#22C55E', description: 'マラソンペース' },
-  threshold: { coef: 1.025, name: 'Threshold', label: 'Threshold', color: '#EAB308', description: '乳酸閾値' },
-  interval: { coef: 0.945, name: 'Interval', label: 'Interval', color: '#F97316', description: 'VO2max' },
-  repetition: { coef: 0.875, name: 'Rep', label: 'Rep', color: '#EF4444', description: 'スピード' },
+  jog: { coef: 1.40, name: 'リカバリー', label: 'リカバリー', color: '#9CA3AF', description: '回復ペース', note: '目安' },
+  easy: { coef: 1.275, name: 'イージー', label: 'イージー', color: '#3B82F6', description: '有酸素ベース' },
+  marathon: { coef: 1.125, name: 'マラソン', label: 'マラソン', color: '#22C55E', description: 'マラソンペース' },
+  threshold: { coef: 1.025, name: '閾値', label: '閾値', color: '#EAB308', description: '乳酸閾値' },
+  interval: { coef: 0.945, name: 'インターバル', label: 'インターバル', color: '#F97316', description: 'VO2max' },
+  repetition: { coef: 0.875, name: 'レペティション', label: 'レペティション', color: '#EF4444', description: 'スピード' },
 };
 
 // リミッター別ゾーン調整
@@ -34,12 +34,12 @@ export const LIMITER_ZONE_ADJUSTMENTS: Record<LimiterType, Record<ZoneName, numb
   balanced: { jog: 0, easy: 0, marathon: 0, threshold: 0, interval: 0, repetition: 0 },
 };
 
-// レース予測係数
+// レース予測係数（laps = 400mラップ数、係数はペース倍率）
 export const RACE_COEFFICIENTS = {
-  m800: { min: 0.82, max: 0.85 },
-  m1500: { min: 0.88, max: 0.92 },
-  m3000: { min: 0.96, max: 1.00 },
-  m5000: { min: 1.00, max: 1.04 },
+  m800: { coefficient: 0.835, min: 0.82, max: 0.85, laps: 2, label: '800m' },
+  m1500: { coefficient: 0.90, min: 0.88, max: 0.92, laps: 3.75, label: '1500m' },
+  m3000: { coefficient: 0.98, min: 0.96, max: 1.00, laps: 7.5, label: '3000m' },
+  m5000: { coefficient: 1.02, min: 1.00, max: 1.04, laps: 12.5, label: '5000m' },
 };
 
 // リミッター別タイム調整（秒）

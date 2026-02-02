@@ -1,6 +1,5 @@
 // ============================================
 // MidLab 計算ロジック
-// rise-test/src/App.jsx から移植
 // ============================================
 
 import {
@@ -239,7 +238,7 @@ export const determineLimiterFromRuns = (
 };
 
 /**
- * RISEテストの終了理由からリミッタータイプを判定
+ * ランプテストの終了理由からリミッタータイプを判定
  */
 export const determineLimiterFromTest = (
     reason: 'breath' | 'legs' | 'both' | 'other',
@@ -320,7 +319,7 @@ export const calculatePredictions = (
 ): Record<string, { min: number; max: number }> => {
     const predictions: Record<string, { min: number; max: number }> = {};
 
-    (Object.entries(RACE_COEFFICIENTS) as [string, { min: number; max: number; laps: number }][]).forEach(
+    (Object.entries(RACE_COEFFICIENTS) as [string, { coefficient: number; min: number; max: number; laps: number; label: string }][]).forEach(
         ([key, config]) => {
             const limiterAdj = LIMITER_RACE_ADJUSTMENTS[key as keyof typeof LIMITER_RACE_ADJUSTMENTS]?.[limiterType] || 0;
             const basePaceMin = etp * config.min;
@@ -348,7 +347,7 @@ export const predict5kTime = (etp: number, limiterType: LimiterType): number => 
 };
 
 // ============================================
-// RISEテスト関連
+// ランプテスト関連
 // ============================================
 
 /**
@@ -404,7 +403,7 @@ export const recommendLevel = (pbSeconds: number): LevelKey | null => {
 };
 
 // ============================================
-// 計画生成ロジック（rise-test互換）
+// 計画生成ロジック
 // ============================================
 
 import {
@@ -440,7 +439,7 @@ const generateWeeklySchedule = (
     phaseType: PhaseType,
     focusKeys: readonly string[],
     isRecoveryWeek: boolean,
-    isRiseTestWeek: boolean,
+    isRampTestWeek: boolean,
     restDays: number[] = [2, 6],  // デフォルト: 水・日
 ): DaySchedule[] => {
     const getFocusLabel = (key: string): string => {
@@ -476,7 +475,7 @@ const generateWeeklySchedule = (
         keyWorkoutDays = [workoutDays[Math.floor(mid / 2)], workoutDays[mid + Math.floor((workoutDays.length - mid) / 2)]];
         // ロング走は週末寄り（最後の練習日）
         longRunDay = workoutDays[workoutDays.length - 1];
-        // テスト日（RISEテスト週用）
+        // テスト日（ランプテスト週用）
         testDay = workoutDays[Math.floor(mid / 2)];
     } else if (workoutDays.length === 2) {
         keyWorkoutDays = [workoutDays[0]];
@@ -492,8 +491,8 @@ const generateWeeklySchedule = (
     for (let d = 0; d < 7; d++) {
         if (restDays.includes(d)) {
             schedule.push({ dayOfWeek: d, type: 'rest', label: '休養', isKey: false, completed: false });
-        } else if (isRiseTestWeek && d === testDay) {
-            schedule.push({ dayOfWeek: d, type: 'test', label: 'RISE Test', isKey: true, completed: false, focusKey: 'test' });
+        } else if (isRampTestWeek && d === testDay) {
+            schedule.push({ dayOfWeek: d, type: 'test', label: 'ランプテスト', isKey: true, completed: false, focusKey: 'test' });
         } else if (keyWorkoutDays.includes(d) && !isRecoveryWeek) {
             const idx = keyWorkoutDays.indexOf(d);
             const focusKey = focusKeys[idx] || focusKeys[0];
@@ -506,7 +505,7 @@ const generateWeeklySchedule = (
                 focusKey,
                 focusCategory: getFocusLabel(focusKey)
             });
-        } else if (d === longRunDay && !isRiseTestWeek) {
+        } else if (d === longRunDay && !isRampTestWeek) {
             schedule.push({ dayOfWeek: d, type: 'long', label: 'Long Run', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' });
         } else {
             schedule.push({ dayOfWeek: d, type: 'easy', label: 'Easy Run', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' });
@@ -592,20 +591,20 @@ export const generatePlan = ({ race, baseline, weeksUntilRace, restDays = [2, 6]
         });
     }
 
-    // RISE Test推奨週（4週間ごと）
-    const riseTestDates: number[] = [];
+    // ランプテスト推奨週（4週間ごと）
+    const rampTestDates: number[] = [];
     const testInterval = 4;
     for (let w = testInterval; w <= weeksUntilRace && w < 20; w += testInterval) {
         const weekPhase = phases.find((p) => w >= p.startWeek && w <= p.endWeek);
         if (weekPhase && weekPhase.type !== 'taper') {
-            riseTestDates.push(w);
+            rampTestDates.push(w);
         }
     }
     // 基礎期の終わりにもテストを推奨
     const basePhase = phases.find((p) => p.type === 'base');
-    if (basePhase && !riseTestDates.includes(basePhase.endWeek)) {
-        riseTestDates.push(basePhase.endWeek);
-        riseTestDates.sort((a, b) => a - b);
+    if (basePhase && !rampTestDates.includes(basePhase.endWeek)) {
+        rampTestDates.push(basePhase.endWeek);
+        rampTestDates.sort((a, b) => a - b);
     }
 
     // 週間プラン生成
@@ -656,9 +655,9 @@ export const generatePlan = ({ race, baseline, weeksUntilRace, restDays = [2, 6]
                 : Math.round(PHASE_CONFIG[phaseType].loadRange[0] + (phaseProgress * 10));
 
         const phaseFocusKeys = KEY_WORKOUTS_BY_PHASE[phaseType]?.focusKeys || ['aerobic'];
-        const isRiseTestWeek = riseTestDates.includes(weekNumber);
+        const isRampTestWeek = rampTestDates.includes(weekNumber);
 
-        const days = generateWeeklySchedule(phaseType, phaseFocusKeys, isRecoveryWeek, isRiseTestWeek, restDays);
+        const days = generateWeeklySchedule(phaseType, phaseFocusKeys, isRecoveryWeek, isRampTestWeek, restDays);
 
         weeklyPlans.push({
             weekNumber,
@@ -670,7 +669,7 @@ export const generatePlan = ({ race, baseline, weeksUntilRace, restDays = [2, 6]
             days,
             keyWorkouts: days.filter((d) => d.isKey).map((d) => d.focusKey || d.label),
             isRecoveryWeek,
-            isRiseTestWeek,
+            isRampTestWeek,
             distribution: dist, // ゾーン配分 (E/T/I/R)
         } as WeeklyPlan);
     }
@@ -682,7 +681,7 @@ export const generatePlan = ({ race, baseline, weeksUntilRace, restDays = [2, 6]
         baseline,
         phases,
         weeklyPlans,
-        riseTestDates,
+        rampTestDates,
     };
 };
 
