@@ -3,14 +3,15 @@
 // タイム選択モーダル（分:秒形式）
 // ============================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Modal,
   Pressable,
-  ScrollView,
+  FlatList,
+  ListRenderItem,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
@@ -25,6 +26,9 @@ interface TimePickerModalProps {
   maxMinutes?: number;
 }
 
+const ITEM_HEIGHT = 50;
+const VISIBLE_ITEMS = 5;
+
 export const TimePickerModal: React.FC<TimePickerModalProps> = ({
   visible,
   onClose,
@@ -37,25 +41,60 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
   const [selectedMinutes, setSelectedMinutes] = useState(Math.floor((value || 0) / 60));
   const [selectedSeconds, setSelectedSeconds] = useState((value || 0) % 60);
 
-  // モーダルが開いたときに値をリセット
-  useEffect(() => {
-    if (visible) {
-      const mins = Math.floor((value || 0) / 60);
-      const secs = (value || 0) % 60;
-      // minMinutesの範囲内に収める
-      setSelectedMinutes(Math.max(minMinutes, Math.min(maxMinutes, mins || minMinutes)));
-      setSelectedSeconds(secs);
-    }
-  }, [visible, value, minMinutes, maxMinutes]);
+  const minutesListRef = useRef<FlatList>(null);
+  const secondsListRef = useRef<FlatList>(null);
 
   // 分の配列を生成
-  const minutesArray = Array.from(
+  const minutesData = Array.from(
     { length: maxMinutes - minMinutes + 1 },
     (_, i) => minMinutes + i
   );
 
-  // 秒の配列を生成（0-59、5秒刻み）
-  const secondsArray = Array.from({ length: 12 }, (_, i) => i * 5);
+  // 秒の配列を生成（0-59）
+  const secondsData = Array.from({ length: 60 }, (_, i) => i);
+
+  // モーダルが開いたときに値をリセットしてスクロール
+  useEffect(() => {
+    if (visible) {
+      const mins = Math.floor((value || 0) / 60);
+      const secs = (value || 0) % 60;
+      const clampedMins = Math.max(minMinutes, Math.min(maxMinutes, mins || minMinutes));
+
+      setSelectedMinutes(clampedMins);
+      setSelectedSeconds(secs);
+
+      // スクロール位置を設定
+      setTimeout(() => {
+        const minuteIndex = clampedMins - minMinutes;
+        const secondIndex = secs;
+
+        minutesListRef.current?.scrollToIndex({
+          index: minuteIndex,
+          animated: false,
+          viewPosition: 0.5,
+        });
+        secondsListRef.current?.scrollToIndex({
+          index: secondIndex,
+          animated: false,
+          viewPosition: 0.5,
+        });
+      }, 100);
+    }
+  }, [visible, value, minMinutes, maxMinutes]);
+
+  const handleMinutesMomentumEnd = useCallback((event: any) => {
+    const y = event.nativeEvent.contentOffset.y;
+    const index = Math.round(y / ITEM_HEIGHT);
+    const clampedIndex = Math.max(0, Math.min(minutesData.length - 1, index));
+    setSelectedMinutes(minutesData[clampedIndex]);
+  }, [minutesData]);
+
+  const handleSecondsMomentumEnd = useCallback((event: any) => {
+    const y = event.nativeEvent.contentOffset.y;
+    const index = Math.round(y / ITEM_HEIGHT);
+    const clampedIndex = Math.max(0, Math.min(59, index));
+    setSelectedSeconds(clampedIndex);
+  }, []);
 
   const handleConfirm = () => {
     const totalSeconds = selectedMinutes * 60 + selectedSeconds;
@@ -67,43 +106,57 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // 分を増減
-  const incrementMinutes = () => {
-    setSelectedMinutes(prev => Math.min(maxMinutes, prev + 1));
-  };
+  const renderMinuteItem: ListRenderItem<number> = useCallback(({ item }) => {
+    const isSelected = item === selectedMinutes;
+    return (
+      <Pressable
+        style={styles.pickerItem}
+        onPress={() => {
+          setSelectedMinutes(item);
+          const index = item - minMinutes;
+          minutesListRef.current?.scrollToIndex({
+            index,
+            animated: true,
+            viewPosition: 0.5,
+          });
+        }}
+      >
+        <Text style={[styles.pickerItemText, isSelected && styles.pickerItemTextSelected]}>
+          {item}
+        </Text>
+      </Pressable>
+    );
+  }, [selectedMinutes, minMinutes]);
 
-  const decrementMinutes = () => {
-    setSelectedMinutes(prev => Math.max(minMinutes, prev - 1));
-  };
+  const renderSecondItem: ListRenderItem<number> = useCallback(({ item }) => {
+    const isSelected = item === selectedSeconds;
+    return (
+      <Pressable
+        style={styles.pickerItem}
+        onPress={() => {
+          setSelectedSeconds(item);
+          secondsListRef.current?.scrollToIndex({
+            index: item,
+            animated: true,
+            viewPosition: 0.5,
+          });
+        }}
+      >
+        <Text style={[styles.pickerItemText, isSelected && styles.pickerItemTextSelected]}>
+          {item.toString().padStart(2, '0')}
+        </Text>
+      </Pressable>
+    );
+  }, [selectedSeconds]);
 
-  // 秒を増減（5秒刻み）
-  const incrementSeconds = () => {
-    setSelectedSeconds(prev => {
-      const next = prev + 5;
-      if (next >= 60) {
-        if (selectedMinutes < maxMinutes) {
-          setSelectedMinutes(selectedMinutes + 1);
-          return 0;
-        }
-        return 55;
-      }
-      return next;
-    });
-  };
+  const getItemLayout = useCallback((_: any, index: number) => ({
+    length: ITEM_HEIGHT,
+    offset: ITEM_HEIGHT * index,
+    index,
+  }), []);
 
-  const decrementSeconds = () => {
-    setSelectedSeconds(prev => {
-      const next = prev - 5;
-      if (next < 0) {
-        if (selectedMinutes > minMinutes) {
-          setSelectedMinutes(selectedMinutes - 1);
-          return 55;
-        }
-        return 0;
-      }
-      return next;
-    });
-  };
+  const ListHeader = () => <View style={{ height: ITEM_HEIGHT * 2 }} />;
+  const ListFooter = () => <View style={{ height: ITEM_HEIGHT * 2 }} />;
 
   return (
     <Modal
@@ -134,32 +187,23 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
             {/* 分ピッカー */}
             <View style={styles.pickerColumn}>
               <Text style={styles.pickerLabel}>分</Text>
-              <View style={styles.spinnerControl}>
-                <Pressable
-                  style={styles.spinnerButton}
-                  onPress={incrementMinutes}
-                  disabled={selectedMinutes >= maxMinutes}
-                >
-                  <Ionicons
-                    name="chevron-up"
-                    size={28}
-                    color={selectedMinutes >= maxMinutes ? COLORS.text.muted : COLORS.text.primary}
-                  />
-                </Pressable>
-                <View style={styles.spinnerValue}>
-                  <Text style={styles.spinnerValueText}>{selectedMinutes}</Text>
-                </View>
-                <Pressable
-                  style={styles.spinnerButton}
-                  onPress={decrementMinutes}
-                  disabled={selectedMinutes <= minMinutes}
-                >
-                  <Ionicons
-                    name="chevron-down"
-                    size={28}
-                    color={selectedMinutes <= minMinutes ? COLORS.text.muted : COLORS.text.primary}
-                  />
-                </Pressable>
+              <View style={styles.pickerWrapper}>
+                <View style={styles.pickerHighlight} />
+                <FlatList
+                  ref={minutesListRef}
+                  data={minutesData}
+                  renderItem={renderMinuteItem}
+                  keyExtractor={(item) => `min-${item}`}
+                  showsVerticalScrollIndicator={false}
+                  snapToInterval={ITEM_HEIGHT}
+                  decelerationRate="fast"
+                  onMomentumScrollEnd={handleMinutesMomentumEnd}
+                  getItemLayout={getItemLayout}
+                  ListHeaderComponent={ListHeader}
+                  ListFooterComponent={ListFooter}
+                  initialNumToRender={20}
+                  windowSize={11}
+                />
               </View>
             </View>
 
@@ -169,51 +213,24 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
             {/* 秒ピッカー */}
             <View style={styles.pickerColumn}>
               <Text style={styles.pickerLabel}>秒</Text>
-              <View style={styles.spinnerControl}>
-                <Pressable
-                  style={styles.spinnerButton}
-                  onPress={incrementSeconds}
-                >
-                  <Ionicons name="chevron-up" size={28} color={COLORS.text.primary} />
-                </Pressable>
-                <View style={styles.spinnerValue}>
-                  <Text style={styles.spinnerValueText}>
-                    {selectedSeconds.toString().padStart(2, '0')}
-                  </Text>
-                </View>
-                <Pressable
-                  style={styles.spinnerButton}
-                  onPress={decrementSeconds}
-                >
-                  <Ionicons name="chevron-down" size={28} color={COLORS.text.primary} />
-                </Pressable>
+              <View style={styles.pickerWrapper}>
+                <View style={styles.pickerHighlight} />
+                <FlatList
+                  ref={secondsListRef}
+                  data={secondsData}
+                  renderItem={renderSecondItem}
+                  keyExtractor={(item) => `sec-${item}`}
+                  showsVerticalScrollIndicator={false}
+                  snapToInterval={ITEM_HEIGHT}
+                  decelerationRate="fast"
+                  onMomentumScrollEnd={handleSecondsMomentumEnd}
+                  getItemLayout={getItemLayout}
+                  ListHeaderComponent={ListHeader}
+                  ListFooterComponent={ListFooter}
+                  initialNumToRender={60}
+                  windowSize={11}
+                />
               </View>
-            </View>
-          </View>
-
-          {/* クイック選択（秒） */}
-          <View style={styles.quickSelect}>
-            <Text style={styles.quickSelectLabel}>秒をタップで選択</Text>
-            <View style={styles.quickSelectGrid}>
-              {secondsArray.map((sec) => (
-                <Pressable
-                  key={sec}
-                  style={[
-                    styles.quickSelectItem,
-                    selectedSeconds === sec && styles.quickSelectItemSelected,
-                  ]}
-                  onPress={() => setSelectedSeconds(sec)}
-                >
-                  <Text
-                    style={[
-                      styles.quickSelectText,
-                      selectedSeconds === sec && styles.quickSelectTextSelected,
-                    ]}
-                  >
-                    {sec.toString().padStart(2, '0')}
-                  </Text>
-                </Pressable>
-              ))}
             </View>
           </View>
 
@@ -279,7 +296,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   pickerColumn: {
     alignItems: 'center',
@@ -289,72 +306,44 @@ const styles = StyleSheet.create({
     color: COLORS.text.muted,
     marginBottom: 8,
   },
-  spinnerControl: {
-    alignItems: 'center',
-  },
-  spinnerButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  spinnerValue: {
+  pickerWrapper: {
+    position: 'relative',
+    height: ITEM_HEIGHT * VISIBLE_ITEMS,
     width: 80,
-    height: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  pickerHighlight: {
+    position: 'absolute',
+    top: ITEM_HEIGHT * 2,
+    left: 0,
+    right: 0,
+    height: ITEM_HEIGHT,
     backgroundColor: 'rgba(59, 130, 246, 0.15)',
     borderRadius: 8,
-    marginVertical: 8,
+    zIndex: 1,
+    pointerEvents: 'none',
   },
-  spinnerValueText: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: COLORS.text.primary,
+  pickerItem: {
+    height: ITEM_HEIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+  },
+  pickerItemText: {
+    fontSize: 22,
+    color: COLORS.text.secondary,
     fontVariant: ['tabular-nums'],
+  },
+  pickerItemTextSelected: {
+    color: COLORS.text.primary,
+    fontWeight: '600',
+    fontSize: 24,
   },
   colon: {
     fontSize: 32,
     fontWeight: '700',
     color: COLORS.text.primary,
     marginHorizontal: 12,
-  },
-  quickSelect: {
-    marginBottom: 20,
-  },
-  quickSelectLabel: {
-    fontSize: 12,
-    color: COLORS.text.muted,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  quickSelectGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  quickSelectItem: {
-    width: 44,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  quickSelectItemSelected: {
-    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-    borderColor: COLORS.primary,
-  },
-  quickSelectText: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    fontVariant: ['tabular-nums'],
-  },
-  quickSelectTextSelected: {
-    color: COLORS.primary,
-    fontWeight: '600',
   },
   buttons: {
     flexDirection: 'row',
