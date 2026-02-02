@@ -408,7 +408,7 @@ export default function SettingsScreen() {
           {/* バージョン情報 */}
           <View style={styles.version}>
             <Text style={styles.versionText}>MidLab v1.0.0</Text>
-            <Text style={styles.versionText}>Powered by RISE Test Protocol</Text>
+            <Text style={styles.versionText}>Powered by ランプテスト Protocol</Text>
           </View>
         </ScrollView>
       </SafeAreaView>

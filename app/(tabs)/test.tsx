@@ -448,7 +448,7 @@ export default function TestScreen() {
         <View style={styles.guidanceCard}>
           <View style={styles.guidanceHeader}>
             <Ionicons name="information-circle" size={20} color={COLORS.primary} />
-            <Text style={styles.guidanceTitle}>RISEテストの実施方法</Text>
+            <Text style={styles.guidanceTitle}>ランプテストの実施方法</Text>
           </View>
           <View style={styles.guidanceContent}>
             <View style={styles.guidanceStep}>

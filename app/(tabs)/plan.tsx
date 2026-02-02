@@ -543,7 +543,7 @@ export default function PlanScreen() {
             )}
             {weekPlan.isRiseTestWeek && (
               <View style={styles.testBadge}>
-                <Text style={styles.testBadgeText}>RISE Test週</Text>
+                <Text style={styles.testBadgeText}>ランプテスト週</Text>
               </View>
             )}
           </View>
@@ -997,7 +997,7 @@ function generatePlan({ race, baseline }: GeneratePlanParams): RacePlan {
     }
   });
 
-  // 月1回のRISE Testを設定（約4週間ごと）
+  // 月1回のランプテストを設定（約4週間ごと）
   const riseTestWeeks: number[] = [];
   const testInterval = 4;
   for (let w = testInterval; w <= weeksUntilRace && w < 20; w += testInterval) {
@@ -1064,7 +1064,7 @@ function generatePlan({ race, baseline }: GeneratePlanParams): RacePlan {
     const phaseKeyCategories = KEY_WORKOUTS_BY_PHASE[phaseType]?.categories || ['有酸素ベース'];
     const phaseFocusKeys = KEY_WORKOUTS_BY_PHASE[phaseType]?.focusKeys || ['aerobic'];
 
-    // RISE Testの週かどうか
+    // ランプテストの週かどうか
     const isRiseTestWeek = riseTestWeeks.includes(weekNumber);
 
     // 日ごとのスケジュール
@@ -1107,7 +1107,7 @@ function generatePlan({ race, baseline }: GeneratePlanParams): RacePlan {
     };
   });
 
-  // RISE Test日程をISO文字列に変換
+  // ランプテスト日程をISO文字列に変換
   const riseTestDates = riseTestWeeks.map(w => {
     const weekPlan = weeklyPlans.find(wp => wp.weekNumber === w);
     if (weekPlan) {
@@ -1160,13 +1160,13 @@ function generateWeeklySchedule(
       { id: `w${weekNumber}-d6`, dayOfWeek: 6, type: 'rest', label: '休養', isKey: false, completed: false },
     );
   } else if (isRiseTestWeek) {
-    // RISE Test週
+    // ランプテスト週
     const focus = PHYSIOLOGICAL_FOCUS_CATEGORIES[focusKeys[0]];
     days.push(
       { id: `w${weekNumber}-d0`, dayOfWeek: 0, type: 'easy', label: '有酸素ベース（Easy）', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
       { id: `w${weekNumber}-d1`, dayOfWeek: 1, type: 'easy', label: '有酸素ベース（Easy）', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
       { id: `w${weekNumber}-d2`, dayOfWeek: 2, type: 'rest', label: '休養', isKey: false, completed: false },
-      { id: `w${weekNumber}-d3`, dayOfWeek: 3, type: 'test', label: 'RISE Test', isKey: true, completed: false, focusKey: 'test' },
+      { id: `w${weekNumber}-d3`, dayOfWeek: 3, type: 'test', label: 'ランプテスト', isKey: true, completed: false, focusKey: 'test' },
       { id: `w${weekNumber}-d4`, dayOfWeek: 4, type: 'rest', label: '休養', isKey: false, completed: false },
       { id: `w${weekNumber}-d5`, dayOfWeek: 5, type: 'workout', label: focus?.name || '有酸素ベース', isKey: true, completed: false, focusKey: focusKeys[0], focusCategory: focus?.menuCategory },
       { id: `w${weekNumber}-d6`, dayOfWeek: 6, type: 'rest', label: '休養', isKey: false, completed: false },

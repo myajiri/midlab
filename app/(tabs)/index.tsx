@@ -200,13 +200,13 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* 次回RISE Test推奨 */}
+        {/* 次回ランプテスト推奨 */}
         {testRecommendation && (
           <Pressable
             style={styles.testRecommendation}
             onPress={() => router.push('/test')}
           >
-            <Text style={styles.testRecommendationTitle}>次回RISE Test推奨</Text>
+            <Text style={styles.testRecommendationTitle}>次回ランプテスト推奨</Text>
             <Text style={styles.testRecommendationText}>{testRecommendation.reason}</Text>
           </Pressable>
         )}
@@ -316,7 +316,7 @@ export default function HomeScreen() {
             onPress={() => router.push('/test')}
           >
             <Ionicons name="stats-chart" size={18} color="#8B5CF6" />
-            <Text style={styles.actionText}>RISE Test</Text>
+            <Text style={styles.actionText}>ランプテスト</Text>
           </Pressable>
           <Pressable
             style={styles.actionButton}

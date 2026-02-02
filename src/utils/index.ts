@@ -458,7 +458,7 @@ export const getWeekProgress = (plan: RacePlan): WeekProgress | null => {
 };
 
 /**
- * 次回RISE Test推奨を取得
+ * 次回ランプテスト推奨を取得
  */
 export const getNextTestRecommendation = (results: TestResult[]): { reason: string } | null => {
   if (!results || results.length === 0) {

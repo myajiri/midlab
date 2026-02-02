@@ -239,7 +239,7 @@ export const determineLimiterFromRuns = (
 };
 
 /**
- * RISEテストの終了理由からリミッタータイプを判定
+ * ランプテストの終了理由からリミッタータイプを判定
  */
 export const determineLimiterFromTest = (
     reason: 'breath' | 'legs' | 'both' | 'other',
@@ -348,7 +348,7 @@ export const predict5kTime = (etp: number, limiterType: LimiterType): number => 
 };
 
 // ============================================
-// RISEテスト関連
+// ランプテスト関連
 // ============================================
 
 /**
@@ -476,7 +476,7 @@ const generateWeeklySchedule = (
         keyWorkoutDays = [workoutDays[Math.floor(mid / 2)], workoutDays[mid + Math.floor((workoutDays.length - mid) / 2)]];
         // ロング走は週末寄り（最後の練習日）
         longRunDay = workoutDays[workoutDays.length - 1];
-        // テスト日（RISEテスト週用）
+        // テスト日（ランプテスト週用）
         testDay = workoutDays[Math.floor(mid / 2)];
     } else if (workoutDays.length === 2) {
         keyWorkoutDays = [workoutDays[0]];
@@ -493,7 +493,7 @@ const generateWeeklySchedule = (
         if (restDays.includes(d)) {
             schedule.push({ dayOfWeek: d, type: 'rest', label: '休養', isKey: false, completed: false });
         } else if (isRiseTestWeek && d === testDay) {
-            schedule.push({ dayOfWeek: d, type: 'test', label: 'RISE Test', isKey: true, completed: false, focusKey: 'test' });
+            schedule.push({ dayOfWeek: d, type: 'test', label: 'ランプテスト', isKey: true, completed: false, focusKey: 'test' });
         } else if (keyWorkoutDays.includes(d) && !isRecoveryWeek) {
             const idx = keyWorkoutDays.indexOf(d);
             const focusKey = focusKeys[idx] || focusKeys[0];
@@ -592,7 +592,7 @@ export const generatePlan = ({ race, baseline, weeksUntilRace, restDays = [2, 6]
         });
     }
 
-    // RISE Test推奨週（4週間ごと）
+    // ランプテスト推奨週（4週間ごと）
     const riseTestDates: number[] = [];
     const testInterval = 4;
     for (let w = testInterval; w <= weeksUntilRace && w < 20; w += testInterval) {
