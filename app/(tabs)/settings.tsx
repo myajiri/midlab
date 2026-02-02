@@ -43,8 +43,6 @@ import { PremiumBadge } from '../../components/PremiumGate';
 // 定数
 // ============================================
 
-const { width } = Dimensions.get('window');
-
 // 距離ごとの色
 const DISTANCE_COLORS: Record<string, string> = {
   m800: '#EF4444',   // 赤
