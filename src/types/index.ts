@@ -63,6 +63,7 @@ export interface CurrentValues {
 
 // プロフィール
 export interface Profile {
+  displayName?: string;  // ニックネーム
   ageCategory: AgeCategory;
   gender: Gender;
   experience: Experience;

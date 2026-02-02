@@ -134,9 +134,43 @@ export default function PlanScreen() {
   const [distance, setDistance] = useState<RaceDistance>(1500);
   const [targetTime, setTargetTime] = useState('');
 
+  // 日付バリデーション
+  const validateDate = (dateStr: string): { valid: boolean; error?: string } => {
+    if (!dateStr) return { valid: false };
+
+    // YYYY-MM-DD形式チェック
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+    if (!datePattern.test(dateStr)) {
+      return { valid: false, error: 'YYYY-MM-DD形式で入力' };
+    }
+
+    const parsedDate = new Date(dateStr);
+    if (isNaN(parsedDate.getTime())) {
+      return { valid: false, error: '無効な日付' };
+    }
+
+    // 過去日付チェック（今日以降であること）
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (parsedDate < today) {
+      return { valid: false, error: '過去の日付です' };
+    }
+
+    // 最低4週間後であること
+    const minDate = new Date();
+    minDate.setDate(minDate.getDate() + 28);
+    if (parsedDate < minDate) {
+      return { valid: false, error: '最低4週間後' };
+    }
+
+    return { valid: true };
+  };
+
+  const dateValidation = useMemo(() => validateDate(raceDate), [raceDate]);
+
   const handleCreatePlan = () => {
-    if (!raceName || !raceDate) {
-      Alert.alert('エラー', 'レース名と日付を入力してください');
+    if (!raceName || !dateValidation.valid) {
+      Alert.alert('エラー', 'レース名と有効な日付を入力してください');
       return;
     }
 
@@ -202,12 +236,15 @@ export default function PlanScreen() {
           <View style={styles.inputSection}>
             <Text style={styles.inputLabel}>レース日</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, dateValidation.error && styles.inputError]}
               value={raceDate}
               onChangeText={setRaceDate}
               placeholder="2024-06-15"
               placeholderTextColor={COLORS.text.muted}
             />
+            {dateValidation.error && (
+              <Text style={styles.inputErrorText}>{dateValidation.error}</Text>
+            )}
           </View>
 
           {/* 種目 */}
@@ -252,10 +289,10 @@ export default function PlanScreen() {
             title="計画を生成"
             onPress={handleCreatePlan}
             fullWidth
-            disabled={!raceName || !raceDate || !parseTime(targetTime)}
+            disabled={!raceName || !dateValidation.valid || !parseTime(targetTime)}
             style={StyleSheet.flatten([
               styles.createBtn,
-              (!raceName || !raceDate || !parseTime(targetTime)) && styles.createBtnDisabled,
+              (!raceName || !dateValidation.valid || !parseTime(targetTime)) && styles.createBtnDisabled,
             ])}
           />
 
@@ -1262,6 +1299,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 16,
     color: COLORS.text.primary,
+  },
+  inputError: {
+    borderColor: '#EF4444',
+  },
+  inputErrorText: {
+    color: '#EF4444',
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 2,
   },
   distanceTabs: {
     flexDirection: 'row',
