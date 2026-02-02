@@ -2,7 +2,7 @@
 // プレミアムアップグレード画面（コンパクト版）
 // ============================================
 
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -54,21 +54,32 @@ export default function UpgradeScreen() {
     const packages = usePackages();
     const { purchase, restore } = useSubscriptionStore();
     const [restoring, setRestoring] = useState(false);
+    const isNavigatingRef = useRef(false);
 
     // PremiumGateから来た場合、スワイプバック・ハードウェアバックを
     // インターセプトしてホームへ遷移
     useEffect(() => {
         if (!feature) return;
 
+        const navigateToHome = () => {
+            if (isNavigatingRef.current) return;
+            isNavigatingRef.current = true;
+            // setTimeoutで次のティックに遷移を遅延させて、beforeRemoveの競合を回避
+            setTimeout(() => {
+                router.replace('/(tabs)');
+            }, 0);
+        };
+
         // iOSスワイプバック対応: beforeRemoveイベント
         const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+            if (isNavigatingRef.current) return;
             e.preventDefault();
-            router.replace('/(tabs)');
+            navigateToHome();
         });
 
         // Androidハードウェアバックボタン対応
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-            router.replace('/(tabs)');
+            navigateToHome();
             return true;
         });
 
@@ -161,6 +172,8 @@ export default function UpgradeScreen() {
     // それ以外は通常の戻る動作
     const handleBack = useCallback(() => {
         if (feature) {
+            if (isNavigatingRef.current) return;
+            isNavigatingRef.current = true;
             router.replace('/(tabs)');
         } else {
             router.back();
