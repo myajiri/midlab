@@ -1,5 +1,5 @@
 // ============================================
-// Dashboard - rise-test忠実再現版
+// Dashboard - MidLabホーム画面
 // ============================================
 
 import React, { useState } from 'react';
@@ -75,10 +75,10 @@ export default function HomeScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          {/* RISE Logo */}
+          {/* MidLab Logo */}
           <View style={styles.logoContainer}>
-            <Text style={styles.logoText}>RISE</Text>
-            <Text style={styles.logoSubtitle}>Ramp to Individual Speed Exhaustion</Text>
+            <Text style={styles.logoText}>MidLab</Text>
+            <Text style={styles.logoSubtitle}>Middle Distance Training Lab</Text>
           </View>
 
           {/* Empty State */}

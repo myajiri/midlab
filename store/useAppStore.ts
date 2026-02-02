@@ -17,7 +17,7 @@ import { calculateZones, predict5kTime, estimateVO2max, getZonesList } from '../
 export interface TestResult {
     id: string;
     date: string;
-    testType: 'midlab' | 'rise';
+    testType: 'midlab' | 'ramp';
 
     // MidLabテスト結果
     dist5min?: number;

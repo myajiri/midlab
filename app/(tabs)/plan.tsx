@@ -1,5 +1,5 @@
 // ============================================
-// Plan Screen - トレーニング計画 (rise-test準拠)
+// Plan Screen - トレーニング計画画面
 // ============================================
 
 import React, { useState, useMemo } from 'react';

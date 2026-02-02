@@ -1,5 +1,5 @@
 // ============================================
-// Workout Screen - rise-test style
+// Workout Screen - ワークアウト画面
 // ============================================
 
 import React, { useState, useMemo } from 'react';
