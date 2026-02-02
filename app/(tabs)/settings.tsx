@@ -22,7 +22,6 @@ import {
   useWorkoutLogsStore,
   useSettingsStore,
   useEffectiveValues,
-  useTrainingZones,
 } from '../../src/stores/useAppStore';
 import { formatTime, formatKmPace, parseTime, estimateEtpFromPb } from '../../src/utils';
 import {
@@ -30,11 +29,9 @@ import {
   AGE_CATEGORY_CONFIG,
   EXPERIENCE_CONFIG,
   PB_COEFFICIENTS,
-  ZONE_COEFFICIENTS_V3,
   LIMITER_ICONS,
-  RACE_COEFFICIENTS,
 } from '../../src/constants';
-import { AgeCategory, Experience, LimiterType, ZoneName } from '../../src/types';
+import { AgeCategory, Experience, LimiterType } from '../../src/types';
 import { useRouter } from 'expo-router';
 import { useIsPremium, useSubscriptionStore } from '../../store/useSubscriptionStore';
 import { PremiumBadge } from '../../components/PremiumGate';
@@ -79,7 +76,6 @@ export default function SettingsScreen() {
   const setOnboardingComplete = useSettingsStore((state) => state.setOnboardingComplete);
 
   const { etp, limiter, source } = useEffectiveValues();
-  const zones = useTrainingZones();
 
   // 編集モード状態
   const [editingProfile, setEditingProfile] = useState(false);
@@ -299,48 +295,6 @@ export default function SettingsScreen() {
                   </View>
                 )}
               </View>
-            </View>
-          </View>
-
-          {/* トレーニングゾーン */}
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>トレーニングゾーン</Text>
-            <Text style={styles.etpBadge}>eTP: {formatKmPace(etp)} ({etp}秒/400m)</Text>
-            <View style={styles.zonesTable}>
-              {(Object.entries(zones) as [ZoneName, number][]).map(([zone, pace]) => (
-                <View key={zone} style={styles.zoneRow}>
-                  <View style={styles.zoneInfo}>
-                    <View
-                      style={[
-                        styles.zoneIndicator,
-                        { backgroundColor: ZONE_COEFFICIENTS_V3[zone].color },
-                      ]}
-                    />
-                    <Text style={styles.zoneName}>{ZONE_COEFFICIENTS_V3[zone].label}</Text>
-                  </View>
-                  <View style={styles.zonePaces}>
-                    <Text style={styles.zonePaceKm}>{formatKmPace(pace)}</Text>
-                    <Text style={styles.zonePace400}>({pace}秒/400m)</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          {/* レース予測タイム */}
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>レース予測タイム</Text>
-            <View style={styles.predictionsGrid}>
-              {Object.entries(RACE_COEFFICIENTS).map(([distance, coef]) => {
-                // 予測タイム = eTP × ペース係数 × 距離（400mラップ数）
-                const predictedTime = Math.round(etp * coef.coefficient * coef.laps);
-                return (
-                  <View key={distance} style={styles.predictionItem}>
-                    <Text style={styles.predictionDistance}>{coef.label}</Text>
-                    <Text style={styles.predictionTime}>{formatTime(predictedTime)}</Text>
-                  </View>
-                );
-              })}
             </View>
           </View>
 
@@ -805,75 +759,6 @@ const styles = StyleSheet.create({
   confirmedText: {
     fontSize: 11,
     color: '#22C55E',
-  },
-
-  // ゾーン表示
-  etpBadge: {
-    fontSize: 13,
-    color: COLORS.primary,
-    marginBottom: 12,
-  },
-  zonesTable: {
-    gap: 4,
-  },
-  zoneRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  zoneInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  zoneIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  zoneName: {
-    fontSize: 14,
-    color: COLORS.text.primary,
-  },
-  zonePaces: {
-    alignItems: 'flex-end',
-  },
-  zonePaceKm: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-  },
-  zonePace400: {
-    fontSize: 11,
-    color: COLORS.text.secondary,
-    marginTop: 2,
-  },
-
-  // レース予測
-  predictionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  predictionItem: {
-    width: (width - 64) / 2 - 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-  },
-  predictionDistance: {
-    fontSize: 12,
-    color: COLORS.text.muted,
-    marginBottom: 4,
-  },
-  predictionTime: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text.primary,
   },
 
   // データ管理
