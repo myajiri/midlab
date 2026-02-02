@@ -1,5 +1,5 @@
 // ============================================
-// Test Screen - Single MeasureTab (rise-test style)
+// Test Screen - ランプテスト実施画面
 // ============================================
 
 import React, { useState, useMemo } from 'react';

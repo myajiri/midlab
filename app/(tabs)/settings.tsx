@@ -1,6 +1,5 @@
 // ============================================
-// Settings Screen - 設定
-// rise-test準拠のUIブラッシュアップ版
+// Settings Screen - 設定画面
 // ============================================
 
 import React, { useState, useCallback, useMemo } from 'react';
