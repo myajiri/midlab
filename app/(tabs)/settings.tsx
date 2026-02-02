@@ -331,7 +331,8 @@ export default function SettingsScreen() {
             <Text style={styles.sectionTitle}>レース予測タイム</Text>
             <View style={styles.predictionsGrid}>
               {Object.entries(RACE_COEFFICIENTS).map(([distance, coef]) => {
-                const predictedTime = Math.round(etp * coef.coefficient);
+                // 予測タイム = eTP × ペース係数 × 距離（400mラップ数）
+                const predictedTime = Math.round(etp * coef.coefficient * coef.laps);
                 return (
                   <View key={distance} style={styles.predictionItem}>
                     <Text style={styles.predictionDistance}>{coef.label}</Text>
