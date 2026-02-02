@@ -15,7 +15,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  useProfileStore,
   useTestResultsStore,
   usePlanStore,
   useEffectiveValues,
@@ -52,7 +51,6 @@ const LIMITER_LABEL: Record<LimiterType, string> = {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const profile = useProfileStore((state) => state.profile);
   const results = useTestResultsStore((state) => state.results);
   const activePlan = usePlanStore((state) => state.activePlan);
 
@@ -208,20 +206,16 @@ export default function HomeScreen() {
           </Pressable>
         )}
 
-        {/* 自己ベスト */}
+        {/* レース予測タイム */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>自己ベスト</Text>
+          <Text style={styles.sectionTitle}>レース予測タイム</Text>
           <View style={styles.predictionsGrid}>
-            {(['m800', 'm1500', 'm3000', 'm5000'] as const).map((key) => {
-              const pb = profile?.pbs?.[key];
+            {Object.entries(RACE_COEFFICIENTS).map(([key, coef]) => {
+              const predictedTime = Math.round(etp * coef.coefficient * coef.laps);
               return (
                 <View key={key} style={styles.predictionItem}>
-                  <Text style={styles.predictionDistance}>
-                    {RACE_COEFFICIENTS[key].label}
-                  </Text>
-                  <Text style={[styles.predictionTime, !pb && styles.predictionTimeEmpty]}>
-                    {pb ? formatTime(pb) : '-'}
-                  </Text>
+                  <Text style={styles.predictionDistance}>{coef.label}</Text>
+                  <Text style={styles.predictionTime}>{formatTime(predictedTime)}</Text>
                 </View>
               );
             })}
@@ -255,22 +249,6 @@ export default function HomeScreen() {
                 </View>
               </View>
             ))}
-          </View>
-        </View>
-
-        {/* レース予測タイム */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>レース予測タイム</Text>
-          <View style={styles.predictionsGrid}>
-            {Object.entries(RACE_COEFFICIENTS).map(([key, coef]) => {
-              const predictedTime = Math.round(etp * coef.coefficient * coef.laps);
-              return (
-                <View key={key} style={styles.predictionItem}>
-                  <Text style={styles.predictionDistance}>{coef.label}</Text>
-                  <Text style={styles.predictionTime}>{formatTime(predictedTime)}</Text>
-                </View>
-              );
-            })}
           </View>
         </View>
 
@@ -582,9 +560,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: COLORS.text.primary,
-  },
-  predictionTimeEmpty: {
-    color: COLORS.text.muted,
   },
 
   // Zones Table
