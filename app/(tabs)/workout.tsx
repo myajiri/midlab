@@ -17,6 +17,8 @@ import Svg, { Rect } from 'react-native-svg';
 import { useEffectiveValues } from '../../src/stores/useAppStore';
 import { formatTime, formatKmPace, calculateWorkoutPace } from '../../src/utils';
 import { Card, Chip } from '../../src/components/ui';
+import { PremiumGate } from '../../components/PremiumGate';
+import { useIsPremium } from '../../store/useSubscriptionStore';
 import {
   COLORS,
   WORKOUTS,
@@ -85,9 +87,19 @@ interface ExpandedSegment {
 }
 
 export default function WorkoutScreen() {
+  const isPremium = useIsPremium();
   const { etp, limiter } = useEffectiveValues();
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutTemplate | null>(null);
+
+  // プレミアム機能チェック
+  if (!isPremium) {
+    return (
+      <PremiumGate featureName="ワークアウトメニュー">
+        <View />
+      </PremiumGate>
+    );
+  }
 
   // カテゴリ一覧を取得
   const categories = useMemo(() => {
