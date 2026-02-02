@@ -1,5 +1,5 @@
 // ============================================
-// Zone2Peak グローバル状態管理
+// MidLab グローバル状態管理
 // Zustand + AsyncStorage永続化
 // ============================================
 
@@ -17,9 +17,9 @@ import { calculateZones, predict5kTime, estimateVO2max, getZonesList } from '../
 export interface TestResult {
     id: string;
     date: string;
-    testType: 'zone2peak' | 'rise';
+    testType: 'midlab' | 'rise';
 
-    // Zone2Peakテスト結果
+    // MidLabテスト結果
     dist5min?: number;
     dist30min?: number;
 
@@ -328,7 +328,7 @@ export const useAppStore = create<AppState>()(
             },
         }),
         {
-            name: 'zone2peak-app-store',
+            name: 'midlab-app-store',
             storage: createJSONStorage(() => AsyncStorage),
             partialize: (state: AppState) => ({
                 profile: state.profile,

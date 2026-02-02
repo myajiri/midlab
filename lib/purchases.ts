@@ -12,8 +12,8 @@ const REVENUECAT_API_KEY_ANDROID = 'YOUR_ANDROID_API_KEY';
 
 // 商品ID
 export const PRODUCT_IDS = {
-    PREMIUM_MONTHLY: 'zone2peak_premium_monthly',
-    PREMIUM_YEARLY: 'zone2peak_premium_yearly',
+    PREMIUM_MONTHLY: 'midlab_premium_monthly',
+    PREMIUM_YEARLY: 'midlab_premium_yearly',
 } as const;
 
 // エンタイトルメントID

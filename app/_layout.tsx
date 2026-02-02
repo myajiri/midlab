@@ -1,5 +1,5 @@
 // ============================================
-// Root Layout
+// Root Layout - MidLab
 // ============================================
 
 import { useEffect, useState } from 'react';
@@ -10,6 +10,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastProvider } from '../src/components/ui';
 import { useSettingsStore } from '../src/stores/useAppStore';
 import { COLORS } from '../src/constants';
+import { migrateStorageKeys } from '../src/utils';
 
 export default function RootLayout() {
   const router = useRouter();
@@ -19,6 +20,16 @@ export default function RootLayout() {
   // ナビゲーションの準備状態を確認
   const navigationState = useRootNavigationState();
   const [isNavigationReady, setIsNavigationReady] = useState(false);
+  const [isMigrationComplete, setIsMigrationComplete] = useState(false);
+
+  // 起動時にストレージキーの移行を実行
+  useEffect(() => {
+    const runMigration = async () => {
+      await migrateStorageKeys();
+      setIsMigrationComplete(true);
+    };
+    runMigration();
+  }, []);
 
   useEffect(() => {
     if (navigationState?.key) {
@@ -27,8 +38,8 @@ export default function RootLayout() {
   }, [navigationState?.key]);
 
   useEffect(() => {
-    // ナビゲーションが準備できるまで待機
-    if (!isNavigationReady) return;
+    // ナビゲーションと移行が準備できるまで待機
+    if (!isNavigationReady || !isMigrationComplete) return;
 
     // オンボーディング未完了の場合、オンボーディング画面へ遷移
     // ただし、既にオンボーディング画面にいる場合は遷移しない
@@ -37,7 +48,7 @@ export default function RootLayout() {
     if (!onboardingComplete && !inOnboarding) {
       router.replace('/onboarding');
     }
-  }, [onboardingComplete, segments, isNavigationReady]);
+  }, [onboardingComplete, segments, isNavigationReady, isMigrationComplete]);
 
   return (
     <SafeAreaProvider>

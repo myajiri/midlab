@@ -86,6 +86,16 @@ export const PB_COEFFICIENTS = {
 
 // ストレージキー
 export const STORAGE_KEYS = {
+  profile: 'midlab_profile',
+  testResults: 'midlab_results',
+  activePlan: 'midlab_activePlan',
+  workoutLogs: 'midlab_workoutLogs',
+  settings: 'midlab_settings',
+  onboardingComplete: 'midlab_onboardingComplete',
+};
+
+// 旧ストレージキー（移行用）
+export const LEGACY_STORAGE_KEYS = {
   profile: 'zone2peak_profile',
   testResults: 'zone2peak_results',
   activePlan: 'zone2peak_activePlan',
