@@ -21,6 +21,7 @@ import {
 } from '../../src/stores/useAppStore';
 import { formatTime, formatKmPace, parseTime } from '../../src/utils';
 import { Card, Button } from '../../src/components/ui';
+import { PremiumGate } from '../../components/PremiumGate';
 import {
   COLORS,
   PHASE_CONFIG,
@@ -181,6 +182,7 @@ export default function PlanScreen() {
   if (view === 'create') {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <PremiumGate featureName="トレーニング計画">
         <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
           <Text style={styles.sectionTitle}>計画作成</Text>
 
@@ -251,10 +253,10 @@ export default function PlanScreen() {
             onPress={handleCreatePlan}
             fullWidth
             disabled={!raceName || !raceDate || !parseTime(targetTime)}
-            style={[
+            style={StyleSheet.flatten([
               styles.createBtn,
               (!raceName || !raceDate || !parseTime(targetTime)) && styles.createBtnDisabled,
-            ]}
+            ])}
           />
 
           {activePlan && (
@@ -267,6 +269,7 @@ export default function PlanScreen() {
             />
           )}
         </ScrollView>
+        </PremiumGate>
       </SafeAreaView>
     );
   }
@@ -2004,7 +2007,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  // calendarLegendIcon style not needed - using Ionicons directly
+  calendarLegendIcon: {
+    marginRight: 2,
+  },
   calendarLegendText: {
     fontSize: 11,
     color: COLORS.text.secondary,

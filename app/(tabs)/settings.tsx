@@ -36,6 +36,9 @@ import {
   RACE_COEFFICIENTS,
 } from '../../src/constants';
 import { AgeCategory, Experience, LimiterType, ZoneName } from '../../src/types';
+import { useRouter } from 'expo-router';
+import { useIsPremium, useSubscriptionStore } from '../../store/useSubscriptionStore';
+import { PremiumBadge } from '../../components/PremiumGate';
 
 // ============================================
 // 定数
@@ -59,6 +62,10 @@ const LIMITER_OPTIONS = [
 // ============================================
 
 export default function SettingsScreen() {
+  const router = useRouter();
+  const isPremium = useIsPremium();
+  const { restore } = useSubscriptionStore();
+
   // ストア
   const profile = useProfileStore((state) => state.profile);
   const updateAttributes = useProfileStore((state) => state.updateAttributes);
@@ -312,6 +319,54 @@ export default function SettingsScreen() {
                 );
               })}
             </View>
+          </View>
+
+          {/* サブスクリプション管理 */}
+          <View style={styles.subscriptionCard}>
+            <View style={styles.subscriptionHeader}>
+              <Text style={styles.sectionTitle}>サブスクリプション</Text>
+              {isPremium && <PremiumBadge />}
+            </View>
+            {isPremium ? (
+              <View style={styles.subscriptionContent}>
+                <Text style={styles.subscriptionStatus}>👑 プレミアム会員</Text>
+                <Text style={styles.subscriptionDesc}>すべてのプレミアム機能をご利用いただけます</Text>
+                <Pressable
+                  style={styles.subscriptionButton}
+                  onPress={() => router.push('/upgrade')}
+                >
+                  <Text style={styles.subscriptionButtonText}>サブスクリプションを管理</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View style={styles.subscriptionContent}>
+                <Text style={styles.subscriptionStatus}>無料プラン</Text>
+                <Text style={styles.subscriptionDesc}>
+                  プレミアムにアップグレードして、詳細な計画機能や分析機能を利用しましょう
+                </Text>
+                <Pressable
+                  style={[styles.subscriptionButton, styles.subscriptionButtonPrimary]}
+                  onPress={() => router.push('/upgrade')}
+                >
+                  <Text style={[styles.subscriptionButtonText, styles.subscriptionButtonTextPrimary]}>
+                    プレミアムにアップグレード
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={styles.restorePurchaseButton}
+                  onPress={async () => {
+                    const restored = await restore();
+                    if (restored) {
+                      Alert.alert('復元完了', '購入が復元されました');
+                    } else {
+                      Alert.alert('復元結果', '復元可能な購入が見つかりませんでした');
+                    }
+                  }}
+                >
+                  <Text style={styles.restorePurchaseText}>購入を復元</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
 
           {/* データ管理 */}
@@ -942,5 +997,64 @@ const styles = StyleSheet.create({
     color: COLORS.text.muted,
     marginTop: 12,
     fontStyle: 'italic',
+  },
+
+  // ============================================
+  // サブスクリプション管理
+  // ============================================
+  subscriptionCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  subscriptionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  subscriptionContent: {
+    gap: 8,
+  },
+  subscriptionStatus: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  subscriptionDesc: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  subscriptionButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  subscriptionButtonPrimary: {
+    backgroundColor: COLORS.primary,
+  },
+  subscriptionButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+  },
+  subscriptionButtonTextPrimary: {
+    color: '#fff',
+  },
+  restorePurchaseButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: 4,
+  },
+  restorePurchaseText: {
+    fontSize: 13,
+    color: COLORS.text.muted,
+    textDecorationLine: 'underline',
   },
 });
