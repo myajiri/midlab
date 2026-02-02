@@ -320,7 +320,7 @@ export const calculatePredictions = (
 ): Record<string, { min: number; max: number }> => {
     const predictions: Record<string, { min: number; max: number }> = {};
 
-    (Object.entries(RACE_COEFFICIENTS) as [string, { min: number; max: number; laps: number }][]).forEach(
+    (Object.entries(RACE_COEFFICIENTS) as [string, { coefficient: number; min: number; max: number; laps: number; label: string }][]).forEach(
         ([key, config]) => {
             const limiterAdj = LIMITER_RACE_ADJUSTMENTS[key as keyof typeof LIMITER_RACE_ADJUSTMENTS]?.[limiterType] || 0;
             const basePaceMin = etp * config.min;

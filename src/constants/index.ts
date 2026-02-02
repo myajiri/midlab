@@ -34,12 +34,12 @@ export const LIMITER_ZONE_ADJUSTMENTS: Record<LimiterType, Record<ZoneName, numb
   balanced: { jog: 0, easy: 0, marathon: 0, threshold: 0, interval: 0, repetition: 0 },
 };
 
-// レース予測係数
+// レース予測係数（laps = 400mラップ数、係数はペース倍率）
 export const RACE_COEFFICIENTS = {
-  m800: { min: 0.82, max: 0.85 },
-  m1500: { min: 0.88, max: 0.92 },
-  m3000: { min: 0.96, max: 1.00 },
-  m5000: { min: 1.00, max: 1.04 },
+  m800: { coefficient: 0.835, min: 0.82, max: 0.85, laps: 2, label: '800m' },
+  m1500: { coefficient: 0.90, min: 0.88, max: 0.92, laps: 3.75, label: '1500m' },
+  m3000: { coefficient: 0.98, min: 0.96, max: 1.00, laps: 7.5, label: '3000m' },
+  m5000: { coefficient: 1.02, min: 1.00, max: 1.04, laps: 12.5, label: '5000m' },
 };
 
 // リミッター別タイム調整（秒）
