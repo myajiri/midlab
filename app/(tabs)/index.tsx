@@ -248,7 +248,7 @@ export default function HomeScreen() {
                       {RACE_COEFFICIENTS[key as keyof typeof RACE_COEFFICIENTS].label}
                     </Text>
                     <Text style={styles.predictionTime}>
-                      {formatTime(prediction.min)}～{formatTime(prediction.max)}
+                      {formatTime(prediction.min)}-{formatTime(prediction.max)}
                     </Text>
                     {pb && (
                       <Text style={styles.predictionPb}>PB: {formatTime(pb)}</Text>
