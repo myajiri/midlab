@@ -7,6 +7,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useIsPremium } from '../store/useSubscriptionStore';
+import { COLORS } from '../src/constants';
 
 interface PremiumGateProps {
     featureName: string;
@@ -81,6 +82,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         padding: 24,
+        backgroundColor: COLORS.background.dark,
     },
     content: {
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
