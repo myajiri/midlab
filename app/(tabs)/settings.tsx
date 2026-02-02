@@ -86,6 +86,7 @@ export default function SettingsScreen() {
   const [editingProfile, setEditingProfile] = useState(false);
 
   // 一時編集用の状態
+  const [tempDisplayName, setTempDisplayName] = useState(profile.displayName || '');
   const [tempAgeCategory, setTempAgeCategory] = useState<AgeCategory>(profile.ageCategory);
   const [tempGender, setTempGender] = useState(profile.gender);
   const [tempExperience, setTempExperience] = useState<Experience>(profile.experience);
@@ -112,6 +113,7 @@ export default function SettingsScreen() {
 
   // 編集開始
   const handleStartEdit = useCallback(() => {
+    setTempDisplayName(profile.displayName || '');
     setTempAgeCategory(profile.ageCategory);
     setTempGender(profile.gender);
     setTempExperience(profile.experience);
@@ -129,6 +131,7 @@ export default function SettingsScreen() {
   const handleSaveProfile = useCallback(() => {
     // 属性の更新
     updateAttributes({
+      displayName: tempDisplayName.trim() || undefined,
       ageCategory: tempAgeCategory,
       gender: tempGender,
       experience: tempExperience,
@@ -157,6 +160,7 @@ export default function SettingsScreen() {
     setEditingProfile(false);
     Alert.alert('保存完了', 'プロフィールを更新しました');
   }, [
+    tempDisplayName,
     tempAgeCategory,
     tempGender,
     tempExperience,
@@ -201,6 +205,15 @@ export default function SettingsScreen() {
     return null;
   };
 
+  // PB入力にエラーがあるかチェック
+  const hasPbValidationError = useMemo(() => {
+    return PB_FIELDS.some(({ key }) => {
+      const value = pbInputs[key];
+      if (!value) return false;
+      return parseTime(value) === null;
+    });
+  }, [pbInputs]);
+
   const limiterConfig = LIMITER_ICONS[limiter];
 
   // ============================================
@@ -223,6 +236,14 @@ export default function SettingsScreen() {
                 <Text style={styles.editButtonText}>編集</Text>
               </Pressable>
             </View>
+
+            {/* ニックネーム表示 */}
+            {profile.displayName && (
+              <View style={styles.displayNameRow}>
+                <Text style={styles.displayNameLabel}>ニックネーム</Text>
+                <Text style={styles.displayNameValue}>{profile.displayName}</Text>
+              </View>
+            )}
 
             <View style={styles.profileGrid}>
               <View style={styles.profileItem}>
@@ -406,9 +427,28 @@ export default function SettingsScreen() {
             <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
           </Pressable>
           <Text style={styles.editTitle}>プロファイル編集</Text>
-          <Pressable style={styles.saveButton} onPress={handleSaveProfile}>
-            <Text style={styles.saveButtonText}>保存</Text>
+          <Pressable
+            style={[styles.saveButton, hasPbValidationError && styles.saveButtonDisabled]}
+            onPress={handleSaveProfile}
+            disabled={hasPbValidationError}
+          >
+            <Text style={[styles.saveButtonText, hasPbValidationError && styles.saveButtonTextDisabled]}>
+              保存
+            </Text>
           </Pressable>
+        </View>
+
+        {/* ニックネーム */}
+        <View style={styles.card}>
+          <Text style={styles.inputLabel}>ニックネーム</Text>
+          <TextInput
+            style={styles.displayNameInput}
+            value={tempDisplayName}
+            onChangeText={setTempDisplayName}
+            placeholder="例: たろう"
+            placeholderTextColor={COLORS.text.muted}
+            maxLength={20}
+          />
         </View>
 
         {/* 年齢カテゴリ */}
@@ -623,6 +663,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  saveButtonDisabled: {
+    backgroundColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  saveButtonTextDisabled: {
+    opacity: 0.5,
+  },
 
   // カード
   card: {
@@ -659,6 +705,22 @@ const styles = StyleSheet.create({
   },
 
   // プロフィール表示
+  displayNameRow: {
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  displayNameLabel: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginBottom: 4,
+  },
+  displayNameValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
   profileGrid: {
     flexDirection: 'row',
     gap: 16,
@@ -872,6 +934,16 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: COLORS.text.muted,
     marginBottom: 12,
+  },
+  displayNameInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    fontSize: 16,
+    color: COLORS.text.primary,
   },
 
   // オプション選択（年齢カテゴリ、性別、競技歴）
