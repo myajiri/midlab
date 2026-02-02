@@ -50,6 +50,11 @@ export default {
       revenueCatApiKeyAndroid: process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID || "",
       // 課金機能有効化フラグ
       enablePurchases: process.env.EXPO_PUBLIC_ENABLE_PURCHASES === "true",
+      // EAS設定
+      eas: {
+        projectId: process.env.EAS_PROJECT_ID || "",
+      },
     },
+    owner: process.env.EXPO_OWNER || "",
   },
 };
