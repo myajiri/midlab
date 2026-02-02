@@ -130,11 +130,22 @@ export default function UpgradeScreen() {
     // 課金機能が無効な場合
     const purchasesEnabled = isPurchasesEnabled();
 
+    // 戻るボタンの処理
+    // PremiumGateから来た場合（featureパラメータあり）はホームへ遷移
+    // それ以外は通常の戻る動作
+    const handleBack = useCallback(() => {
+        if (feature) {
+            router.replace('/(tabs)');
+        } else {
+            router.back();
+        }
+    }, [feature, router]);
+
     return (
         <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
             {/* ヘッダー */}
             <View style={styles.header}>
-                <Pressable onPress={() => router.back()} style={styles.backButton}>
+                <Pressable onPress={handleBack} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
                 </Pressable>
                 <Text style={styles.headerTitle}>プレミアム</Text>
