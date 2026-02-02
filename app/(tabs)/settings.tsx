@@ -24,7 +24,13 @@ import {
   useEffectiveValues,
 } from '../../src/stores/useAppStore';
 import { formatTime, formatKmPace, parseTime, estimateEtpFromPb } from '../../src/utils';
-import { InputModal, TimePickerModal } from '../../src/components/ui';
+import {
+  InputModal,
+  TimePickerModal,
+  SectionHeader,
+  PageHeader,
+  Divider,
+} from '../../src/components/ui';
 import {
   COLORS,
   AGE_CATEGORY_CONFIG,
@@ -224,18 +230,17 @@ export default function SettingsScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
           {/* ヘッダー */}
-          <View style={styles.header}>
-            <Text style={styles.title}>設定</Text>
-          </View>
+          <PageHeader title="設定" />
 
           {/* プロフィールセクション */}
           <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.sectionTitle}>プロファイル</Text>
-              <Pressable style={styles.editButton} onPress={handleStartEdit}>
-                <Text style={styles.editButtonText}>編集</Text>
-              </Pressable>
-            </View>
+            <SectionHeader
+              title="プロファイル"
+              icon="person-outline"
+              iconColor={COLORS.primary}
+              actionLabel="編集"
+              onAction={handleStartEdit}
+            />
 
             {/* ニックネーム表示 */}
             {profile.displayName && (
@@ -305,10 +310,13 @@ export default function SettingsScreen() {
 
           {/* サブスクリプション管理 */}
           <View style={styles.subscriptionCard}>
-            <View style={styles.subscriptionHeader}>
-              <Text style={styles.sectionTitle}>サブスクリプション</Text>
-              {isPremium && <PremiumBadge />}
-            </View>
+            <SectionHeader
+              title="サブスクリプション"
+              icon="diamond-outline"
+              iconColor={isPremium ? '#F59E0B' : COLORS.text.muted}
+              badge={isPremium ? 'プレミアム' : undefined}
+              badgeColor="#F59E0B"
+            />
             {isPremium ? (
               <View style={styles.subscriptionContent}>
                 <Text style={styles.subscriptionStatus}>👑 プレミアム会員</Text>
@@ -353,8 +361,13 @@ export default function SettingsScreen() {
 
           {/* データ管理 */}
           <View style={styles.dangerCard}>
-            <Text style={styles.dangerTitle}>データ管理</Text>
-            <Text style={styles.testCount}>テスト結果: {testResults?.length || 0}件</Text>
+            <SectionHeader
+              title="データ管理"
+              icon="server-outline"
+              iconColor={COLORS.danger}
+              count={testResults?.length || 0}
+              subtitle="テスト結果"
+            />
             <View style={styles.resetSection}>
               <Text style={styles.dangerText}>
                 すべてのデータを削除します。この操作は取り消せません。
@@ -383,21 +396,22 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* ヘッダー */}
-        <View style={styles.editHeader}>
-          <Pressable style={styles.backButton} onPress={() => setEditingProfile(false)}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
-          </Pressable>
-          <Text style={styles.editTitle}>プロファイル編集</Text>
-          <Pressable
-            style={[styles.saveButton, hasPbValidationError && styles.saveButtonDisabled]}
-            onPress={handleSaveProfile}
-            disabled={hasPbValidationError}
-          >
-            <Text style={[styles.saveButtonText, hasPbValidationError && styles.saveButtonTextDisabled]}>
-              保存
-            </Text>
-          </Pressable>
-        </View>
+        <PageHeader
+          title="プロファイル編集"
+          backButton
+          onBack={() => setEditingProfile(false)}
+          rightAction={
+            <Pressable
+              style={[styles.saveButton, hasPbValidationError && styles.saveButtonDisabled]}
+              onPress={handleSaveProfile}
+              disabled={hasPbValidationError}
+            >
+              <Text style={[styles.saveButtonText, hasPbValidationError && styles.saveButtonTextDisabled]}>
+                保存
+              </Text>
+            </Pressable>
+          }
+        />
 
         {/* ニックネーム */}
         <View style={styles.card}>

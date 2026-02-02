@@ -3,13 +3,15 @@
 // ============================================
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useProfileStore } from '../../src/stores/useAppStore';
 import { LIMITER_CONFIG } from '../../constants';
 import { LimiterType, AgeCategory, Experience } from '../../src/types';
+import { ProgressBar } from '../../src/components/ui';
 
 const AGE_CATEGORIES: { key: AgeCategory; label: string; desc: string }[] = [
     { key: 'junior_high', label: '中学生', desc: '12-15歳' },
@@ -65,13 +67,20 @@ export default function OnboardingAttributes() {
 
     return (
         <SafeAreaView style={styles.container}>
+            {/* プログレスバー */}
+            <View style={styles.progressContainer}>
+                <ProgressBar progress={0.33} height={4} color="#3B82F6" />
+            </View>
+
             <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
                 {/* ヘッダー */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                        <Text style={styles.backButtonText}>← 戻る</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.step}>1 / 3</Text>
+                    <Pressable onPress={handleBack} style={styles.backButton}>
+                        <Ionicons name="arrow-back" size={24} color="#3B82F6" />
+                    </Pressable>
+                    <View style={styles.stepBadge}>
+                        <Text style={styles.stepText}>ステップ 1/3</Text>
+                    </View>
                 </View>
 
                 <Text style={styles.title}>あなたについて教えてください</Text>
@@ -191,6 +200,10 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#0a0a0f',
     },
+    progressContainer: {
+        paddingHorizontal: 24,
+        paddingTop: 8,
+    },
     scrollView: {
         flex: 1,
         paddingHorizontal: 24,
@@ -200,19 +213,26 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         marginTop: 16,
-        marginBottom: 32,
+        marginBottom: 28,
     },
     backButton: {
-        padding: 8,
-        marginLeft: -8,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
-    backButtonText: {
-        color: '#3B82F6',
-        fontSize: 16,
+    stepBadge: {
+        backgroundColor: 'rgba(255, 255, 255, 0.08)',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
     },
-    step: {
-        color: '#6b7280',
-        fontSize: 14,
+    stepText: {
+        color: '#9ca3af',
+        fontSize: 13,
+        fontWeight: '500',
     },
     title: {
         fontSize: 28,

@@ -7,7 +7,9 @@ import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useSettingsStore } from '../../src/stores/useAppStore';
+import { ProgressBar } from '../../src/components/ui';
 
 const { width } = Dimensions.get('window');
 
@@ -26,35 +28,48 @@ export default function OnboardingWelcome() {
 
     return (
         <SafeAreaView style={styles.container}>
+            {/* 進捗表示 */}
+            <View style={styles.progressContainer}>
+                <ProgressBar progress={0} height={4} color="#3B82F6" />
+            </View>
+
             <View style={styles.content}>
                 {/* ロゴ・アイコン */}
                 <View style={styles.logoContainer}>
-                    <Text style={styles.logo}>⚡</Text>
+                    <View style={styles.logoIconWrapper}>
+                        <Text style={styles.logo}>⚡</Text>
+                    </View>
                     <Text style={styles.appName}>MidLab</Text>
-                    <Text style={styles.tagline}>ランプテストで最適なトレーニングを</Text>
+                    <Text style={styles.tagline}>中距離ランナーのための{'\n'}トレーニングアプリ</Text>
                 </View>
 
-                {/* 説明 */}
+                {/* 機能説明 */}
                 <View style={styles.features}>
                     <View style={styles.featureItem}>
-                        <Text style={styles.featureIcon}>🏃</Text>
+                        <View style={styles.featureIconContainer}>
+                            <Ionicons name="analytics-outline" size={24} color="#3B82F6" />
+                        </View>
                         <View style={styles.featureText}>
                             <Text style={styles.featureTitle}>ランプテスト</Text>
-                            <Text style={styles.featureDesc}>あなたの持久力タイプを判定</Text>
+                            <Text style={styles.featureDesc}>あなたの持久力タイプを科学的に判定</Text>
                         </View>
                     </View>
                     <View style={styles.featureItem}>
-                        <Text style={styles.featureIcon}>📊</Text>
+                        <View style={[styles.featureIconContainer, styles.featureIconGreen]}>
+                            <Ionicons name="speedometer-outline" size={24} color="#22C55E" />
+                        </View>
                         <View style={styles.featureText}>
                             <Text style={styles.featureTitle}>トレーニングゾーン</Text>
-                            <Text style={styles.featureDesc}>最適なペースを自動計算</Text>
+                            <Text style={styles.featureDesc}>6ゾーンで最適なペースを自動計算</Text>
                         </View>
                     </View>
                     <View style={styles.featureItem}>
-                        <Text style={styles.featureIcon}>🎯</Text>
+                        <View style={[styles.featureIconContainer, styles.featureIconPurple]}>
+                            <Ionicons name="fitness-outline" size={24} color="#8B5CF6" />
+                        </View>
                         <View style={styles.featureText}>
-                            <Text style={styles.featureTitle}>パーソナルトレーニング</Text>
-                            <Text style={styles.featureDesc}>リミッター別のアドバイス</Text>
+                            <Text style={styles.featureTitle}>パーソナライズ</Text>
+                            <Text style={styles.featureDesc}>あなたの弱点に合わせたトレーニング</Text>
                         </View>
                     </View>
                 </View>
@@ -86,48 +101,76 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#0a0a0f',
     },
+    progressContainer: {
+        paddingHorizontal: 24,
+        paddingTop: 8,
+    },
     content: {
         flex: 1,
-        paddingHorizontal: 32,
+        paddingHorizontal: 28,
         justifyContent: 'center',
     },
     logoContainer: {
         alignItems: 'center',
-        marginBottom: 60,
+        marginBottom: 48,
+    },
+    logoIconWrapper: {
+        width: 88,
+        height: 88,
+        borderRadius: 44,
+        backgroundColor: 'rgba(59, 130, 246, 0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 20,
     },
     logo: {
-        fontSize: 72,
-        marginBottom: 16,
+        fontSize: 48,
     },
     appName: {
-        fontSize: 32,
+        fontSize: 36,
         fontWeight: '800',
         color: '#ffffff',
-        marginBottom: 8,
+        letterSpacing: 2,
+        marginBottom: 12,
     },
     tagline: {
         fontSize: 16,
         color: '#6b7280',
+        textAlign: 'center',
+        lineHeight: 24,
     },
     features: {
-        gap: 20,
+        gap: 14,
     },
     featureItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 16,
+        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        borderRadius: 14,
         padding: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.06)',
     },
-    featureIcon: {
-        fontSize: 32,
-        marginRight: 16,
+    featureIconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        backgroundColor: 'rgba(59, 130, 246, 0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 14,
+    },
+    featureIconGreen: {
+        backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    },
+    featureIconPurple: {
+        backgroundColor: 'rgba(139, 92, 246, 0.15)',
     },
     featureText: {
         flex: 1,
     },
     featureTitle: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '600',
         color: '#ffffff',
         marginBottom: 4,
@@ -135,13 +178,14 @@ const styles = StyleSheet.create({
     featureDesc: {
         fontSize: 13,
         color: '#6b7280',
+        lineHeight: 18,
     },
     buttons: {
-        padding: 32,
+        padding: 28,
         gap: 12,
     },
     startButton: {
-        borderRadius: 16,
+        borderRadius: 14,
         overflow: 'hidden',
     },
     startButtonGradient: {
@@ -150,7 +194,7 @@ const styles = StyleSheet.create({
     },
     startButtonText: {
         color: '#ffffff',
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: '600',
     },
     skipButton: {

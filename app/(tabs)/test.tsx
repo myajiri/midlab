@@ -27,7 +27,12 @@ import {
   getLevelFromEtp,
   recommendTestLevel,
 } from '../../src/utils';
-import { Button } from '../../src/components/ui';
+import {
+  Button,
+  ProgressSteps,
+  SectionHeader,
+  ActionCard,
+} from '../../src/components/ui';
 import {
   COLORS,
   LEVELS,
@@ -157,9 +162,14 @@ export default function TestScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
+          {/* 成功アイコン */}
+          <View style={styles.resultSuccessIcon}>
+            <Ionicons name="checkmark-circle" size={56} color={COLORS.success} />
+          </View>
+
           {/* ヘッダー */}
           <View style={styles.resultHeader}>
-            <Text style={styles.resultHeaderTitle}>テスト結果</Text>
+            <Text style={styles.resultHeaderTitle}>テスト完了！</Text>
             <Text style={styles.resultHeaderDate}>
               {new Date(lastTestResult.date).toLocaleDateString('ja-JP')}
             </Text>
@@ -272,31 +282,15 @@ export default function TestScreen() {
           </View>
 
           {/* ステップインジケーター */}
-          <View style={styles.stepIndicator}>
-            <View style={styles.stepItem}>
-              <View style={[styles.stepDot, styles.stepDotCompleted]}>
-                <Ionicons name="checkmark" size={12} color="#fff" />
-              </View>
-              <Text style={styles.stepLabel}>準備</Text>
-            </View>
-            <View style={[styles.stepLine, styles.stepLineCompleted]} />
-            <View style={styles.stepItem}>
-              <View style={[styles.stepDot, styles.stepDotCompleted]}>
-                <Ionicons name="checkmark" size={12} color="#fff" />
-              </View>
-              <Text style={styles.stepLabel}>テスト</Text>
-            </View>
-            <View style={[styles.stepLine, styles.stepLineCompleted]} />
-            <View style={styles.stepItem}>
-              <View style={[styles.stepDot, styles.stepDotActive]} />
-              <Text style={[styles.stepLabel, styles.stepLabelActive]}>入力</Text>
-            </View>
-            <View style={styles.stepLine} />
-            <View style={styles.stepItem}>
-              <View style={styles.stepDot} />
-              <Text style={styles.stepLabel}>結果</Text>
-            </View>
-          </View>
+          <ProgressSteps
+            steps={[
+              { label: '準備', icon: 'checkmark-circle' },
+              { label: 'テスト', icon: 'stopwatch' },
+              { label: '入力', icon: 'create' },
+              { label: '結果', icon: 'analytics' },
+            ]}
+            currentStep={2}
+          />
 
           {/* 実施レベル */}
           <View style={styles.inputSection}>
@@ -877,50 +871,7 @@ const styles = StyleSheet.create({
     color: COLORS.text.primary,
   },
 
-  // Step Indicator
-  stepIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-    paddingVertical: 12,
-  },
-  stepItem: {
-    alignItems: 'center',
-  },
-  stepDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  stepDotCompleted: {
-    backgroundColor: '#22C55E',
-  },
-  stepDotActive: {
-    backgroundColor: COLORS.primary,
-  },
-  stepLine: {
-    width: 32,
-    height: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginHorizontal: 4,
-    marginBottom: 16,
-  },
-  stepLineCompleted: {
-    backgroundColor: '#22C55E',
-  },
-  stepLabel: {
-    fontSize: 10,
-    color: COLORS.text.muted,
-  },
-  stepLabelActive: {
-    color: COLORS.primary,
-    fontWeight: '500',
-  },
+  // ProgressStepsコンポーネントを使用するため、旧stepスタイルは削除
 
   inputSection: {
     marginBottom: 20,
@@ -1087,6 +1038,10 @@ const styles = StyleSheet.create({
   },
 
   // Result Screen
+  resultSuccessIcon: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   resultHeader: {
     alignItems: 'center',
     marginBottom: 24,
