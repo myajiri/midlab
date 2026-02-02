@@ -2,7 +2,7 @@
 // プレミアムアップグレード画面（コンパクト版）
 // ============================================
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -12,11 +12,13 @@ import {
     Alert,
     Linking,
     Platform,
+    BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import {
     useSubscriptionStore,
     useIsPremium,
@@ -45,12 +47,36 @@ const PREMIUM_FEATURES = [
 
 export default function UpgradeScreen() {
     const router = useRouter();
+    const navigation = useNavigation();
     const { feature } = useLocalSearchParams<{ feature?: string }>();
     const isPremium = useIsPremium();
     const loading = useSubscriptionLoading();
     const packages = usePackages();
     const { purchase, restore } = useSubscriptionStore();
     const [restoring, setRestoring] = useState(false);
+
+    // PremiumGateから来た場合、スワイプバック・ハードウェアバックを
+    // インターセプトしてホームへ遷移
+    useEffect(() => {
+        if (!feature) return;
+
+        // iOSスワイプバック対応: beforeRemoveイベント
+        const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+            e.preventDefault();
+            router.replace('/(tabs)');
+        });
+
+        // Androidハードウェアバックボタン対応
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            router.replace('/(tabs)');
+            return true;
+        });
+
+        return () => {
+            unsubscribe();
+            backHandler.remove();
+        };
+    }, [feature, navigation, router]);
 
     // 月額プランを取得
     const monthlyPackage = packages.find(pkg =>
