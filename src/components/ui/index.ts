@@ -25,3 +25,27 @@ export { ProgressSteps, ProgressBar, WeekProgress } from './ProgressSteps';
 // アクション・ナビゲーション
 export { ActionCard, ActionListItem, StatCard } from './ActionCard';
 export { SectionHeader, Divider, PageHeader } from './SectionHeader';
+
+// アニメーション
+export {
+  FadeIn,
+  SlideIn,
+  ScaleIn,
+  AnimatedPressable,
+  AnimatedCard,
+  PulseView,
+  SuccessCheckmark,
+  CountUp,
+  StaggeredList,
+} from './Animated';
+
+// ガイド付きジャーニー
+export { JourneyCard, JourneyTimeline, JourneyCompleteBanner } from './JourneyGuide';
+
+// アチーブメント
+export {
+  AchievementNotification,
+  AchievementBadge,
+  AchievementList,
+  AchievementSummary,
+} from './AchievementUI';
