@@ -271,8 +271,7 @@ export const getLevelFromEtp = (etp: number): LevelName | null => {
   if (etp < 71) return 'S';    // 1500m 3:30-4:00
   if (etp < 80) return 'A';    // 1500m 4:00-4:30
   if (etp < 89) return 'B';    // 1500m 4:30-5:00
-  if (etp <= 98) return 'C';   // 1500m 5:00-5:30
-  return null;  // 5:30より遅い場合はCレベルの範囲外
+  return 'C';                   // 1500m 5:00以上
 };
 
 // ============================================

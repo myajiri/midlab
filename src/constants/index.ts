@@ -11,7 +11,7 @@ export const LEVELS: Record<LevelName, { name: string; description: string; star
   S: { name: 'S', description: '1500m 3:30-4:00', startPace: 88, maxLaps: 8, etpRange: { min: 62, max: 71 } },    // 210-240秒
   A: { name: 'A', description: '1500m 4:00-4:30', startPace: 96, maxLaps: 10, etpRange: { min: 71, max: 80 } },   // 240-270秒
   B: { name: 'B', description: '1500m 4:30-5:00', startPace: 108, maxLaps: 10, etpRange: { min: 80, max: 89 } },  // 270-300秒
-  C: { name: 'C', description: '1500m 5:00-5:30', startPace: 120, maxLaps: 10, etpRange: { min: 89, max: 98 } },  // 300-330秒
+  C: { name: 'C', description: '1500m 5:00以上', startPace: 120, maxLaps: 10, etpRange: { min: 89, max: 999 } },  // 300秒以上
 };
 
 export const PACE_INCREMENT = 4;
