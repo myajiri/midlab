@@ -32,6 +32,12 @@ import {
   ProgressSteps,
   SectionHeader,
   ActionCard,
+  SuccessCheckmark,
+  SlideIn,
+  FadeIn,
+  CountUp,
+  ScaleIn,
+  StaggeredList,
 } from '../../src/components/ui';
 import {
   COLORS,
@@ -162,107 +168,130 @@ export default function TestScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
-          {/* 成功アイコン */}
-          <View style={styles.resultSuccessIcon}>
-            <Ionicons name="checkmark-circle" size={56} color={COLORS.success} />
-          </View>
+          {/* 成功アニメーション */}
+          <SuccessCheckmark size={80} color={COLORS.success} />
 
           {/* ヘッダー */}
-          <View style={styles.resultHeader}>
-            <Text style={styles.resultHeaderTitle}>テスト完了！</Text>
-            <Text style={styles.resultHeaderDate}>
-              {new Date(lastTestResult.date).toLocaleDateString('ja-JP')}
-            </Text>
-          </View>
+          <SlideIn direction="up" delay={300}>
+            <View style={styles.resultHeader}>
+              <Text style={styles.resultHeaderTitle}>テスト完了！</Text>
+              <Text style={styles.resultHeaderDate}>
+                {new Date(lastTestResult.date).toLocaleDateString('ja-JP')}
+              </Text>
+            </View>
+          </SlideIn>
 
           {/* eTPカード */}
-          <View style={styles.etpResultCard}>
-            <Text style={styles.etpResultLabel}>あなたのeTP</Text>
-            <Text style={styles.etpResultValue}>{lastTestResult.eTP}秒</Text>
-            <Text style={styles.etpResultPace}>{formatKmPace(lastTestResult.eTP)}</Text>
-          </View>
+          <ScaleIn delay={500}>
+            <View style={styles.etpResultCard}>
+              <Text style={styles.etpResultLabel}>あなたのeTP</Text>
+              <View style={styles.etpResultValueRow}>
+                <CountUp
+                  to={lastTestResult.eTP}
+                  duration={1500}
+                  style={styles.etpResultValue}
+                  suffix="秒"
+                />
+              </View>
+              <Text style={styles.etpResultPace}>{formatKmPace(lastTestResult.eTP)}</Text>
+            </View>
+          </ScaleIn>
 
           {/* リミッタータイプ */}
-          <View style={[styles.limiterResultCard, { borderColor: limiterInfo.color }]}>
-            <Ionicons name={limiterInfo.icon as any} size={28} color={limiterInfo.color} />
-            <View style={styles.limiterResultInfo}>
-              <Text style={[styles.limiterResultName, { color: limiterInfo.color }]}>
-                {limiterInfo.name}
-              </Text>
-              <Text style={styles.limiterResultConfidence}>
-                確信度: {lastTestResult.limiterConfidence === 'confirmed' ? '高' : '中'}
-              </Text>
+          <SlideIn direction="left" delay={700}>
+            <View style={[styles.limiterResultCard, { borderColor: limiterInfo.color }]}>
+              <Ionicons name={limiterInfo.icon as any} size={28} color={limiterInfo.color} />
+              <View style={styles.limiterResultInfo}>
+                <Text style={[styles.limiterResultName, { color: limiterInfo.color }]}>
+                  {limiterInfo.name}
+                </Text>
+                <Text style={styles.limiterResultConfidence}>
+                  確信度: {lastTestResult.limiterConfidence === 'confirmed' ? '高' : '中'}
+                </Text>
+              </View>
             </View>
-          </View>
+          </SlideIn>
 
           {/* テスト詳細 */}
-          <View style={styles.testDetailCard}>
-            <Text style={styles.testDetailTitle}>テスト詳細</Text>
-            <View style={styles.testDetailRow}>
-              <Text style={styles.testDetailLabel}>レベル</Text>
-              <Text style={styles.testDetailValue}>{lastTestResult.level}</Text>
+          <FadeIn delay={900}>
+            <View style={styles.testDetailCard}>
+              <Text style={styles.testDetailTitle}>テスト詳細</Text>
+              <View style={styles.testDetailRow}>
+                <Text style={styles.testDetailLabel}>レベル</Text>
+                <Text style={styles.testDetailValue}>{lastTestResult.level}</Text>
+              </View>
+              <View style={styles.testDetailRow}>
+                <Text style={styles.testDetailLabel}>完走周回数</Text>
+                <Text style={styles.testDetailValue}>{lastTestResult.completedLaps}周</Text>
+              </View>
+              <View style={styles.testDetailRow}>
+                <Text style={styles.testDetailLabel}>最終ペース</Text>
+                <Text style={styles.testDetailValue}>{formatKmPace(lastTestResult.lastCompletedPace)} ({lastTestResult.lastCompletedPace}秒/400m)</Text>
+              </View>
             </View>
-            <View style={styles.testDetailRow}>
-              <Text style={styles.testDetailLabel}>完走周回数</Text>
-              <Text style={styles.testDetailValue}>{lastTestResult.completedLaps}周</Text>
-            </View>
-            <View style={styles.testDetailRow}>
-              <Text style={styles.testDetailLabel}>最終ペース</Text>
-              <Text style={styles.testDetailValue}>{formatKmPace(lastTestResult.lastCompletedPace)} ({lastTestResult.lastCompletedPace}秒/400m)</Text>
-            </View>
-          </View>
+          </FadeIn>
 
           {/* トレーニングゾーン */}
-          <View style={styles.zonesResultCard}>
-            <Text style={styles.zonesResultTitle}>トレーニングゾーン</Text>
-            {Object.entries(lastTestResult.zones).map(([zone, pace]) => {
-              const zoneLabels: Record<string, { name: string; color: string }> = {
-                jog: { name: 'Jog', color: '#9CA3AF' },
-                easy: { name: 'Easy', color: '#3B82F6' },
-                marathon: { name: 'Marathon', color: '#22C55E' },
-                threshold: { name: 'Threshold', color: '#EAB308' },
-                interval: { name: 'Interval', color: '#F97316' },
-                repetition: { name: 'Rep', color: '#EF4444' },
-              };
-              const label = zoneLabels[zone];
-              if (!label) return null;
-              return (
-                <View key={zone} style={styles.zoneResultRow}>
-                  <View style={styles.zoneResultInfo}>
-                    <View style={[styles.zoneResultDot, { backgroundColor: label.color }]} />
-                    <Text style={styles.zoneResultName}>{label.name}</Text>
-                  </View>
-                  <Text style={styles.zoneResultPace}>{formatKmPace(pace)} ({pace}秒/400m)</Text>
-                </View>
-              );
-            })}
-          </View>
+          <FadeIn delay={1100}>
+            <View style={styles.zonesResultCard}>
+              <Text style={styles.zonesResultTitle}>トレーニングゾーン</Text>
+              <StaggeredList staggerDelay={80} initialDelay={200}>
+                {Object.entries(lastTestResult.zones).map(([zone, pace]) => {
+                  const zoneLabels: Record<string, { name: string; color: string }> = {
+                    jog: { name: 'Jog', color: '#9CA3AF' },
+                    easy: { name: 'Easy', color: '#3B82F6' },
+                    marathon: { name: 'Marathon', color: '#22C55E' },
+                    threshold: { name: 'Threshold', color: '#EAB308' },
+                    interval: { name: 'Interval', color: '#F97316' },
+                    repetition: { name: 'Rep', color: '#EF4444' },
+                  };
+                  const label = zoneLabels[zone];
+                  if (!label) return null;
+                  return (
+                    <View key={zone} style={styles.zoneResultRow}>
+                      <View style={styles.zoneResultInfo}>
+                        <View style={[styles.zoneResultDot, { backgroundColor: label.color }]} />
+                        <Text style={styles.zoneResultName}>{label.name}</Text>
+                      </View>
+                      <Text style={styles.zoneResultPace}>{formatKmPace(pace)} ({pace}秒/400m)</Text>
+                    </View>
+                  );
+                })}
+              </StaggeredList>
+            </View>
+          </FadeIn>
 
           {/* レース予測 */}
-          <View style={styles.predictionsResultCard}>
-            <Text style={styles.predictionsResultTitle}>レース予測タイム</Text>
-            <View style={styles.predictionsResultGrid}>
-              {Object.entries(lastTestResult.predictions).map(([distance, prediction]) => {
-                const labels: Record<string, string> = {
-                  m800: '800m', m1500: '1500m', m3000: '3000m', m5000: '5000m'
-                };
-                return (
-                  <View key={distance} style={styles.predictionResultItem}>
-                    <Text style={styles.predictionResultDistance}>{labels[distance]}</Text>
-                    <Text style={styles.predictionResultTime}>{formatTime(prediction.min)}</Text>
-                  </View>
-                );
-              })}
+          <FadeIn delay={1300}>
+            <View style={styles.predictionsResultCard}>
+              <Text style={styles.predictionsResultTitle}>レース予測タイム</Text>
+              <View style={styles.predictionsResultGrid}>
+                {Object.entries(lastTestResult.predictions).map(([distance, prediction], index) => {
+                  const labels: Record<string, string> = {
+                    m800: '800m', m1500: '1500m', m3000: '3000m', m5000: '5000m'
+                  };
+                  return (
+                    <ScaleIn key={distance} delay={100 * index}>
+                      <View style={styles.predictionResultItem}>
+                        <Text style={styles.predictionResultDistance}>{labels[distance]}</Text>
+                        <Text style={styles.predictionResultTime}>{formatTime(prediction.min)}</Text>
+                      </View>
+                    </ScaleIn>
+                  );
+                })}
+              </View>
             </View>
-          </View>
+          </FadeIn>
 
           {/* ボタン */}
-          <Button
-            title="完了"
-            onPress={() => setShowResult(false)}
-            fullWidth
-            style={styles.completeBtn}
-          />
+          <FadeIn delay={1500}>
+            <Button
+              title="完了"
+              onPress={() => setShowResult(false)}
+              fullWidth
+              style={styles.completeBtn}
+            />
+          </FadeIn>
         </ScrollView>
       </SafeAreaView>
     );
@@ -1069,6 +1098,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text.secondary,
     marginBottom: 8,
+  },
+  etpResultValueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
   },
   etpResultValue: {
     fontSize: 48,
