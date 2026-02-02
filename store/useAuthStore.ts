@@ -39,7 +39,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             await authSignOut();
             set({ user: null, session: null, loading: false });
         } catch (error) {
-            console.error('Sign out error:', error);
+            if (__DEV__) {
+                console.error('Sign out error:', error);
+            }
             set({ loading: false });
             throw error;
         }
@@ -66,7 +68,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                 });
             });
         } catch (error) {
-            console.error('Auth initialization error:', error);
+            if (__DEV__) {
+                console.error('Auth initialization error:', error);
+            }
             set({ loading: false, initialized: true });
         }
     },
