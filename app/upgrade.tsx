@@ -17,7 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
     useSubscriptionStore,
     useIsPremium,
@@ -48,6 +48,7 @@ const PREMIUM_FEATURES = [
 
 export default function UpgradeScreen() {
     const router = useRouter();
+    const { feature } = useLocalSearchParams<{ feature?: string }>();
     const isPremium = useIsPremium();
     const loading = useSubscriptionLoading();
     const packages = usePackages();
@@ -151,7 +152,9 @@ export default function UpgradeScreen() {
                     <Text style={styles.heroIcon}>👑</Text>
                     <Text style={styles.heroTitle}>MidLab Premium</Text>
                     <Text style={styles.heroSubtitle}>
-                        あなたのランニングを次のレベルへ
+                        {feature
+                            ? `「${feature}」を利用するにはプレミアムプランが必要です`
+                            : 'あなたのランニングを次のレベルへ'}
                     </Text>
                 </LinearGradient>
 
