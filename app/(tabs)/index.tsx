@@ -561,16 +561,17 @@ const styles = StyleSheet.create({
 
   // レース予測・自己ベストグリッド（設定画面と同じ）
   predictionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    justifyContent: 'space-between' as const,
   },
   predictionItem: {
-    width: (width - 64) / 2 - 4,
+    width: '48%' as any,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 8,
     padding: 12,
-    alignItems: 'center',
+    alignItems: 'center' as const,
+    marginBottom: 8,
   },
   predictionDistance: {
     fontSize: 12,
