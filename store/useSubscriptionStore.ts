@@ -25,7 +25,7 @@ import {
 // DEV_FORCE_PREMIUM を true にするとプレミアム状態を強制
 // Expo Go環境でも課金UIの確認が可能
 // ============================================
-const DEV_FORCE_PREMIUM = __DEV__ && false; // trueで強制プレミアム
+const DEV_FORCE_PREMIUM = __DEV__ && true; // trueで強制プレミアム
 
 interface SubscriptionState {
     isPremium: boolean;
