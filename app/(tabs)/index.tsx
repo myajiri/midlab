@@ -217,31 +217,30 @@ export default function HomeScreen() {
         )}
 
         {/* 自己ベスト */}
-        {profile?.pbs && Object.values(profile.pbs).some(v => v) && (
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>自己ベスト</Text>
-            <View style={styles.gridContainer}>
-              {(['m800', 'm1500', 'm3000', 'm5000'] as const).map((key) => {
-                const pb = profile.pbs?.[key];
-                if (!pb) return null;
-                return (
-                  <View
-                    key={key}
-                    style={[
-                      styles.gridItem,
-                      { borderLeftColor: DISTANCE_COLORS[key] },
-                    ]}
-                  >
-                    <Text style={[styles.gridLabel, { color: DISTANCE_COLORS[key] }]}>
-                      {RACE_COEFFICIENTS[key].label}
-                    </Text>
-                    <Text style={styles.gridValue}>{formatTime(pb)}</Text>
-                  </View>
-                );
-              })}
-            </View>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>自己ベスト</Text>
+          <View style={styles.gridContainer}>
+            {(['m800', 'm1500', 'm3000', 'm5000'] as const).map((key) => {
+              const pb = profile?.pbs?.[key];
+              return (
+                <View
+                  key={key}
+                  style={[
+                    styles.gridItem,
+                    { borderLeftColor: DISTANCE_COLORS[key] },
+                  ]}
+                >
+                  <Text style={[styles.gridLabel, { color: DISTANCE_COLORS[key] }]}>
+                    {RACE_COEFFICIENTS[key].label}
+                  </Text>
+                  <Text style={[styles.gridValue, !pb && styles.gridValueEmpty]}>
+                    {pb ? formatTime(pb) : '-'}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
-        )}
+        </View>
 
         {/* トレーニングゾーン */}
         <View style={styles.card}>
@@ -608,6 +607,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: COLORS.text.primary,
+  },
+  gridValueEmpty: {
+    color: COLORS.text.muted,
   },
   limiterNote: {
     fontSize: 11,
