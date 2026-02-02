@@ -252,23 +252,43 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* クイックアクション */}
-        <View style={styles.quickActions}>
+        {/* テスト未実施の場合の促進 */}
+        {source !== 'measured' && (
           <Pressable
-            style={styles.actionButton}
+            style={styles.promptCard}
             onPress={() => router.push('/test')}
           >
-            <Ionicons name="stats-chart" size={18} color="#8B5CF6" />
-            <Text style={styles.actionText}>ランプテスト</Text>
+            <View style={styles.promptIconContainer}>
+              <Ionicons name="stats-chart" size={24} color="#8B5CF6" />
+            </View>
+            <View style={styles.promptContent}>
+              <Text style={styles.promptTitle}>ランプテストを実施しましょう</Text>
+              <Text style={styles.promptText}>
+                テストを実施すると、あなたの正確なeTPとリミッタータイプが測定できます
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
           </Pressable>
+        )}
+
+        {/* 計画未作成の場合の促進 */}
+        {!activePlan && (
           <Pressable
-            style={styles.actionButton}
+            style={styles.promptCard}
             onPress={() => router.push('/plan')}
           >
-            <Ionicons name="document-text" size={18} color="#F97316" />
-            <Text style={styles.actionText}>計画を見る</Text>
+            <View style={[styles.promptIconContainer, styles.promptIconOrange]}>
+              <Ionicons name="calendar" size={24} color="#F97316" />
+            </View>
+            <View style={styles.promptContent}>
+              <Text style={styles.promptTitle}>トレーニング計画を作成しましょう</Text>
+              <Text style={styles.promptText}>
+                目標レースに向けた週間トレーニング計画を自動生成します
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
           </Pressable>
-        </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -604,28 +624,41 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Quick Actions
-  quickActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
-  actionButton: {
-    flex: 1,
+  // 促進カード
+  promptCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    padding: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    gap: 12,
   },
-  // actionEmoji removed - using Ionicons directly
-  actionText: {
+  promptIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(139, 92, 246, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  promptIconOrange: {
+    backgroundColor: 'rgba(249, 115, 22, 0.15)',
+  },
+  promptContent: {
+    flex: 1,
+  },
+  promptTitle: {
     fontSize: 14,
+    fontWeight: '600',
     color: COLORS.text.primary,
-    fontWeight: '500',
+    marginBottom: 4,
+  },
+  promptText: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    lineHeight: 16,
   },
 });
