@@ -318,7 +318,7 @@ export default function SettingsScreen() {
                   </View>
                   <View style={styles.zonePaces}>
                     <Text style={styles.zonePaceKm}>{formatKmPace(pace)}</Text>
-                    <Text style={styles.zonePace400}>({formatTime(pace)}/400m)</Text>
+                    <Text style={styles.zonePace400}>({pace}秒/400m)</Text>
                   </View>
                 </View>
               ))}
