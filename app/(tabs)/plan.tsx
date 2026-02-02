@@ -1,5 +1,5 @@
 // ============================================
-// Plan Screen - トレーニング計画 (rise-test準拠)
+// Plan Screen - トレーニング計画画面
 // ============================================
 
 import React, { useState, useMemo } from 'react';
@@ -20,7 +20,9 @@ import {
   useEffectiveValues,
 } from '../../src/stores/useAppStore';
 import { formatTime, formatKmPace, parseTime } from '../../src/utils';
-import { Card, Button } from '../../src/components/ui';
+import { Card, Button, SwipeableRow, DatePickerModal, TimePickerModal } from '../../src/components/ui';
+import { PremiumGate } from '../../components/PremiumGate';
+import { useIsPremium } from '../../store/useSubscriptionStore';
 import {
   COLORS,
   PHASE_CONFIG,
@@ -117,6 +119,7 @@ function PhaseBarV4({ phases, currentWeek, totalWeeks }: { phases: Phase[]; curr
 }
 
 export default function PlanScreen() {
+  const isPremium = useIsPremium();
   const activePlan = usePlanStore((state) => state.activePlan);
   const setPlan = usePlanStore((state) => state.setPlan);
   const clearPlan = usePlanStore((state) => state.clearPlan);
@@ -124,33 +127,84 @@ export default function PlanScreen() {
   const { etp, limiter } = useEffectiveValues();
 
   const [view, setView] = useState<ViewType>(activePlan ? 'overview' : 'create');
+
+  // プレミアム機能チェック
+  if (!isPremium) {
+    return (
+      <PremiumGate featureName="トレーニング計画">
+        <View />
+      </PremiumGate>
+    );
+  }
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
 
   // 計画作成フォーム
   const [raceName, setRaceName] = useState('');
-  const [raceDate, setRaceDate] = useState('');
+  const [raceDate, setRaceDate] = useState<Date | null>(null);
   const [distance, setDistance] = useState<RaceDistance>(1500);
-  const [targetTime, setTargetTime] = useState('');
+  const [targetTime, setTargetTime] = useState<number | null>(null);
+
+  // モーダル状態
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
+  // 日付バリデーション
+  const validateDate = (date: Date | null): { valid: boolean; error?: string } => {
+    if (!date) return { valid: false };
+
+    // 過去日付チェック（今日以降であること）
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (date < today) {
+      return { valid: false, error: '過去の日付です' };
+    }
+
+    // 最低4週間後であること
+    const minDate = new Date();
+    minDate.setDate(minDate.getDate() + 28);
+    if (date < minDate) {
+      return { valid: false, error: '最低4週間後の日付を選択してください' };
+    }
+
+    return { valid: true };
+  };
+
+  const dateValidation = useMemo(() => validateDate(raceDate), [raceDate]);
+
+  // 日付の最小値（4週間後）
+  const minDateForPicker = useMemo(() => {
+    const min = new Date();
+    min.setDate(min.getDate() + 28);
+    return min;
+  }, []);
+
+  // 日付フォーマット（表示用）
+  const formatDateDisplay = (date: Date | null): string => {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    return `${year}/${month}/${day}`;
+  };
 
   const handleCreatePlan = () => {
-    if (!raceName || !raceDate) {
-      Alert.alert('エラー', 'レース名と日付を入力してください');
+    if (!raceName || !dateValidation.valid || !raceDate) {
+      Alert.alert('エラー', 'レース名と有効な日付を入力してください');
       return;
     }
 
-    const parsedTarget = parseTime(targetTime);
-    if (!parsedTarget) {
-      Alert.alert('エラー', '目標タイムをM:SS形式で入力してください');
+    if (!targetTime || targetTime <= 0) {
+      Alert.alert('エラー', '目標タイムを選択してください');
       return;
     }
 
     const plan = generatePlan({
       race: {
         name: raceName,
-        date: new Date(raceDate).toISOString(),
+        date: raceDate.toISOString(),
         distance,
-        targetTime: parsedTarget,
+        targetTime: targetTime,
       },
       baseline: { etp, limiterType: limiter },
     });
@@ -181,6 +235,7 @@ export default function PlanScreen() {
   if (view === 'create') {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <PremiumGate featureName="トレーニング計画">
         <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
           <Text style={styles.sectionTitle}>計画作成</Text>
 
@@ -199,13 +254,17 @@ export default function PlanScreen() {
           {/* レース日 */}
           <View style={styles.inputSection}>
             <Text style={styles.inputLabel}>レース日</Text>
-            <TextInput
-              style={styles.input}
-              value={raceDate}
-              onChangeText={setRaceDate}
-              placeholder="2024-06-15"
-              placeholderTextColor={COLORS.text.muted}
-            />
+            <Pressable
+              style={[styles.input, styles.inputPressable, dateValidation.error && styles.inputError]}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <Text style={[styles.inputPressableText, !raceDate && styles.inputPlaceholder]}>
+                {raceDate ? formatDateDisplay(raceDate) : '日付を選択'}
+              </Text>
+            </Pressable>
+            {dateValidation.error && (
+              <Text style={styles.inputErrorText}>{dateValidation.error}</Text>
+            )}
           </View>
 
           {/* 種目 */}
@@ -229,20 +288,20 @@ export default function PlanScreen() {
           {/* 目標タイム */}
           <View style={styles.inputSection}>
             <Text style={styles.inputLabel}>目標タイム</Text>
-            <TextInput
-              style={styles.input}
-              value={targetTime}
-              onChangeText={setTargetTime}
-              placeholder="4:15"
-              placeholderTextColor={COLORS.text.muted}
-              keyboardType="numbers-and-punctuation"
-            />
+            <Pressable
+              style={[styles.input, styles.inputPressable]}
+              onPress={() => setShowTimePicker(true)}
+            >
+              <Text style={[styles.inputPressableText, !targetTime && styles.inputPlaceholder]}>
+                {targetTime ? formatTime(targetTime) : 'タイムを選択'}
+              </Text>
+            </Pressable>
           </View>
 
           {/* 現在の状態 */}
           <View style={styles.currentStatus}>
             <Text style={styles.currentStatusTitle}>現在の状態</Text>
-            <Text style={styles.currentStatusText}>eTP: {etp}秒 ({formatKmPace(etp)})</Text>
+            <Text style={styles.currentStatusText}>eTP: {formatKmPace(etp)} ({etp}秒/400m)</Text>
             <Text style={styles.currentStatusText}>リミッター: {LIMITER_LABEL[limiter]}</Text>
           </View>
 
@@ -250,11 +309,32 @@ export default function PlanScreen() {
             title="計画を生成"
             onPress={handleCreatePlan}
             fullWidth
-            disabled={!raceName || !raceDate || !parseTime(targetTime)}
-            style={[
+            disabled={!raceName || !dateValidation.valid || !targetTime}
+            style={StyleSheet.flatten([
               styles.createBtn,
-              (!raceName || !raceDate || !parseTime(targetTime)) && styles.createBtnDisabled,
-            ]}
+              (!raceName || !dateValidation.valid || !targetTime) && styles.createBtnDisabled,
+            ])}
+          />
+
+          {/* 日付ピッカーモーダル */}
+          <DatePickerModal
+            visible={showDatePicker}
+            onClose={() => setShowDatePicker(false)}
+            onSelect={(date) => setRaceDate(date)}
+            value={raceDate || undefined}
+            minDate={minDateForPicker}
+            title="レース日を選択"
+          />
+
+          {/* タイムピッカーモーダル */}
+          <TimePickerModal
+            visible={showTimePicker}
+            onClose={() => setShowTimePicker(false)}
+            onSelect={(seconds) => setTargetTime(seconds)}
+            value={targetTime || undefined}
+            title="目標タイムを選択"
+            minMinutes={1}
+            maxMinutes={30}
           />
 
           {activePlan && (
@@ -267,6 +347,7 @@ export default function PlanScreen() {
             />
           )}
         </ScrollView>
+        </PremiumGate>
       </SafeAreaView>
     );
   }
@@ -402,7 +483,7 @@ export default function PlanScreen() {
             <View style={styles.calendarLegendItems}>
               <View style={styles.calendarLegendItem}>
                 <Ionicons name="fitness" size={14} color="#F97316" style={styles.calendarLegendIcon} />
-                <Text style={styles.calendarLegendText}>ワークアウト</Text>
+                <Text style={styles.calendarLegendText}>トレーニング</Text>
               </View>
               <View style={styles.calendarLegendItem}>
                 <Ionicons name="walk" size={14} color="#3B82F6" style={styles.calendarLegendIcon} />
@@ -490,9 +571,9 @@ export default function PlanScreen() {
                 <Text style={styles.recoveryBadgeText}>回復週</Text>
               </View>
             )}
-            {weekPlan.isRiseTestWeek && (
+            {weekPlan.isRampTestWeek && (
               <View style={styles.testBadge}>
-                <Text style={styles.testBadgeText}>RISE Test週</Text>
+                <Text style={styles.testBadgeText}>ランプテスト週</Text>
               </View>
             )}
           </View>
@@ -531,47 +612,54 @@ export default function PlanScreen() {
               if (!day) return null;
               const dayNames = ['月', '火', '水', '木', '金', '土', '日'];
               const focus = day.focusKey ? PHYSIOLOGICAL_FOCUS_CATEGORIES[day.focusKey] : null;
+              const isRestDay = day.type === 'rest';
               return (
-                <Pressable
+                <SwipeableRow
                   key={i}
-                  style={[
-                    styles.dayRow,
-                    day.completed && styles.dayRowCompleted,
-                    focus && { borderLeftColor: focus.color, borderLeftWidth: 3 },
-                  ]}
-                  onPress={() => {
-                    if (day && !day.completed) {
-                      markWorkoutComplete(weekPlan.weekNumber, day.id);
-                    }
-                  }}
+                  onSwipeComplete={() => markWorkoutComplete(weekPlan.weekNumber, day.id)}
+                  disabled={isRestDay}
+                  completed={day.completed}
                 >
-                  <Text style={styles.dayName}>{dayNames[i]}</Text>
-                  <View style={styles.dayContent}>
-                    <View style={styles.dayMainRow}>
-                      {(() => {
-                        const iconInfo = getWorkoutIconInfo(day.type);
-                        return <Ionicons name={iconInfo.name as any} size={14} color={iconInfo.color} style={styles.dayIconStyle} />;
-                      })()}
-                      <Text style={[styles.dayLabel, day.isKey && styles.dayLabelKey]}>
-                        {day.label}
-                      </Text>
-                      {day.isKey && <Text style={styles.dayKeyBadge}>Key</Text>}
+                  <View
+                    style={[
+                      styles.dayRow,
+                      day.completed && styles.dayRowCompleted,
+                      focus && { borderLeftColor: focus.color, borderLeftWidth: 3 },
+                    ]}
+                  >
+                    <Text style={styles.dayName}>{dayNames[i]}</Text>
+                    <View style={styles.dayContent}>
+                      <View style={styles.dayMainRow}>
+                        {(() => {
+                          const iconInfo = getWorkoutIconInfo(day.type);
+                          return <Ionicons name={iconInfo.name as any} size={14} color={iconInfo.color} style={styles.dayIconStyle} />;
+                        })()}
+                        <Text style={[styles.dayLabel, day.isKey && styles.dayLabelKey]}>
+                          {day.label}
+                        </Text>
+                        {day.isKey && <Text style={styles.dayKeyBadge}>Key</Text>}
+                      </View>
+                      {focus && day.type === 'workout' && (
+                        <Text style={[styles.dayFocusDesc, { color: focus.color }]}>
+                          {focus.description}
+                        </Text>
+                      )}
                     </View>
-                    {focus && day.type === 'workout' && (
-                      <Text style={[styles.dayFocusDesc, { color: focus.color }]}>
-                        {focus.description}
-                      </Text>
+                    {day.completed ? (
+                      <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
+                    ) : isRestDay ? (
+                      <View style={styles.dayRestIndicator} />
+                    ) : (
+                      <Text style={styles.swipeHint}>→</Text>
                     )}
                   </View>
-                  {day.completed ? (
-                    <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
-                  ) : (
-                    <View style={styles.dayCheckbox} />
-                  )}
-                </Pressable>
+                </SwipeableRow>
               );
             })}
           </View>
+
+          {/* スワイプヒント */}
+          <Text style={styles.swipeHintText}>← 右にスワイプで完了</Text>
 
           {/* ナビゲーション */}
           <View style={styles.weekNavigation}>
@@ -625,7 +713,7 @@ export default function PlanScreen() {
               return (
                 <>
                   <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>キーワークアウト達成</Text>
+                    <Text style={styles.summaryLabel}>キートレーニング達成</Text>
                     <Text style={styles.summaryValue}>{completedKeyWorkouts} / {totalKeyWorkouts}</Text>
                   </View>
                   <View style={styles.progressBarContainer}>
@@ -660,7 +748,7 @@ export default function PlanScreen() {
                       <Text style={styles.fullWeekNumber}>W{week.weekNumber}</Text>
                       <Text style={styles.fullWeekPhase}>{phase?.label}</Text>
                       {week.isRecoveryWeek && <Text style={styles.fullWeekRecovery}>回復週</Text>}
-                      {week.isRiseTestWeek && <Text style={styles.fullWeekTest}>Test</Text>}
+                      {week.isRampTestWeek && <Text style={styles.fullWeekTest}>Test</Text>}
                     </View>
                     {(week.targetDistance != null || week.loadPercent != null) && (
                       <View style={styles.fullWeekMeta}>
@@ -809,11 +897,11 @@ export default function PlanScreen() {
               </View>
             )}
 
-            {/* キーワークアウト */}
+            {/* キートレーニング */}
             <View style={styles.keyWorkoutsSection}>
               <View style={styles.keyWorkoutsTitleRow}>
                 <Ionicons name="document-text" size={14} color="#F97316" />
-                <Text style={styles.keyWorkoutsTitle}>今週のキーワークアウト</Text>
+                <Text style={styles.keyWorkoutsTitle}>今週のキートレーニング</Text>
               </View>
               {currentWeekPlan.days.filter((d) => d?.isKey).map((d, i) => {
                 const dayNames = ['月', '火', '水', '木', '金', '土', '日'];
@@ -939,20 +1027,20 @@ function generatePlan({ race, baseline }: GeneratePlanParams): RacePlan {
     }
   });
 
-  // 月1回のRISE Testを設定（約4週間ごと）
-  const riseTestWeeks: number[] = [];
+  // 月1回のランプテストを設定（約4週間ごと）
+  const rampTestWeeks: number[] = [];
   const testInterval = 4;
   for (let w = testInterval; w <= weeksUntilRace && w < 20; w += testInterval) {
     const weekPhase = phases.find(p => w >= p.startWeek && w <= p.endWeek);
     if (weekPhase && weekPhase.type !== 'taper') {
-      riseTestWeeks.push(w);
+      rampTestWeeks.push(w);
     }
   }
   // 基礎期の終わりにもテストを推奨
   const basePhase = phases.find(p => p.type === 'base');
-  if (basePhase && !riseTestWeeks.includes(basePhase.endWeek)) {
-    riseTestWeeks.push(basePhase.endWeek);
-    riseTestWeeks.sort((a, b) => a - b);
+  if (basePhase && !rampTestWeeks.includes(basePhase.endWeek)) {
+    rampTestWeeks.push(basePhase.endWeek);
+    rampTestWeeks.sort((a, b) => a - b);
   }
 
   // 週間プラン生成
@@ -1006,15 +1094,15 @@ function generatePlan({ race, baseline }: GeneratePlanParams): RacePlan {
     const phaseKeyCategories = KEY_WORKOUTS_BY_PHASE[phaseType]?.categories || ['有酸素ベース'];
     const phaseFocusKeys = KEY_WORKOUTS_BY_PHASE[phaseType]?.focusKeys || ['aerobic'];
 
-    // RISE Testの週かどうか
-    const isRiseTestWeek = riseTestWeeks.includes(weekNumber);
+    // ランプテストの週かどうか
+    const isRampTestWeek = rampTestWeeks.includes(weekNumber);
 
     // 日ごとのスケジュール
     const days = generateWeeklySchedule(
       phaseType,
       phaseFocusKeys,
       isRecoveryWeek,
-      isRiseTestWeek,
+      isRampTestWeek,
       baseline.limiterType,
       weekNumber
     );
@@ -1033,7 +1121,7 @@ function generatePlan({ race, baseline }: GeneratePlanParams): RacePlan {
       keyFocusCategories: phaseKeyCategories,
       focusKeys: phaseFocusKeys,
       isRecoveryWeek,
-      isRiseTestWeek,
+      isRampTestWeek,
     });
   }
 
@@ -1049,8 +1137,8 @@ function generatePlan({ race, baseline }: GeneratePlanParams): RacePlan {
     };
   });
 
-  // RISE Test日程をISO文字列に変換
-  const riseTestDates = riseTestWeeks.map(w => {
+  // ランプテスト日程をISO文字列に変換
+  const rampTestDates = rampTestWeeks.map(w => {
     const weekPlan = weeklyPlans.find(wp => wp.weekNumber === w);
     if (weekPlan) {
       const testDate = new Date(weekPlan.startDate);
@@ -1075,7 +1163,7 @@ function generatePlan({ race, baseline }: GeneratePlanParams): RacePlan {
     },
     phases: phasesForPlan,
     weeklyPlans,
-    riseTestDates,
+    rampTestDates,
   };
 }
 
@@ -1083,7 +1171,7 @@ function generateWeeklySchedule(
   phaseType: PhaseType,
   focusKeys: string[],
   isRecoveryWeek: boolean,
-  isRiseTestWeek: boolean,
+  isRampTestWeek: boolean,
   limiterType: LimiterType,
   weekNumber: number
 ): (ScheduledWorkout | null)[] {
@@ -1101,14 +1189,14 @@ function generateWeeklySchedule(
       { id: `w${weekNumber}-d5`, dayOfWeek: 5, type: 'long', label: '有酸素ベース（Long）', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
       { id: `w${weekNumber}-d6`, dayOfWeek: 6, type: 'rest', label: '休養', isKey: false, completed: false },
     );
-  } else if (isRiseTestWeek) {
-    // RISE Test週
+  } else if (isRampTestWeek) {
+    // ランプテスト週
     const focus = PHYSIOLOGICAL_FOCUS_CATEGORIES[focusKeys[0]];
     days.push(
       { id: `w${weekNumber}-d0`, dayOfWeek: 0, type: 'easy', label: '有酸素ベース（Easy）', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
       { id: `w${weekNumber}-d1`, dayOfWeek: 1, type: 'easy', label: '有酸素ベース（Easy）', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
       { id: `w${weekNumber}-d2`, dayOfWeek: 2, type: 'rest', label: '休養', isKey: false, completed: false },
-      { id: `w${weekNumber}-d3`, dayOfWeek: 3, type: 'test', label: 'RISE Test', isKey: true, completed: false, focusKey: 'test' },
+      { id: `w${weekNumber}-d3`, dayOfWeek: 3, type: 'test', label: 'ランプテスト', isKey: true, completed: false, focusKey: 'test' },
       { id: `w${weekNumber}-d4`, dayOfWeek: 4, type: 'rest', label: '休養', isKey: false, completed: false },
       { id: `w${weekNumber}-d5`, dayOfWeek: 5, type: 'workout', label: focus?.name || '有酸素ベース', isKey: true, completed: false, focusKey: focusKeys[0], focusCategory: focus?.menuCategory },
       { id: `w${weekNumber}-d6`, dayOfWeek: 6, type: 'rest', label: '休養', isKey: false, completed: false },
@@ -1259,6 +1347,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 16,
     color: COLORS.text.primary,
+  },
+  inputError: {
+    borderColor: '#EF4444',
+  },
+  inputErrorText: {
+    color: '#EF4444',
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 2,
+  },
+  inputPressable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  inputPressableText: {
+    fontSize: 16,
+    color: COLORS.text.primary,
+  },
+  inputPlaceholder: {
+    color: COLORS.text.muted,
   },
   distanceTabs: {
     flexDirection: 'row',
@@ -1785,6 +1894,22 @@ const styles = StyleSheet.create({
     borderColor: COLORS.text.muted,
     borderRadius: 12,
   },
+  dayRestIndicator: {
+    width: 24,
+    height: 24,
+  },
+  swipeHint: {
+    fontSize: 18,
+    color: COLORS.text.muted,
+    opacity: 0.5,
+  },
+  swipeHintText: {
+    fontSize: 11,
+    color: COLORS.text.muted,
+    textAlign: 'center',
+    marginTop: 8,
+    opacity: 0.7,
+  },
   weekNavigation: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -2004,7 +2129,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
-  // calendarLegendIcon style not needed - using Ionicons directly
+  calendarLegendIcon: {
+    marginRight: 2,
+  },
   calendarLegendText: {
     fontSize: 11,
     color: COLORS.text.secondary,

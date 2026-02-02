@@ -1,6 +1,5 @@
 // ============================================
-// Settings Screen - 設定
-// rise-test準拠のUIブラッシュアップ版
+// Settings Screen - 設定画面
 // ============================================
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -23,19 +22,20 @@ import {
   useWorkoutLogsStore,
   useSettingsStore,
   useEffectiveValues,
-  useTrainingZones,
 } from '../../src/stores/useAppStore';
 import { formatTime, formatKmPace, parseTime, estimateEtpFromPb } from '../../src/utils';
+import { InputModal, TimePickerModal } from '../../src/components/ui';
 import {
   COLORS,
   AGE_CATEGORY_CONFIG,
   EXPERIENCE_CONFIG,
   PB_COEFFICIENTS,
-  ZONE_COEFFICIENTS_V3,
   LIMITER_ICONS,
-  RACE_COEFFICIENTS,
 } from '../../src/constants';
-import { AgeCategory, Experience, LimiterType, ZoneName } from '../../src/types';
+import { AgeCategory, Experience, LimiterType } from '../../src/types';
+import { useRouter } from 'expo-router';
+import { useIsPremium, useSubscriptionStore } from '../../store/useSubscriptionStore';
+import { PremiumBadge } from '../../components/PremiumGate';
 
 // ============================================
 // 定数
@@ -59,6 +59,10 @@ const LIMITER_OPTIONS = [
 // ============================================
 
 export default function SettingsScreen() {
+  const router = useRouter();
+  const isPremium = useIsPremium();
+  const { restore } = useSubscriptionStore();
+
   // ストア
   const profile = useProfileStore((state) => state.profile);
   const updateAttributes = useProfileStore((state) => state.updateAttributes);
@@ -73,12 +77,16 @@ export default function SettingsScreen() {
   const setOnboardingComplete = useSettingsStore((state) => state.setOnboardingComplete);
 
   const { etp, limiter, source } = useEffectiveValues();
-  const zones = useTrainingZones();
 
   // 編集モード状態
   const [editingProfile, setEditingProfile] = useState(false);
 
+  // モーダル状態
+  const [showDisplayNameModal, setShowDisplayNameModal] = useState(false);
+  const [showPbModal, setShowPbModal] = useState<string | null>(null);
+
   // 一時編集用の状態
+  const [tempDisplayName, setTempDisplayName] = useState(profile.displayName || '');
   const [tempAgeCategory, setTempAgeCategory] = useState<AgeCategory>(profile.ageCategory);
   const [tempGender, setTempGender] = useState(profile.gender);
   const [tempExperience, setTempExperience] = useState<Experience>(profile.experience);
@@ -105,6 +113,7 @@ export default function SettingsScreen() {
 
   // 編集開始
   const handleStartEdit = useCallback(() => {
+    setTempDisplayName(profile.displayName || '');
     setTempAgeCategory(profile.ageCategory);
     setTempGender(profile.gender);
     setTempExperience(profile.experience);
@@ -122,6 +131,7 @@ export default function SettingsScreen() {
   const handleSaveProfile = useCallback(() => {
     // 属性の更新
     updateAttributes({
+      displayName: tempDisplayName.trim() || undefined,
       ageCategory: tempAgeCategory,
       gender: tempGender,
       experience: tempExperience,
@@ -150,6 +160,7 @@ export default function SettingsScreen() {
     setEditingProfile(false);
     Alert.alert('保存完了', 'プロフィールを更新しました');
   }, [
+    tempDisplayName,
     tempAgeCategory,
     tempGender,
     tempExperience,
@@ -194,6 +205,15 @@ export default function SettingsScreen() {
     return null;
   };
 
+  // PB入力にエラーがあるかチェック
+  const hasPbValidationError = useMemo(() => {
+    return PB_FIELDS.some(({ key }) => {
+      const value = pbInputs[key];
+      if (!value) return false;
+      return parseTime(value) === null;
+    });
+  }, [pbInputs]);
+
   const limiterConfig = LIMITER_ICONS[limiter];
 
   // ============================================
@@ -216,6 +236,14 @@ export default function SettingsScreen() {
                 <Text style={styles.editButtonText}>編集</Text>
               </Pressable>
             </View>
+
+            {/* ニックネーム表示 */}
+            {profile.displayName && (
+              <View style={styles.displayNameRow}>
+                <Text style={styles.displayNameLabel}>ニックネーム</Text>
+                <Text style={styles.displayNameValue}>{profile.displayName}</Text>
+              </View>
+            )}
 
             <View style={styles.profileGrid}>
               <View style={styles.profileItem}>
@@ -247,7 +275,9 @@ export default function SettingsScreen() {
                   return (
                     <View key={key} style={styles.pbItem}>
                       <Text style={styles.pbLabel}>{label}</Text>
-                      <Text style={styles.pbValue}>{value ? formatTime(value) : '-'}</Text>
+                      <Text style={[styles.pbValue, !value && styles.pbValueEmpty]}>
+                        {value ? formatTime(value) : '-'}
+                      </Text>
                     </View>
                   );
                 })}
@@ -273,45 +303,52 @@ export default function SettingsScreen() {
             </View>
           </View>
 
-          {/* トレーニングゾーン */}
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>トレーニングゾーン</Text>
-            <Text style={styles.etpBadge}>eTP: {etp}秒/400m</Text>
-            <View style={styles.zonesTable}>
-              {(Object.entries(zones) as [ZoneName, number][]).map(([zone, pace]) => (
-                <View key={zone} style={styles.zoneRow}>
-                  <View style={styles.zoneInfo}>
-                    <View
-                      style={[
-                        styles.zoneIndicator,
-                        { backgroundColor: ZONE_COEFFICIENTS_V3[zone].color },
-                      ]}
-                    />
-                    <Text style={styles.zoneName}>{ZONE_COEFFICIENTS_V3[zone].label}</Text>
-                  </View>
-                  <View style={styles.zonePaces}>
-                    <Text style={styles.zonePace400}>{formatTime(pace)}</Text>
-                    <Text style={styles.zonePaceKm}>{formatKmPace(pace)}</Text>
-                  </View>
-                </View>
-              ))}
+          {/* サブスクリプション管理 */}
+          <View style={styles.subscriptionCard}>
+            <View style={styles.subscriptionHeader}>
+              <Text style={styles.sectionTitle}>サブスクリプション</Text>
+              {isPremium && <PremiumBadge />}
             </View>
-          </View>
-
-          {/* レース予測タイム */}
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>レース予測タイム</Text>
-            <View style={styles.predictionsGrid}>
-              {Object.entries(RACE_COEFFICIENTS).map(([distance, coef]) => {
-                const predictedTime = Math.round(etp * coef.coefficient);
-                return (
-                  <View key={distance} style={styles.predictionItem}>
-                    <Text style={styles.predictionDistance}>{coef.label}</Text>
-                    <Text style={styles.predictionTime}>{formatTime(predictedTime)}</Text>
-                  </View>
-                );
-              })}
-            </View>
+            {isPremium ? (
+              <View style={styles.subscriptionContent}>
+                <Text style={styles.subscriptionStatus}>👑 プレミアム会員</Text>
+                <Text style={styles.subscriptionDesc}>すべてのプレミアム機能をご利用いただけます</Text>
+                <Pressable
+                  style={styles.subscriptionButton}
+                  onPress={() => router.push('/upgrade')}
+                >
+                  <Text style={styles.subscriptionButtonText}>サブスクリプションを管理</Text>
+                </Pressable>
+              </View>
+            ) : (
+              <View style={styles.subscriptionContent}>
+                <Text style={styles.subscriptionStatus}>無料プラン</Text>
+                <Text style={styles.subscriptionDesc}>
+                  プレミアムにアップグレードして、詳細な計画機能や分析機能を利用しましょう
+                </Text>
+                <Pressable
+                  style={[styles.subscriptionButton, styles.subscriptionButtonPrimary]}
+                  onPress={() => router.push('/upgrade')}
+                >
+                  <Text style={[styles.subscriptionButtonText, styles.subscriptionButtonTextPrimary]}>
+                    プレミアムにアップグレード
+                  </Text>
+                </Pressable>
+                <Pressable
+                  style={styles.restorePurchaseButton}
+                  onPress={async () => {
+                    const restored = await restore();
+                    if (restored) {
+                      Alert.alert('復元完了', '購入が復元されました');
+                    } else {
+                      Alert.alert('復元結果', '復元可能な購入が見つかりませんでした');
+                    }
+                  }}
+                >
+                  <Text style={styles.restorePurchaseText}>購入を復元</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
 
           {/* データ管理 */}
@@ -332,7 +369,7 @@ export default function SettingsScreen() {
           {/* バージョン情報 */}
           <View style={styles.version}>
             <Text style={styles.versionText}>MidLab v1.0.0</Text>
-            <Text style={styles.versionText}>Powered by RISE Test Protocol</Text>
+            <Text style={styles.versionText}>Powered by ランプテスト Protocol</Text>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -351,10 +388,39 @@ export default function SettingsScreen() {
             <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
           </Pressable>
           <Text style={styles.editTitle}>プロファイル編集</Text>
-          <Pressable style={styles.saveButton} onPress={handleSaveProfile}>
-            <Text style={styles.saveButtonText}>保存</Text>
+          <Pressable
+            style={[styles.saveButton, hasPbValidationError && styles.saveButtonDisabled]}
+            onPress={handleSaveProfile}
+            disabled={hasPbValidationError}
+          >
+            <Text style={[styles.saveButtonText, hasPbValidationError && styles.saveButtonTextDisabled]}>
+              保存
+            </Text>
           </Pressable>
         </View>
+
+        {/* ニックネーム */}
+        <View style={styles.card}>
+          <Text style={styles.inputLabel}>ニックネーム</Text>
+          <Pressable
+            style={styles.displayNameInput}
+            onPress={() => setShowDisplayNameModal(true)}
+          >
+            <Text style={[styles.displayNameInputText, !tempDisplayName && styles.inputPlaceholder]}>
+              {tempDisplayName || '例: たろう'}
+            </Text>
+          </Pressable>
+        </View>
+
+        <InputModal
+          visible={showDisplayNameModal}
+          onClose={() => setShowDisplayNameModal(false)}
+          onConfirm={(value) => setTempDisplayName(value)}
+          value={tempDisplayName}
+          title="ニックネーム"
+          placeholder="例: たろう"
+          maxLength={20}
+        />
 
         {/* 年齢カテゴリ */}
         <View style={styles.card}>
@@ -449,22 +515,23 @@ export default function SettingsScreen() {
           <Text style={styles.inputLabel}>自己ベスト（PB）</Text>
           {PB_FIELDS.map(({ key, label, placeholder }) => {
             const error = getInputError(key, pbInputs[key]);
+            const currentValue = pbInputs[key] ? parseTime(pbInputs[key]) || 0 : 0;
             return (
               <View key={key} style={styles.pbInputRow}>
                 <Text style={styles.pbInputLabel}>{label}</Text>
                 <View style={styles.pbInputWrapper}>
-                  <TextInput
+                  <Pressable
                     style={[styles.pbInput, error && styles.pbInputError]}
-                    value={pbInputs[key]}
-                    onChangeText={(text) => setPbInputs((prev) => ({ ...prev, [key]: text }))}
-                    placeholder={placeholder}
-                    placeholderTextColor={COLORS.text.muted}
-                    keyboardType="numbers-and-punctuation"
-                  />
+                    onPress={() => setShowPbModal(key)}
+                  >
+                    <Text style={[styles.pbInputText, !pbInputs[key] && styles.inputPlaceholder]}>
+                      {pbInputs[key] || placeholder}
+                    </Text>
+                  </Pressable>
                   {error && <Text style={styles.errorText}>{error}</Text>}
                   {key === 'm1500' && pbInputs.m1500 && !error && estimatedEtpFrom1500 && (
                     <Text style={styles.estimatedEtp}>
-                      → 推定eTP: {estimatedEtpFrom1500}秒/400m
+                      → 推定eTP: {formatKmPace(estimatedEtpFrom1500)} ({estimatedEtpFrom1500}秒/400m)
                     </Text>
                   )}
                 </View>
@@ -472,6 +539,24 @@ export default function SettingsScreen() {
             );
           })}
         </View>
+
+        {/* PBタイムピッカーモーダル */}
+        {PB_FIELDS.map(({ key, label }) => (
+          <TimePickerModal
+            key={`modal-${key}`}
+            visible={showPbModal === key}
+            onClose={() => setShowPbModal(null)}
+            onSelect={(seconds) => {
+              const formatted = formatTime(seconds);
+              setPbInputs((prev) => ({ ...prev, [key]: formatted }));
+              setShowPbModal(null);
+            }}
+            value={pbInputs[key] ? parseTime(pbInputs[key]) || 0 : 0}
+            title={`${label} タイムを選択`}
+            minMinutes={key === 'm800' ? 1 : key === 'm1500' ? 3 : key === 'm3000' ? 7 : 13}
+            maxMinutes={key === 'm800' ? 4 : key === 'm1500' ? 8 : key === 'm3000' ? 15 : 30}
+          />
+        ))}
 
         {/* リミッタータイプ選択 */}
         <View style={styles.card}>
@@ -568,6 +653,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  saveButtonDisabled: {
+    backgroundColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  saveButtonTextDisabled: {
+    opacity: 0.5,
+  },
 
   // カード
   card: {
@@ -604,6 +695,22 @@ const styles = StyleSheet.create({
   },
 
   // プロフィール表示
+  displayNameRow: {
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  displayNameLabel: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginBottom: 4,
+  },
+  displayNameValue: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
   profileGrid: {
     flexDirection: 'row',
     gap: 16,
@@ -636,21 +743,25 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   pbItem: {
-    width: (width - 64) / 3 - 6,
+    width: (width - 64) / 2 - 4,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 8,
-    padding: 10,
+    padding: 12,
     alignItems: 'center',
   },
   pbLabel: {
-    fontSize: 11,
+    fontSize: 12,
+    fontWeight: '600',
     color: COLORS.text.muted,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   pbValue: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: COLORS.text.primary,
+  },
+  pbValueEmpty: {
+    color: COLORS.text.muted,
   },
 
   // リミッター表示
@@ -682,75 +793,6 @@ const styles = StyleSheet.create({
   confirmedText: {
     fontSize: 11,
     color: '#22C55E',
-  },
-
-  // ゾーン表示
-  etpBadge: {
-    fontSize: 13,
-    color: COLORS.primary,
-    marginBottom: 12,
-  },
-  zonesTable: {
-    gap: 4,
-  },
-  zoneRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  zoneInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  zoneIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  zoneName: {
-    fontSize: 14,
-    color: COLORS.text.primary,
-  },
-  zonePaces: {
-    alignItems: 'flex-end',
-  },
-  zonePace400: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-  },
-  zonePaceKm: {
-    fontSize: 11,
-    color: COLORS.text.secondary,
-    marginTop: 2,
-  },
-
-  // レース予測
-  predictionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  predictionItem: {
-    width: (width - 64) / 2 - 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-  },
-  predictionDistance: {
-    fontSize: 12,
-    color: COLORS.text.muted,
-    marginBottom: 4,
-  },
-  predictionTime: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.text.primary,
   },
 
   // データ管理
@@ -818,6 +860,21 @@ const styles = StyleSheet.create({
     color: COLORS.text.muted,
     marginBottom: 12,
   },
+  displayNameInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  displayNameInputText: {
+    fontSize: 16,
+    color: COLORS.text.primary,
+  },
+  inputPlaceholder: {
+    color: COLORS.text.muted,
+  },
 
   // オプション選択（年齢カテゴリ、性別、競技歴）
   optionGrid: {
@@ -876,6 +933,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 14,
+  },
+  pbInputText: {
     fontSize: 16,
     color: COLORS.text.primary,
   },
@@ -942,5 +1001,64 @@ const styles = StyleSheet.create({
     color: COLORS.text.muted,
     marginTop: 12,
     fontStyle: 'italic',
+  },
+
+  // ============================================
+  // サブスクリプション管理
+  // ============================================
+  subscriptionCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  subscriptionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  subscriptionContent: {
+    gap: 8,
+  },
+  subscriptionStatus: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  subscriptionDesc: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  subscriptionButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  subscriptionButtonPrimary: {
+    backgroundColor: COLORS.primary,
+  },
+  subscriptionButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+  },
+  subscriptionButtonTextPrimary: {
+    color: '#fff',
+  },
+  restorePurchaseButton: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: 4,
+  },
+  restorePurchaseText: {
+    fontSize: 13,
+    color: COLORS.text.muted,
+    textDecorationLine: 'underline',
   },
 });

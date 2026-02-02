@@ -31,7 +31,7 @@ export default function OnboardingWelcome() {
                 <View style={styles.logoContainer}>
                     <Text style={styles.logo}>⚡</Text>
                     <Text style={styles.appName}>MidLab</Text>
-                    <Text style={styles.tagline}>RISEテストで最適なトレーニングを</Text>
+                    <Text style={styles.tagline}>ランプテストで最適なトレーニングを</Text>
                 </View>
 
                 {/* 説明 */}
@@ -39,7 +39,7 @@ export default function OnboardingWelcome() {
                     <View style={styles.featureItem}>
                         <Text style={styles.featureIcon}>🏃</Text>
                         <View style={styles.featureText}>
-                            <Text style={styles.featureTitle}>RISEテスト</Text>
+                            <Text style={styles.featureTitle}>ランプテスト</Text>
                             <Text style={styles.featureDesc}>あなたの持久力タイプを判定</Text>
                         </View>
                     </View>
@@ -53,7 +53,7 @@ export default function OnboardingWelcome() {
                     <View style={styles.featureItem}>
                         <Text style={styles.featureIcon}>🎯</Text>
                         <View style={styles.featureText}>
-                            <Text style={styles.featureTitle}>パーソナルメニュー</Text>
+                            <Text style={styles.featureTitle}>パーソナルトレーニング</Text>
                             <Text style={styles.featureDesc}>リミッター別のアドバイス</Text>
                         </View>
                     </View>

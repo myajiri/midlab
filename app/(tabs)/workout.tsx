@@ -1,5 +1,5 @@
 // ============================================
-// Workout Screen - rise-test style
+// Workout Screen - ワークアウト画面
 // ============================================
 
 import React, { useState, useMemo } from 'react';
@@ -17,6 +17,8 @@ import Svg, { Rect } from 'react-native-svg';
 import { useEffectiveValues } from '../../src/stores/useAppStore';
 import { formatTime, formatKmPace, calculateWorkoutPace } from '../../src/utils';
 import { Card, Chip } from '../../src/components/ui';
+import { PremiumGate } from '../../components/PremiumGate';
+import { useIsPremium } from '../../store/useSubscriptionStore';
 import {
   COLORS,
   WORKOUTS,
@@ -85,9 +87,19 @@ interface ExpandedSegment {
 }
 
 export default function WorkoutScreen() {
+  const isPremium = useIsPremium();
   const { etp, limiter } = useEffectiveValues();
   const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutTemplate | null>(null);
+
+  // プレミアム機能チェック
+  if (!isPremium) {
+    return (
+      <PremiumGate featureName="トレーニング">
+        <View />
+      </PremiumGate>
+    );
+  }
 
   // カテゴリ一覧を取得
   const categories = useMemo(() => {
@@ -126,12 +138,12 @@ export default function WorkoutScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
-        <Text style={styles.sectionTitle}>ワークアウト</Text>
+        <Text style={styles.sectionTitle}>トレーニング</Text>
 
         {/* eTP/リミッター設定ボックス */}
         <View style={styles.etpBox}>
           <View style={styles.etpRow}>
-            <Text style={styles.etpLabel}>eTP: {etp}秒 ({formatKmPace(etp)})</Text>
+            <Text style={styles.etpLabel}>eTP: {formatKmPace(etp)} ({etp}秒/400m)</Text>
             <View style={styles.limiterBadge}>
               <Text style={styles.limiterEmoji}>{LIMITER_EMOJI[limiter]}</Text>
               <Text style={styles.limiterText}>{LIMITER_LABEL[limiter]}</Text>
@@ -311,8 +323,8 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
         {/* 説明 */}
         <Text style={styles.detailDescription}>{workout.description}</Text>
 
-        {/* メニュー詳細セクション */}
-        <Text style={styles.sectionLabel}>メニュー詳細</Text>
+        {/* トレーニング詳細セクション */}
+        <Text style={styles.sectionLabel}>トレーニング詳細</Text>
         <View style={styles.segmentsContainer}>
           {expandedSegments.map((seg, i) => {
             const pace =
@@ -338,8 +350,8 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
                 </View>
                 {seg.zone !== 'rest' && pace > 0 && (
                   <View style={styles.segmentItemPace}>
-                    <Text style={styles.segmentItemPaceValue}>{pace}秒/400m</Text>
                     <Text style={styles.segmentItemPaceKm}>{formatKmPace(pace)}</Text>
+                    <Text style={styles.segmentItemPaceValue}>({pace}秒/400m)</Text>
                   </View>
                 )}
               </View>

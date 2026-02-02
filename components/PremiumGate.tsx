@@ -2,11 +2,11 @@
 // プレミアム機能ゲートコンポーネント
 // ============================================
 
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useIsPremium } from '../store/useSubscriptionStore';
+import { COLORS } from '../src/constants';
 
 interface PremiumGateProps {
     featureName: string;
@@ -15,40 +15,28 @@ interface PremiumGateProps {
 
 /**
  * プレミアム機能へのアクセスをゲートするコンポーネント
- * プレミアムユーザーはchildrenを表示、そうでなければアップグレード誘導
+ * プレミアムユーザーはchildrenを表示、そうでなければアップグレード画面へリダイレクト
  */
 export const PremiumGate: React.FC<PremiumGateProps> = ({ featureName, children }) => {
     const router = useRouter();
     const isPremium = useIsPremium();
 
+    useEffect(() => {
+        if (!isPremium) {
+            // アップグレード画面へ遷移（機能名をパラメータとして渡す）
+            router.push({
+                pathname: '/upgrade',
+                params: { feature: featureName },
+            });
+        }
+    }, [isPremium, router, featureName]);
+
     if (isPremium) {
         return <>{children}</>;
     }
 
-    return (
-        <View style={styles.container}>
-            <View style={styles.content}>
-                <Text style={styles.icon}>👑</Text>
-                <Text style={styles.title}>プレミアム機能</Text>
-                <Text style={styles.description}>
-                    「{featureName}」はプレミアム会員限定です
-                </Text>
-                <TouchableOpacity
-                    style={styles.button}
-                    onPress={() => router.push('/upgrade')}
-                >
-                    <LinearGradient
-                        colors={['#F59E0B', '#EAB308']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.buttonGradient}
-                    >
-                        <Text style={styles.buttonText}>プレミアムにアップグレード</Text>
-                    </LinearGradient>
-                </TouchableOpacity>
-            </View>
-        </View>
-    );
+    // リダイレクト中は空のビューを表示
+    return <View style={styles.container} />;
 };
 
 /**
@@ -78,48 +66,7 @@ export const PremiumLabel: React.FC = () => (
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 24,
-    },
-    content: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 20,
-        padding: 32,
-        alignItems: 'center',
-        width: '100%',
-        maxWidth: 320,
-    },
-    icon: {
-        fontSize: 48,
-        marginBottom: 16,
-    },
-    title: {
-        fontSize: 22,
-        fontWeight: '700',
-        color: '#ffffff',
-        marginBottom: 8,
-    },
-    description: {
-        fontSize: 14,
-        color: '#9ca3af',
-        textAlign: 'center',
-        marginBottom: 24,
-        lineHeight: 20,
-    },
-    button: {
-        borderRadius: 12,
-        overflow: 'hidden',
-        width: '100%',
-    },
-    buttonGradient: {
-        paddingVertical: 14,
-        alignItems: 'center',
-    },
-    buttonText: {
-        color: '#000',
-        fontSize: 15,
-        fontWeight: '600',
+        backgroundColor: COLORS.background.dark,
     },
     badge: {
         backgroundColor: 'rgba(245, 158, 11, 0.2)',
