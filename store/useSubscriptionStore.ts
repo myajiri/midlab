@@ -171,8 +171,25 @@ export const useSubscriptionStore = create<SubscriptionState>()(
             name: 'subscription-storage',
             storage: createJSONStorage(() => AsyncStorage),
             partialize: (state) => ({
+                // 本番環境でのみisPremiumを永続化
                 isPremium: state.isPremium,
             }),
+            merge: (persistedState, currentState) => {
+                const persisted = persistedState as Partial<SubscriptionState> | undefined;
+                // 開発環境では永続化されたisPremiumを無視し、DEV_FORCE_PREMIUMを使用
+                if (__DEV__) {
+                    return {
+                        ...currentState,
+                        ...persisted,
+                        isPremium: DEV_FORCE_PREMIUM,
+                    };
+                }
+                // 本番環境では永続化された値を使用
+                return {
+                    ...currentState,
+                    ...persisted,
+                };
+            },
         }
     )
 );
