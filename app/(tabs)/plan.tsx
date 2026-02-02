@@ -22,6 +22,7 @@ import {
 import { formatTime, formatKmPace, parseTime } from '../../src/utils';
 import { Card, Button, SwipeableRow } from '../../src/components/ui';
 import { PremiumGate } from '../../components/PremiumGate';
+import { useIsPremium } from '../../store/useSubscriptionStore';
 import {
   COLORS,
   PHASE_CONFIG,
@@ -118,6 +119,7 @@ function PhaseBarV4({ phases, currentWeek, totalWeeks }: { phases: Phase[]; curr
 }
 
 export default function PlanScreen() {
+  const isPremium = useIsPremium();
   const activePlan = usePlanStore((state) => state.activePlan);
   const setPlan = usePlanStore((state) => state.setPlan);
   const clearPlan = usePlanStore((state) => state.clearPlan);
@@ -125,6 +127,15 @@ export default function PlanScreen() {
   const { etp, limiter } = useEffectiveValues();
 
   const [view, setView] = useState<ViewType>(activePlan ? 'overview' : 'create');
+
+  // プレミアム機能チェック
+  if (!isPremium) {
+    return (
+      <PremiumGate featureName="トレーニング計画">
+        <View />
+      </PremiumGate>
+    );
+  }
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
 
