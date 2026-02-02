@@ -43,14 +43,6 @@ import { PremiumBadge } from '../../components/PremiumGate';
 // 定数
 // ============================================
 
-// 距離ごとの色
-const DISTANCE_COLORS: Record<string, string> = {
-  m800: '#EF4444',   // 赤
-  m1500: '#F97316',  // オレンジ
-  m3000: '#22C55E',  // 緑
-  m5000: '#3B82F6',  // 青
-};
-
 const PB_FIELDS = [
   { key: 'm800', label: '800m', placeholder: '2:05' },
   { key: 'm1500', label: '1500m', placeholder: '4:15' },
@@ -280,16 +272,8 @@ export default function SettingsScreen() {
                 {PB_FIELDS.map(({ key, label }) => {
                   const value = profile.pbs[key as keyof typeof profile.pbs];
                   return (
-                    <View
-                      key={key}
-                      style={[
-                        styles.pbItem,
-                        { borderLeftColor: DISTANCE_COLORS[key] },
-                      ]}
-                    >
-                      <Text style={[styles.pbLabel, { color: DISTANCE_COLORS[key] }]}>
-                        {label}
-                      </Text>
+                    <View key={key} style={styles.pbItem}>
+                      <Text style={styles.pbLabel}>{label}</Text>
                       <Text style={[styles.pbValue, !value && styles.pbValueEmpty]}>
                         {value ? formatTime(value) : '-'}
                       </Text>
@@ -776,11 +760,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
-    borderLeftWidth: 3,
   },
   pbLabel: {
     fontSize: 12,
     fontWeight: '600',
+    color: COLORS.text.muted,
     marginBottom: 4,
   },
   pbValue: {

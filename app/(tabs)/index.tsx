@@ -223,14 +223,8 @@ export default function HomeScreen() {
             {(['m800', 'm1500', 'm3000', 'm5000'] as const).map((key) => {
               const pb = profile?.pbs?.[key];
               return (
-                <View
-                  key={key}
-                  style={[
-                    styles.gridItem,
-                    { borderLeftColor: DISTANCE_COLORS[key] },
-                  ]}
-                >
-                  <Text style={[styles.gridLabel, { color: DISTANCE_COLORS[key] }]}>
+                <View key={key} style={styles.pbGridItem}>
+                  <Text style={styles.pbGridLabel}>
                     {RACE_COEFFICIENTS[key].label}
                   </Text>
                   <Text style={[styles.gridValue, !pb && styles.gridValueEmpty]}>
@@ -610,6 +604,20 @@ const styles = StyleSheet.create({
   },
   gridValueEmpty: {
     color: COLORS.text.muted,
+  },
+  // PB Grid (no color)
+  pbGridItem: {
+    width: (width - 64) / 2 - 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+  },
+  pbGridLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text.muted,
+    marginBottom: 4,
   },
   limiterNote: {
     fontSize: 11,
