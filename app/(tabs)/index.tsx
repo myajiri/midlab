@@ -265,28 +265,31 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>トレーニングゾーン</Text>
           <Text style={styles.etpBadge}>eTP: {formatKmPace(etp)} ({etp}秒/400m)</Text>
           <View style={styles.zonesTable}>
-            {(Object.entries(zones) as [ZoneName, number][]).map(([zone, pace]) => (
-              <View key={zone} style={styles.zoneRow}>
-                <View style={styles.zoneInfo}>
-                  <View
-                    style={[
-                      styles.zoneIndicator,
-                      { backgroundColor: ZONE_COEFFICIENTS_V3[zone].color },
-                    ]}
-                  />
-                  <Text style={styles.zoneName}>
-                    {ZONE_COEFFICIENTS_V3[zone].label}
-                    {zone === 'jog' && (
-                      <Text style={styles.zoneNote}> (目安)</Text>
-                    )}
-                  </Text>
+            {(['jog', 'easy', 'marathon', 'threshold', 'interval', 'repetition'] as ZoneName[]).map((zone) => {
+              const pace = zones[zone];
+              return (
+                <View key={zone} style={styles.zoneRow}>
+                  <View style={styles.zoneInfo}>
+                    <View
+                      style={[
+                        styles.zoneIndicator,
+                        { backgroundColor: ZONE_COEFFICIENTS_V3[zone].color },
+                      ]}
+                    />
+                    <Text style={styles.zoneName}>
+                      {ZONE_COEFFICIENTS_V3[zone].label}
+                      {zone === 'jog' && (
+                        <Text style={styles.zoneNote}> (目安)</Text>
+                      )}
+                    </Text>
+                  </View>
+                  <View style={styles.zonePaces}>
+                    <Text style={styles.zonePaceKm}>{formatKmPace(pace)}</Text>
+                    <Text style={styles.zonePace400}>({pace}秒/400m)</Text>
+                  </View>
                 </View>
-                <View style={styles.zonePaces}>
-                  <Text style={styles.zonePaceKm}>{formatKmPace(pace)}</Text>
-                  <Text style={styles.zonePace400}>({pace}秒/400m)</Text>
-                </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </View>
       </ScrollView>
