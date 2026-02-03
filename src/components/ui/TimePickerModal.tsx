@@ -1,6 +1,7 @@
 // ============================================
 // TimePickerModal Component
 // タイム選択モーダル（分:秒形式）
+// 循環型ピッカー（0↔59でループ）
 // ============================================
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -28,6 +29,7 @@ interface TimePickerModalProps {
 
 const ITEM_HEIGHT = 50;
 const VISIBLE_ITEMS = 5;
+const REPEAT_COUNT = 3; // 循環用に3回繰り返す
 
 export const TimePickerModal: React.FC<TimePickerModalProps> = ({
   visible,
@@ -44,14 +46,24 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
   const minutesListRef = useRef<FlatList>(null);
   const secondsListRef = useRef<FlatList>(null);
 
-  // 分の配列を生成
-  const minutesData = Array.from(
+  // 分の基本配列を生成
+  const minutesBase = Array.from(
     { length: maxMinutes - minMinutes + 1 },
     (_, i) => minMinutes + i
   );
 
-  // 秒の配列を生成（0-59）
-  const secondsData = Array.from({ length: 60 }, (_, i) => i);
+  // 秒の基本配列を生成（0-59）
+  const secondsBase = Array.from({ length: 60 }, (_, i) => i);
+
+  // 循環用に配列を繰り返す
+  const minutesData = minutesBase.length > 1
+    ? [...minutesBase, ...minutesBase, ...minutesBase]
+    : minutesBase;
+  const secondsData = [...secondsBase, ...secondsBase, ...secondsBase];
+
+  // 中央のセットの開始インデックス
+  const minutesCenterOffset = minutesBase.length;
+  const secondsCenterOffset = 60; // secondsBase.length
 
   // モーダルが開いたときに値をリセットしてスクロール
   useEffect(() => {
@@ -63,38 +75,70 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
       setSelectedMinutes(clampedMins);
       setSelectedSeconds(secs);
 
-      // スクロール位置を設定
+      // 中央のセットにスクロール
       setTimeout(() => {
-        const minuteIndex = clampedMins - minMinutes;
-        const secondIndex = secs;
+        const minuteIndex = minutesCenterOffset + (clampedMins - minMinutes);
+        const secondIndex = secondsCenterOffset + secs;
 
-        minutesListRef.current?.scrollToIndex({
-          index: minuteIndex,
+        minutesListRef.current?.scrollToOffset({
+          offset: minuteIndex * ITEM_HEIGHT,
           animated: false,
-          viewPosition: 0.5,
         });
-        secondsListRef.current?.scrollToIndex({
-          index: secondIndex,
+        secondsListRef.current?.scrollToOffset({
+          offset: secondIndex * ITEM_HEIGHT,
           animated: false,
-          viewPosition: 0.5,
         });
       }, 100);
     }
   }, [visible, value, minMinutes, maxMinutes]);
 
+  // 分のスクロール終了時
   const handleMinutesMomentumEnd = useCallback((event: any) => {
     const y = event.nativeEvent.contentOffset.y;
     const index = Math.round(y / ITEM_HEIGHT);
-    const clampedIndex = Math.max(0, Math.min(minutesData.length - 1, index));
-    setSelectedMinutes(minutesData[clampedIndex]);
-  }, [minutesData]);
 
+    if (minutesBase.length <= 1) {
+      setSelectedMinutes(minutesBase[0]);
+      return;
+    }
+
+    // 実際の値を計算
+    const actualIndex = index % minutesBase.length;
+    const actualValue = minutesBase[actualIndex];
+    setSelectedMinutes(actualValue);
+
+    // 端に近い場合は中央にジャンプ
+    if (index < minutesBase.length || index >= minutesBase.length * 2) {
+      const centerIndex = minutesCenterOffset + actualIndex;
+      setTimeout(() => {
+        minutesListRef.current?.scrollToOffset({
+          offset: centerIndex * ITEM_HEIGHT,
+          animated: false,
+        });
+      }, 50);
+    }
+  }, [minutesBase, minutesCenterOffset]);
+
+  // 秒のスクロール終了時
   const handleSecondsMomentumEnd = useCallback((event: any) => {
     const y = event.nativeEvent.contentOffset.y;
     const index = Math.round(y / ITEM_HEIGHT);
-    const clampedIndex = Math.max(0, Math.min(59, index));
-    setSelectedSeconds(clampedIndex);
-  }, []);
+
+    // 実際の値を計算（0-59にマップ）
+    const actualIndex = ((index % 60) + 60) % 60;
+    setSelectedSeconds(actualIndex);
+
+    // 端に近い場合は中央にジャンプ
+    if (index < 60 || index >= 120) {
+      const centerIndex = secondsCenterOffset + actualIndex;
+      setTimeout(() => {
+        secondsListRef.current?.scrollToOffset({
+          offset: centerIndex * ITEM_HEIGHT,
+          animated: false,
+        });
+      }, 50);
+    }
+  }, [secondsCenterOffset]);
 
   const handleConfirm = () => {
     const totalSeconds = selectedMinutes * 60 + selectedSeconds;
@@ -106,44 +150,45 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const renderMinuteItem: ListRenderItem<number> = useCallback(({ item }) => {
-    const isSelected = item === selectedMinutes;
+  const renderMinuteItem: ListRenderItem<number> = useCallback(({ item, index }) => {
+    const actualValue = minutesBase.length > 1
+      ? minutesBase[index % minutesBase.length]
+      : item;
+    const isSelected = actualValue === selectedMinutes;
     return (
       <Pressable
         style={styles.pickerItem}
         onPress={() => {
-          setSelectedMinutes(item);
-          const index = item - minMinutes;
-          minutesListRef.current?.scrollToIndex({
-            index,
+          setSelectedMinutes(actualValue);
+          minutesListRef.current?.scrollToOffset({
+            offset: index * ITEM_HEIGHT,
             animated: true,
-            viewPosition: 0.5,
           });
         }}
       >
         <Text style={[styles.pickerItemText, isSelected && styles.pickerItemTextSelected]}>
-          {item}
+          {actualValue}
         </Text>
       </Pressable>
     );
-  }, [selectedMinutes, minMinutes]);
+  }, [selectedMinutes, minutesBase]);
 
-  const renderSecondItem: ListRenderItem<number> = useCallback(({ item }) => {
-    const isSelected = item === selectedSeconds;
+  const renderSecondItem: ListRenderItem<number> = useCallback(({ item, index }) => {
+    const actualValue = index % 60;
+    const isSelected = actualValue === selectedSeconds;
     return (
       <Pressable
         style={styles.pickerItem}
         onPress={() => {
-          setSelectedSeconds(item);
-          secondsListRef.current?.scrollToIndex({
-            index: item,
+          setSelectedSeconds(actualValue);
+          secondsListRef.current?.scrollToOffset({
+            offset: index * ITEM_HEIGHT,
             animated: true,
-            viewPosition: 0.5,
           });
         }}
       >
         <Text style={[styles.pickerItemText, isSelected && styles.pickerItemTextSelected]}>
-          {item.toString().padStart(2, '0')}
+          {actualValue.toString().padStart(2, '0')}
         </Text>
       </Pressable>
     );
@@ -193,7 +238,7 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
                   ref={minutesListRef}
                   data={minutesData}
                   renderItem={renderMinuteItem}
-                  keyExtractor={(item) => `min-${item}`}
+                  keyExtractor={(_, index) => `min-${index}`}
                   showsVerticalScrollIndicator={false}
                   snapToInterval={ITEM_HEIGHT}
                   decelerationRate="fast"
@@ -201,7 +246,7 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
                   getItemLayout={getItemLayout}
                   ListHeaderComponent={ListHeader}
                   ListFooterComponent={ListFooter}
-                  initialNumToRender={20}
+                  initialNumToRender={30}
                   windowSize={11}
                 />
               </View>
@@ -219,7 +264,7 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
                   ref={secondsListRef}
                   data={secondsData}
                   renderItem={renderSecondItem}
-                  keyExtractor={(item) => `sec-${item}`}
+                  keyExtractor={(_, index) => `sec-${index}`}
                   showsVerticalScrollIndicator={false}
                   snapToInterval={ITEM_HEIGHT}
                   decelerationRate="fast"
@@ -227,8 +272,8 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
                   getItemLayout={getItemLayout}
                   ListHeaderComponent={ListHeader}
                   ListFooterComponent={ListFooter}
-                  initialNumToRender={60}
-                  windowSize={11}
+                  initialNumToRender={90}
+                  windowSize={15}
                 />
               </View>
             </View>

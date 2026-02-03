@@ -3,21 +3,21 @@
 // ============================================
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useProfileStore } from '../../src/stores/useAppStore';
-import { formatKmPace } from '../../src/utils';
+import { formatTime, formatKmPace } from '../../src/utils';
 import { PBs } from '../../src/types';
-import { ProgressBar } from '../../src/components/ui';
+import { ProgressBar, TimePickerModal } from '../../src/components/ui';
 
 const PB_FIELDS = [
-    { key: 'm800', label: '800m', placeholder: '例: 2:30', distance: 800 },
-    { key: 'm1500', label: '1500m', placeholder: '例: 5:00', distance: 1500 },
-    { key: 'm3000', label: '3000m', placeholder: '例: 11:00', distance: 3000 },
-    { key: 'm5000', label: '5000m', placeholder: '例: 20:00', distance: 5000 },
+    { key: 'm800', label: '800m', minMinutes: 1, maxMinutes: 5, distance: 800 },
+    { key: 'm1500', label: '1500m', minMinutes: 3, maxMinutes: 10, distance: 1500 },
+    { key: 'm3000', label: '3000m', minMinutes: 7, maxMinutes: 20, distance: 3000 },
+    { key: 'm5000', label: '5000m', minMinutes: 12, maxMinutes: 35, distance: 5000 },
 ] as const;
 
 // PBsオブジェクトからeTPを推定（複数PBから最も信頼性の高いものを使用）
@@ -47,28 +47,22 @@ export default function OnboardingPB() {
     const updatePBs = useProfileStore((state) => state.updatePBs);
     const profile = useProfileStore((state) => state.profile);
 
-    const [pbs, setPbs] = useState<Record<string, string>>({});
-    const [parsedPbs, setParsedPbs] = useState<Record<string, number>>({});
+    const [pbs, setPbs] = useState<Record<string, number>>({});
+    const [activeField, setActiveField] = useState<string | null>(null);
 
-    const parseTime = (text: string): number | null => {
-        const match = text.match(/^(\d{1,2}):(\d{2})$/);
-        if (!match) return null;
-        return parseInt(match[1]) * 60 + parseInt(match[2]);
-    };
+    // 現在編集中のフィールド情報を取得
+    const activeFieldInfo = PB_FIELDS.find(f => f.key === activeField);
 
-    const handleTimeInput = (key: string, text: string) => {
-        setPbs(prev => ({ ...prev, [key]: text }));
-        const seconds = parseTime(text);
-        if (seconds) {
-            setParsedPbs(prev => ({ ...prev, [key]: seconds }));
-        }
+    const handleTimeSelect = (key: string, seconds: number) => {
+        setPbs(prev => ({ ...prev, [key]: seconds }));
+        setActiveField(null);
     };
 
     // 推定eTPを計算
-    const estimatedEtp = Object.keys(parsedPbs).length > 0 ? estimateEtpFromPbs(parsedPbs) : null;
+    const estimatedEtp = Object.keys(pbs).length > 0 ? estimateEtpFromPbs(pbs) : null;
 
     const handleNext = () => {
-        updatePBs(parsedPbs as PBs);
+        updatePBs(pbs as PBs);
         router.push('/onboarding/result');
     };
 
@@ -106,17 +100,21 @@ export default function OnboardingPB() {
                 {/* PB入力フィールド */}
                 <View style={styles.pbList}>
                     {PB_FIELDS.map((field) => (
-                        <View key={field.key} style={styles.pbField}>
+                        <Pressable
+                            key={field.key}
+                            style={styles.pbField}
+                            onPress={() => setActiveField(field.key)}
+                        >
                             <Text style={styles.pbLabel}>{field.label}</Text>
-                            <TextInput
-                                style={styles.pbInput}
-                                placeholder={field.placeholder}
-                                placeholderTextColor="#4b5563"
-                                value={pbs[field.key] || ''}
-                                onChangeText={(text) => handleTimeInput(field.key, text)}
-                                keyboardType="numbers-and-punctuation"
-                            />
-                        </View>
+                            <View style={styles.pbValueRow}>
+                                {pbs[field.key] ? (
+                                    <Text style={styles.pbValue}>{formatTime(pbs[field.key])}</Text>
+                                ) : (
+                                    <Text style={styles.pbPlaceholder}>タップして入力</Text>
+                                )}
+                                <Ionicons name="chevron-forward" size={20} color="#6b7280" />
+                            </View>
+                        </Pressable>
                     ))}
                 </View>
 
@@ -151,6 +149,19 @@ export default function OnboardingPB() {
                     <Text style={styles.skipButtonText}>PBがわからない / あとで入力</Text>
                 </TouchableOpacity>
             </View>
+
+            {/* タイムピッカーモーダル */}
+            {activeFieldInfo && (
+                <TimePickerModal
+                    visible={!!activeField}
+                    onClose={() => setActiveField(null)}
+                    onSelect={(seconds) => handleTimeSelect(activeField!, seconds)}
+                    value={pbs[activeField!] || 0}
+                    title={`${activeFieldInfo.label}のベストタイム`}
+                    minMinutes={activeFieldInfo.minMinutes}
+                    maxMinutes={activeFieldInfo.maxMinutes}
+                />
+            )}
         </SafeAreaView>
     );
 }
@@ -206,22 +217,35 @@ const styles = StyleSheet.create({
         marginBottom: 32,
     },
     pbList: {
-        gap: 16,
+        gap: 12,
     },
     pbField: {
         backgroundColor: 'rgba(255, 255, 255, 0.05)',
         borderRadius: 12,
         padding: 16,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     pbLabel: {
-        fontSize: 13,
-        color: '#9ca3af',
-        marginBottom: 8,
-    },
-    pbInput: {
-        fontSize: 18,
+        fontSize: 16,
         color: '#ffffff',
         fontWeight: '600',
+    },
+    pbValueRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    pbValue: {
+        fontSize: 18,
+        color: '#3B82F6',
+        fontWeight: '700',
+        fontVariant: ['tabular-nums'],
+    },
+    pbPlaceholder: {
+        fontSize: 14,
+        color: '#6b7280',
     },
     previewCard: {
         marginTop: 32,
