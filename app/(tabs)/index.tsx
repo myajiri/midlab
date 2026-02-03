@@ -39,6 +39,7 @@ import {
   SectionHeader,
   StatCard,
   WeekProgress,
+  EtpTrendChart,
   // アニメーション
   SlideIn,
   FadeIn,
@@ -194,6 +195,9 @@ export default function HomeScreen() {
                 最終測定: {new Date(latestResult.date).toLocaleDateString('ja-JP')}
               </Text>
             )}
+
+            {/* ETP推移グラフ（テスト2件以上で表示） */}
+            <EtpTrendChart results={results} />
           </View>
         </View>
         </SlideIn>
