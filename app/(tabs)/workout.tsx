@@ -28,6 +28,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { WorkoutTemplate, WorkoutSegment, ZoneName, LimiterType } from '../../src/types';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
+import { useIsFocused } from '@react-navigation/native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -61,13 +62,14 @@ export default function WorkoutScreen() {
   const [selectedCategory, setSelectedCategory] = useState<string>(params.category || 'all');
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutTemplate | null>(null);
   const setSubScreenOpen = useSetSubScreenOpen();
+  const isFocused = useIsFocused();
 
-  // サブビュー（詳細画面）表示中はタブスワイプを無効化
+  // フォーカス中のタブのみフラグを制御（タブ間の競合を防止）
   useEffect(() => {
-    const isSubView = selectedWorkout !== null;
-    setSubScreenOpen(isSubView);
-    return () => setSubScreenOpen(false);
-  }, [selectedWorkout, setSubScreenOpen]);
+    if (isFocused) {
+      setSubScreenOpen(selectedWorkout !== null);
+    }
+  }, [selectedWorkout, isFocused, setSubScreenOpen]);
 
   // 他画面からのカテゴリパラメータ変更に対応
   useEffect(() => {

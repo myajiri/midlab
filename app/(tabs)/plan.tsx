@@ -45,6 +45,7 @@ import {
 } from '../../src/types';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
+import { useIsFocused } from '@react-navigation/native';
 
 // シンプルなビュータイプ（3つに削減）
 type ViewType = 'overview' | 'create' | 'weekly';
@@ -60,13 +61,14 @@ export default function PlanScreen() {
 
   const [view, setView] = useState<ViewType>(activePlan ? 'overview' : 'create');
   const setSubScreenOpen = useSetSubScreenOpen();
+  const isFocused = useIsFocused();
 
-  // サブビュー（weekly）表示中はタブスワイプを無効化
+  // フォーカス中のタブのみフラグを制御（タブ間の競合を防止）
   useEffect(() => {
-    const isSubView = view === 'weekly';
-    setSubScreenOpen(isSubView);
-    return () => setSubScreenOpen(false);
-  }, [view, setSubScreenOpen]);
+    if (isFocused) {
+      setSubScreenOpen(view === 'weekly');
+    }
+  }, [view, isFocused, setSubScreenOpen]);
 
   const [selectedWeek, setSelectedWeek] = useState(1);
 
