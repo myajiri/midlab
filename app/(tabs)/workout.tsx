@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, { Rect } from 'react-native-svg';
 import { useEffectiveValues } from '../../src/stores/useAppStore';
 import { formatTime, formatKmPace, calculateWorkoutPace } from '../../src/utils';
 import { Card, Chip } from '../../src/components/ui';
@@ -43,16 +42,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   mixed: '総合',
   '総合': '総合',
   VO2max: 'VO2max',
-};
-
-// ゾーン別の高さ（強度表現）
-const ZONE_HEIGHTS: Record<ZoneName, number> = {
-  jog: 20,
-  easy: 35,
-  marathon: 50,
-  threshold: 70,
-  interval: 85,
-  repetition: 100,
 };
 
 // FTP%（強度グラフ用）
@@ -289,10 +278,7 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
           <Text style={styles.detailTitle}>{workout.name}</Text>
         </View>
 
-        {/* WorkoutProfile（SVGグラフ） */}
-        <WorkoutProfile segments={expandedSegments} />
-
-        {/* WorkoutIntensityGraph（FTP%棒グラフ） */}
+        {/* 強度プロファイル（FTP%棒グラフ） */}
         <WorkoutIntensityGraph segments={expandedSegments} etp={etp} limiter={limiter} />
 
         {/* ゾーン凡例 */}
@@ -368,55 +354,6 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
         )}
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-// ============================================
-// Workout Profile (SVG Graph)
-// ============================================
-
-interface WorkoutProfileProps {
-  segments: ExpandedSegment[];
-}
-
-function WorkoutProfile({ segments }: WorkoutProfileProps) {
-  const totalDistance = segments.reduce((sum, s) => sum + s.distance, 0);
-  const graphWidth = SCREEN_WIDTH - 32;
-  const graphHeight = 60;
-  const maxHeight = 100;
-
-  let xOffset = 0;
-
-  return (
-    <View style={styles.profileContainer}>
-      <Svg width={graphWidth} height={graphHeight} preserveAspectRatio="none">
-        {segments.map((seg, i) => {
-          const width = (seg.distance / totalDistance) * graphWidth;
-          const height =
-            seg.zone !== 'rest'
-              ? (ZONE_HEIGHTS[seg.zone] / maxHeight) * graphHeight
-              : 15;
-          const color =
-            seg.zone !== 'rest'
-              ? ZONE_COEFFICIENTS_V3[seg.zone].color
-              : '#4B5563';
-          const x = xOffset;
-          xOffset += width;
-
-          return (
-            <Rect
-              key={i}
-              x={x}
-              y={graphHeight - height}
-              width={Math.max(width - 1, 1)}
-              height={height}
-              fill={color}
-              rx={2}
-            />
-          );
-        })}
-      </Svg>
-    </View>
   );
 }
 
@@ -754,14 +691,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '600',
     color: COLORS.text.primary,
-  },
-
-  // Profile Container
-  profileContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
   },
 
   // Intensity Graph
