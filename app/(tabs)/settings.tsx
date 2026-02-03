@@ -2,7 +2,7 @@
 // Settings Screen - 設定画面（簡素化版）
 // ============================================
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -52,6 +52,34 @@ const LIMITER_OPTIONS: { key: LimiterType; icon: string; label: string }[] = [
   { key: 'muscular', icon: 'barbell', label: '筋型' },
 ];
 
+// 用語ヘルプ定義
+const HELP_ITEMS: { term: string; description: string }[] = [
+  {
+    term: 'ETP（Estimated Training Performance）',
+    description: '400mあたりの推定持久力ペース（秒）。ETPテストまたは自己ベストから算出されます。値が小さいほど走力が高いことを意味します。',
+  },
+  {
+    term: 'リミッタータイプ',
+    description: '持久力の制限要因を3タイプに分類したもの。心肺型（呼吸が先に限界）、筋持久力型（脚が先に限界）、バランス型（均等）の3種類があり、タイプに応じてトレーニングの重点が変わります。',
+  },
+  {
+    term: 'トレーニングゾーン',
+    description: 'ETPから算出された6段階の強度帯。ジョグ・イージー・マラソン・閾値・インターバル・レペティションの各ゾーンペースでトレーニングを行います。',
+  },
+  {
+    term: '推定VO2max',
+    description: '最大酸素摂取量の推定値（ml/kg/min）。ETPから簡易推定した有酸素能力の指標です。あくまで参考値です。',
+  },
+  {
+    term: 'ETPテスト',
+    description: 'レベルに応じた一定ペースで400mを繰り返し、持久力タイプとETPを測定するフィールドテスト。結果からリミッタータイプとトレーニングゾーンが自動算出されます。',
+  },
+  {
+    term: 'フェーズ（基礎期・強化期・試合期・テーパー）',
+    description: 'トレーニング計画を期分けした各段階。基礎期で土台を作り、強化期で負荷を上げ、試合期でレース特化し、テーパーで疲労を抜いてレースに臨みます。',
+  },
+];
+
 // ============================================
 // メインコンポーネント
 // ============================================
@@ -78,6 +106,7 @@ export default function SettingsScreen() {
 
   // 編集状態
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [expandedHelp, setExpandedHelp] = useState<number | null>(null);
   const pb1500 = profile.pbs.m1500 || null;
 
   // 推定eTP
@@ -272,8 +301,40 @@ export default function SettingsScreen() {
           </Pressable>
         </SlideIn>
 
-        {/* データ管理 */}
+        {/* 用語ヘルプ */}
         <SlideIn delay={300} direction="up">
+          <View style={styles.card}>
+            <View style={styles.helpHeader}>
+              <Ionicons name="help-circle-outline" size={18} color={COLORS.text.muted} />
+              <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>用語ヘルプ</Text>
+            </View>
+            {HELP_ITEMS.map((item, index) => {
+              const isExpanded = expandedHelp === index;
+              return (
+                <Pressable
+                  key={index}
+                  style={[styles.helpItem, index < HELP_ITEMS.length - 1 && styles.helpItemBorder]}
+                  onPress={() => setExpandedHelp(isExpanded ? null : index)}
+                >
+                  <View style={styles.helpTermRow}>
+                    <Text style={styles.helpTerm}>{item.term}</Text>
+                    <Ionicons
+                      name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                      size={16}
+                      color={COLORS.text.muted}
+                    />
+                  </View>
+                  {isExpanded && (
+                    <Text style={styles.helpDesc}>{item.description}</Text>
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+        </SlideIn>
+
+        {/* データ管理 */}
+        <SlideIn delay={400} direction="up">
           <View style={styles.dangerCard}>
             <View style={styles.dangerHeader}>
               <Ionicons name="trash-outline" size={18} color="#EF4444" />
@@ -287,7 +348,7 @@ export default function SettingsScreen() {
         </SlideIn>
 
         {/* バージョン */}
-        <SlideIn delay={400} direction="up">
+        <SlideIn delay={500} direction="up">
           <View style={styles.version}>
             <Text style={styles.versionText}>MidLab v1.0.0</Text>
           </View>
@@ -521,6 +582,39 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#EF4444',
     fontWeight: '500',
+  },
+
+  // 用語ヘルプ
+  helpHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  helpItem: {
+    paddingVertical: 12,
+  },
+  helpItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  helpTermRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  helpTerm: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+    flex: 1,
+    marginRight: 8,
+  },
+  helpDesc: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    lineHeight: 20,
+    marginTop: 8,
   },
 
   // バージョン
