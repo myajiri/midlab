@@ -8,7 +8,8 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
+  withTiming,
+  Easing,
   runOnJS,
 } from 'react-native-reanimated';
 import { COLORS } from '../../src/constants';
@@ -78,11 +79,10 @@ export default function TabLayout() {
         runOnJS(handleSwipeEnd)(event.translationX);
       }
 
-      // velocityを活かしたスプリングアニメーション
-      translateX.value = withSpring(0, {
-        velocity: velocity,
-        damping: 15,
-        stiffness: 150,
+      // バウンスなしで滑らかに戻す
+      translateX.value = withTiming(0, {
+        duration: 200,
+        easing: Easing.out(Easing.cubic),
       });
     });
 
