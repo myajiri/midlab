@@ -59,7 +59,9 @@ export default function RootLayout() {
             screenOptions={{
               headerShown: false,
               contentStyle: { backgroundColor: COLORS.background.dark },
-              animation: 'fade',
+              animation: 'slide_from_right',
+              gestureEnabled: true,
+              gestureDirection: 'horizontal',
             }}
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -68,6 +70,14 @@ export default function RootLayout() {
               options={{
                 headerShown: false,
                 gestureEnabled: false,
+              }}
+            />
+            <Stack.Screen
+              name="upgrade"
+              options={{
+                headerShown: false,
+                gestureEnabled: true,
+                presentation: 'card',
               }}
             />
           </Stack>
