@@ -414,7 +414,7 @@ export const COLORS = {
     dark: '#0a0a0f',
     light: '#12121a',
   },
-  primary: '#3b82f6',
+  primary: '#34D399',
   secondary: '#8b5cf6',
   success: '#22c55e',
   warning: '#EAB308',
