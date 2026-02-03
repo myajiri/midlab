@@ -30,7 +30,7 @@ import { isPurchasesEnabled } from '../lib/purchases';
 // 定数
 const COLORS = {
     background: { dark: '#0a0a0f', light: '#12121a' },
-    primary: '#3b82f6',
+    primary: '#10B981',
     secondary: '#8b5cf6',
     premium: '#F59E0B',
     success: '#22c55e',
