@@ -195,16 +195,12 @@ export default function HomeScreen() {
                 最終測定: {new Date(latestResult.date).toLocaleDateString('ja-JP')}
               </Text>
             )}
+
+            {/* ETP推移グラフ（テスト2件以上で表示） */}
+            <EtpTrendChart results={results} />
           </View>
         </View>
         </SlideIn>
-
-        {/* ETP推移グラフ */}
-        {results.length > 0 && (
-          <SlideIn direction="up" delay={200}>
-            <EtpTrendChart results={results} />
-          </SlideIn>
-        )}
 
         {/* 次のステップを促すカード */}
         {(source !== 'measured' || !activePlan) && (
