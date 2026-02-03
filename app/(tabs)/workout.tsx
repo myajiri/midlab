@@ -137,6 +137,7 @@ export default function WorkoutScreen() {
             {filteredWorkouts.map((workout) => {
               const variant = workout.limiterVariants?.[limiter];
               const totalDistance = calculateTotalDistance(workout.segments, variant);
+              const expanded = expandSegments(workout.segments, variant);
 
               return (
                 <Pressable
@@ -150,6 +151,7 @@ export default function WorkoutScreen() {
                       {CATEGORY_LABELS[workout.category] || workout.category}
                     </Text>
                   </View>
+                  <IntensityGraph segments={expanded} height={36} />
                   <Text style={styles.workoutCardDistance}>
                     {Math.round(totalDistance / 100) / 10}km
                   </Text>
@@ -274,10 +276,12 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
 
 interface IntensityGraphProps {
   segments: ExpandedSegment[];
+  height?: number;
 }
 
-function IntensityGraph({ segments }: IntensityGraphProps) {
+function IntensityGraph({ segments, height = 100 }: IntensityGraphProps) {
   const totalDistance = segments.reduce((sum, s) => sum + s.distance, 0);
+  const scale = height / 100;
 
   const getBarHeight = (zone: ZoneName | 'rest'): number => {
     const heights: Record<string, number> = {
@@ -289,7 +293,7 @@ function IntensityGraph({ segments }: IntensityGraphProps) {
       jog: 25,
       rest: 15,
     };
-    return heights[zone] || 30;
+    return (heights[zone] || 30) * scale;
   };
 
   const getBarColor = (zone: ZoneName | 'rest'): string => {
@@ -298,8 +302,8 @@ function IntensityGraph({ segments }: IntensityGraphProps) {
   };
 
   return (
-    <View style={styles.intensityContainer}>
-      <View style={styles.intensityGraph}>
+    <View style={[styles.intensityContainer, height !== 100 && { marginBottom: 0 }]}>
+      <View style={[styles.intensityGraph, { height }]}>
         {segments.map((seg, i) => {
           const widthPercent = (seg.distance / totalDistance) * 100;
           return (
@@ -492,7 +496,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   workoutCardName: {
     fontSize: 16,
@@ -508,6 +512,7 @@ const styles = StyleSheet.create({
   workoutCardDistance: {
     fontSize: 13,
     color: COLORS.text.muted,
+    marginTop: 6,
   },
 
   // 詳細画面
