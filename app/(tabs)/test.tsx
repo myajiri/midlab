@@ -50,6 +50,7 @@ import {
 } from '../../src/types';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
+import { useIsFocused } from '@react-navigation/native';
 
 export default function TestScreen() {
   const profile = useProfileStore((state) => state.profile);
@@ -78,13 +79,14 @@ export default function TestScreen() {
   // 状態管理
   const [view, setView] = useState<'main' | 'input' | 'result'>('main');
   const setSubScreenOpen = useSetSubScreenOpen();
+  const isFocused = useIsFocused();
 
-  // サブビュー表示中はタブスワイプを無効化
+  // フォーカス中のタブのみフラグを制御（タブ間の競合を防止）
   useEffect(() => {
-    const isSubView = view !== 'main';
-    setSubScreenOpen(isSubView);
-    return () => setSubScreenOpen(false);
-  }, [view, setSubScreenOpen]);
+    if (isFocused) {
+      setSubScreenOpen(view !== 'main');
+    }
+  }, [view, isFocused, setSubScreenOpen]);
 
   const [level, setLevel] = useState<LevelName>(() => getRecommendedLevel());
   const [completedLaps, setCompletedLaps] = useState(5);
