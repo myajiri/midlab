@@ -22,6 +22,7 @@ import {
   COLORS,
   WORKOUTS,
   ZONE_COEFFICIENTS_V3,
+  WORKOUT_LIMITER_CONFIG,
 } from '../../src/constants';
 import { useLocalSearchParams } from 'expo-router';
 import { WorkoutTemplate, WorkoutSegment, ZoneName, LimiterType } from '../../src/types';
@@ -103,15 +104,30 @@ export default function WorkoutScreen() {
         <FadeIn>
           <Text style={styles.sectionTitle}>トレーニング</Text>
 
-          {/* eTP表示（コンパクト） */}
+          {/* eTP表示（2行テーブル） */}
           <View style={styles.etpBox}>
-            <View style={styles.etpRow}>
-              <Text style={styles.etpText}>eTP {formatKmPace(etp)}</Text>
-              <View style={styles.limiterBadge}>
-                <Ionicons name={LIMITER_CONFIG[limiter].icon as any} size={14} color={COLORS.primary} />
-                <Text style={styles.etpText}>{LIMITER_CONFIG[limiter].label}</Text>
+            <View style={styles.etpTableRow}>
+              <Text style={styles.etpLabel}>eTP</Text>
+              <Text style={styles.etpValue}>{Math.round(etp)}秒 ({formatKmPace(etp)})</Text>
+            </View>
+            <View style={styles.etpDivider} />
+            <View style={styles.etpTableRow}>
+              <Text style={styles.etpLabel}>リミッター</Text>
+              <View style={styles.etpLimiterValue}>
+                <Ionicons name={WORKOUT_LIMITER_CONFIG[limiter].icon as any} size={16} color={WORKOUT_LIMITER_CONFIG[limiter].color} />
+                <Text style={styles.etpValue}>{WORKOUT_LIMITER_CONFIG[limiter].name}</Text>
               </View>
             </View>
+          </View>
+
+          {/* ゾーン凡例 */}
+          <View style={styles.zoneLegend}>
+            {Object.entries(ZONE_COEFFICIENTS_V3).map(([key, zone]) => (
+              <View key={key} style={styles.zoneLegendItem}>
+                <View style={[styles.zoneLegendDot, { backgroundColor: zone.color }]} />
+                <Text style={styles.zoneLegendText}>{zone.label}</Text>
+              </View>
+            ))}
           </View>
         </FadeIn>
 
@@ -154,16 +170,26 @@ export default function WorkoutScreen() {
                   style={styles.workoutCard}
                   onPress={() => setSelectedWorkout(workout)}
                 >
-                  <View style={styles.workoutCardHeader}>
-                    <Text style={styles.workoutCardName}>{workout.name}</Text>
-                    <Text style={styles.workoutCardCategory}>
-                      {CATEGORY_LABELS[workout.category] || workout.category}
+                  <IntensityGraph segments={expanded} height={80} />
+                  <View style={styles.workoutCardBody}>
+                    <View style={styles.workoutCardNameRow}>
+                      <Text style={styles.workoutCardName}>{workout.name}</Text>
+                      <View style={styles.workoutCardCategoryBadge}>
+                        <Text style={styles.workoutCardCategoryText}>
+                          {CATEGORY_LABELS[workout.category] || workout.category}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.workoutCardDistance}>
+                      {totalDistance.toLocaleString()}m ({(totalDistance / 400).toFixed(0)}周)
                     </Text>
+                    {variant?.note && (
+                      <View style={styles.workoutCardNote}>
+                        <Ionicons name={WORKOUT_LIMITER_CONFIG[limiter].icon as any} size={14} color={WORKOUT_LIMITER_CONFIG[limiter].color} />
+                        <Text style={styles.workoutCardNoteText}>{variant.note}</Text>
+                      </View>
+                    )}
                   </View>
-                  <IntensityGraph segments={expanded} height={36} />
-                  <Text style={styles.workoutCardDistance}>
-                    {Math.round(totalDistance / 100) / 10}km
-                  </Text>
                 </Pressable>
               );
             })}
@@ -453,28 +479,60 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
 
-  // eTP表示（コンパクト）
+  // eTP表示（2行テーブル）
   etpBox: {
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    borderRadius: 10,
-    padding: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 16,
     marginBottom: 16,
   },
-  etpRow: {
+  etpTableRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  etpLabel: {
+    fontSize: 14,
+    color: COLORS.text.muted,
+  },
+  etpValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  etpLimiterValue: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
+    gap: 6,
   },
-  limiterBadge: {
+  etpDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    marginVertical: 4,
+  },
+
+  // ゾーン凡例
+  zoneLegend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  zoneLegendItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  etpText: {
-    fontSize: 14,
-    color: COLORS.primary,
-    fontWeight: '500',
+  zoneLegendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  zoneLegendText: {
+    fontSize: 12,
+    color: COLORS.text.muted,
   },
 
   // フィルター
@@ -507,34 +565,57 @@ const styles = StyleSheet.create({
 
   // ワークアウト一覧
   workoutList: {
-    gap: 10,
+    gap: 12,
   },
   workoutCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 14,
+    overflow: 'hidden',
+  },
+  workoutCardBody: {
     padding: 14,
   },
-  workoutCardHeader: {
+  workoutCardNameRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   workoutCardName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: COLORS.text.primary,
     flex: 1,
   },
-  workoutCardCategory: {
-    fontSize: 12,
+  workoutCardCategoryBadge: {
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+  workoutCardCategoryText: {
+    fontSize: 11,
     color: COLORS.primary,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   workoutCardDistance: {
     fontSize: 13,
     color: COLORS.text.muted,
-    marginTop: 6,
+    marginBottom: 8,
+  },
+  workoutCardNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  workoutCardNoteText: {
+    fontSize: 12,
+    color: '#F97316',
   },
 
   // 詳細画面
