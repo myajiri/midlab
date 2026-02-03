@@ -4,7 +4,10 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
+    withTiming,
     withSpring,
+    Easing,
+    interpolate,
     runOnJS,
 } from 'react-native-reanimated';
 
@@ -19,7 +22,7 @@ interface SwipeBackViewProps {
 
 /**
  * スワイプバックジェスチャーを提供するラッパーコンポーネント
- * 画面全体から右スワイプで前画面に戻る
+ * 画面全体から右スワイプで前画面に戻る（スライドアウトアニメーション付き）
  */
 export const SwipeBackView = ({ children, onSwipeBack, enabled = true }: SwipeBackViewProps) => {
     const translateX = useSharedValue(0);
@@ -40,9 +43,20 @@ export const SwipeBackView = ({ children, onSwipeBack, enabled = true }: SwipeBa
                 (event.translationX > 50 && event.velocityX > 300);
 
             if (shouldGoBack) {
-                // スワイプ成功 - 即座にコールバック
-                translateX.value = 0;
-                runOnJS(onSwipeBack)();
+                // スワイプ成功 - 画面外へスライドアウトしてから遷移
+                const velocity = Math.max(event.velocityX, 500);
+                // 速度からdurationを計算（残りの距離 / 速度）
+                const remaining = SCREEN_WIDTH - event.translationX;
+                const duration = Math.min(Math.max(remaining / velocity * 1000, 120), 300);
+
+                translateX.value = withTiming(SCREEN_WIDTH, {
+                    duration,
+                    easing: Easing.out(Easing.cubic),
+                }, (finished) => {
+                    if (finished) {
+                        runOnJS(onSwipeBack)();
+                    }
+                });
             } else {
                 // 元に戻す
                 translateX.value = withSpring(0, {
@@ -54,14 +68,30 @@ export const SwipeBackView = ({ children, onSwipeBack, enabled = true }: SwipeBa
             }
         });
 
+    // メインビューのスタイル（右にスライド + わずかに縮小）
     const animatedStyle = useAnimatedStyle(() => ({
-        transform: [{ translateX: translateX.value }],
+        transform: [
+            { translateX: translateX.value },
+            { scale: interpolate(translateX.value, [0, SCREEN_WIDTH], [1, 0.92]) },
+        ],
+        borderRadius: interpolate(translateX.value, [0, 100], [0, 12]),
+        overflow: 'hidden' as const,
+    }));
+
+    // 背景の暗幕（スワイプ中に背景が暗くなる）
+    const overlayStyle = useAnimatedStyle(() => ({
+        opacity: interpolate(translateX.value, [0, SCREEN_WIDTH], [0, 0.4]),
     }));
 
     return (
         <GestureDetector gesture={panGesture}>
-            <Animated.View style={[styles.container, animatedStyle]}>
-                {children}
+            <Animated.View style={styles.container}>
+                {/* 背景の暗幕 */}
+                <Animated.View style={[styles.overlay, overlayStyle]} pointerEvents="none" />
+                {/* メインコンテンツ */}
+                <Animated.View style={[styles.content, animatedStyle]}>
+                    {children}
+                </Animated.View>
             </Animated.View>
         </GestureDetector>
     );
@@ -69,6 +99,14 @@ export const SwipeBackView = ({ children, onSwipeBack, enabled = true }: SwipeBa
 
 const styles = StyleSheet.create({
     container: {
+        flex: 1,
+        backgroundColor: '#000',
+    },
+    overlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: '#000',
+    },
+    content: {
         flex: 1,
     },
 });
