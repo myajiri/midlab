@@ -1,5 +1,5 @@
 // ============================================
-// Test Screen - ランプテスト実施画面
+// Test Screen - ETPテスト画面（簡素化版）
 // ============================================
 
 import React, { useState, useMemo } from 'react';
@@ -25,28 +25,29 @@ import {
   determineLimiterType,
   generateLapSchedule,
   getLevelFromEtp,
-  recommendTestLevel,
 } from '../../src/utils';
-import { Button } from '../../src/components/ui';
+import {
+  Button,
+  SuccessCheckmark,
+  SlideIn,
+  FadeIn,
+  CountUp,
+  ScaleIn,
+} from '../../src/components/ui';
 import {
   COLORS,
   LEVELS,
   PACE_INCREMENT,
+  ZONE_COEFFICIENTS_V3,
+  RACE_COEFFICIENTS,
 } from '../../src/constants';
 import {
   LevelName,
   TerminationReason,
   RecoveryTime,
   TestResult,
+  ZoneName,
 } from '../../src/types';
-
-// レベル調整（初回テスト用）
-const adjustLevel = (level: LevelName, isFirstTest: boolean): LevelName => {
-  if (!isFirstTest) return level;
-  const levels: LevelName[] = ['SS', 'S', 'A', 'B', 'C'];
-  const idx = levels.indexOf(level);
-  return idx < levels.length - 1 ? levels[idx + 1] : level;
-};
 
 export default function TestScreen() {
   const profile = useProfileStore((state) => state.profile);
@@ -54,68 +55,47 @@ export default function TestScreen() {
   const addResult = useTestResultsStore((state) => state.addResult);
   const setCurrent = useProfileStore((state) => state.setCurrent);
 
-  // 推奨レベルを計算（PB/eTPから自動算定）
+  // 推奨レベルを計算
   const getRecommendedLevel = (): LevelName => {
-    // 1. 過去のテスト結果から
     const latestResult = results?.[0];
     if (latestResult?.eTP) {
       const level = getLevelFromEtp(latestResult.eTP);
       if (level) return level;
     }
-    // 2. プロファイルのcurrent eTPから
     if (profile?.current?.etp) {
       const level = getLevelFromEtp(profile.current.etp);
       if (level) return level;
     }
-    // 3. プロファイルのestimated eTPから
     if (profile?.estimated?.etp) {
       const level = getLevelFromEtp(profile.estimated.etp);
       if (level) return level;
     }
-    // 4. 1500m PBからeTPを推定してレベルを算定
-    if (profile?.pbs?.m1500) {
-      // 1500m PBからeTPを推定（PB / 3.30）
-      const estimatedEtp = Math.round(profile.pbs.m1500 / 3.30);
-      const rec = recommendTestLevel(
-        estimatedEtp,
-        profile?.ageCategory || 'senior',
-        profile?.experience || 'intermediate'
-      );
-      if (rec?.recommended) return rec.recommended;
-    }
     return 'A';
   };
 
-  const [showInput, setShowInput] = useState(false);
-  const [showResult, setShowResult] = useState(false);
-  const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
+  // 状態管理
+  const [view, setView] = useState<'main' | 'input' | 'result'>('main');
   const [level, setLevel] = useState<LevelName>(() => getRecommendedLevel());
-  const [isFirstTest, setIsFirstTest] = useState(false);
   const [completedLaps, setCompletedLaps] = useState(5);
   const [terminationReason, setTerminationReason] = useState<TerminationReason>('both');
-  const [q1, setQ1] = useState(false); // もう1周できそうだった？
-  const [q2, setQ2] = useState(false); // 5秒遅ければ続けられた？
-  const [q3, setQ3] = useState<RecoveryTime>('30-60'); // 息が落ち着くまで
+  const [breathRecovery, setBreathRecovery] = useState<RecoveryTime>('30-60');
+  const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
-  const effectiveLevel = adjustLevel(level, isFirstTest);
-  const config = LEVELS[effectiveLevel];
-  const schedule = useMemo(() => generateLapSchedule(effectiveLevel), [effectiveLevel]);
-  const maxLaps = LEVELS[level].maxLaps;
+  const config = LEVELS[level];
+  const schedule = useMemo(() => generateLapSchedule(level), [level]);
+  const maxLaps = config.maxLaps;
 
-  // LCP計算（Last Completed Pace）
-  const calculateLCP = (lvl: LevelName, laps: number): number => {
-    const cfg = LEVELS[lvl];
-    return cfg.startPace - (laps - 1) * PACE_INCREMENT;
-  };
-  const lcp = calculateLCP(level, completedLaps);
+  // LCP計算
+  const lcp = config.startPace - (completedLaps - 1) * PACE_INCREMENT;
 
   const handleSubmit = () => {
     const etp = calculateEtpFromTest(lcp);
     const limiterResult = determineLimiterType(
       terminationReason,
-      q1,
-      q2,
-      q3
+      false, // q1は簡略化
+      false, // q2は簡略化
+      breathRecovery
     );
     const zones = calculateZonesV3(etp, limiterResult.type);
     const predictions = calculateRacePredictions(etp, limiterResult.type);
@@ -127,9 +107,9 @@ export default function TestScreen() {
       completedLaps,
       lastCompletedPace: lcp,
       terminationReason,
-      couldDoOneMore: q1,
-      couldContinueSlower: q2,
-      breathRecoveryTime: q3,
+      couldDoOneMore: false,
+      couldContinueSlower: false,
+      breathRecoveryTime: breathRecovery,
       eTP: etp,
       limiterType: limiterResult.type,
       limiterConfidence: limiterResult.confidence,
@@ -140,8 +120,7 @@ export default function TestScreen() {
     addResult(testResult);
     setCurrent(etp, limiterResult.type);
     setLastTestResult(testResult);
-    setShowInput(false);
-    setShowResult(true);
+    setView('result');
   };
 
   // リミッター表示用
@@ -151,165 +130,243 @@ export default function TestScreen() {
     balanced: { icon: 'git-compare', name: 'バランス型', color: '#22C55E' },
   };
 
-  // 結果表示画面
-  if (showResult && lastTestResult) {
+  // ============================================
+  // 結果画面
+  // ============================================
+  if (view === 'result' && lastTestResult) {
     const limiterInfo = LIMITER_DISPLAY[lastTestResult.limiterType];
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
-          {/* ヘッダー */}
-          <View style={styles.resultHeader}>
-            <Text style={styles.resultHeaderTitle}>テスト結果</Text>
-            <Text style={styles.resultHeaderDate}>
-              {new Date(lastTestResult.date).toLocaleDateString('ja-JP')}
-            </Text>
-          </View>
+          <SuccessCheckmark size={80} color={COLORS.success} />
 
-          {/* eTPカード */}
-          <View style={styles.etpResultCard}>
-            <Text style={styles.etpResultLabel}>あなたのeTP</Text>
-            <Text style={styles.etpResultValue}>{lastTestResult.eTP}秒</Text>
-            <Text style={styles.etpResultPace}>{formatKmPace(lastTestResult.eTP)}</Text>
-          </View>
-
-          {/* リミッタータイプ */}
-          <View style={[styles.limiterResultCard, { borderColor: limiterInfo.color }]}>
-            <Ionicons name={limiterInfo.icon as any} size={28} color={limiterInfo.color} />
-            <View style={styles.limiterResultInfo}>
-              <Text style={[styles.limiterResultName, { color: limiterInfo.color }]}>
-                {limiterInfo.name}
-              </Text>
-              <Text style={styles.limiterResultConfidence}>
-                確信度: {lastTestResult.limiterConfidence === 'confirmed' ? '高' : '中'}
+          <SlideIn direction="up" delay={300}>
+            <View style={styles.resultHeader}>
+              <Text style={styles.resultTitle}>テスト完了</Text>
+              <Text style={styles.resultDate}>
+                {new Date(lastTestResult.date).toLocaleDateString('ja-JP')}
               </Text>
             </View>
-          </View>
+          </SlideIn>
 
-          {/* テスト詳細 */}
-          <View style={styles.testDetailCard}>
-            <Text style={styles.testDetailTitle}>テスト詳細</Text>
-            <View style={styles.testDetailRow}>
-              <Text style={styles.testDetailLabel}>レベル</Text>
-              <Text style={styles.testDetailValue}>{lastTestResult.level}</Text>
+          <ScaleIn delay={500}>
+            <View style={styles.etpCard}>
+              <Text style={styles.etpLabel}>あなたのETP</Text>
+              <CountUp value={lastTestResult.eTP} duration={1500} style={styles.etpValue} suffix="秒" />
+              <Text style={styles.etpPace}>{formatKmPace(lastTestResult.eTP)}</Text>
             </View>
-            <View style={styles.testDetailRow}>
-              <Text style={styles.testDetailLabel}>完走周回数</Text>
-              <Text style={styles.testDetailValue}>{lastTestResult.completedLaps}周</Text>
-            </View>
-            <View style={styles.testDetailRow}>
-              <Text style={styles.testDetailLabel}>最終ペース</Text>
-              <Text style={styles.testDetailValue}>{formatKmPace(lastTestResult.lastCompletedPace)} ({lastTestResult.lastCompletedPace}秒/400m)</Text>
-            </View>
-          </View>
+          </ScaleIn>
 
-          {/* トレーニングゾーン */}
-          <View style={styles.zonesResultCard}>
-            <Text style={styles.zonesResultTitle}>トレーニングゾーン</Text>
-            {Object.entries(lastTestResult.zones).map(([zone, pace]) => {
-              const zoneLabels: Record<string, { name: string; color: string }> = {
-                jog: { name: 'Jog', color: '#9CA3AF' },
-                easy: { name: 'Easy', color: '#3B82F6' },
-                marathon: { name: 'Marathon', color: '#22C55E' },
-                threshold: { name: 'Threshold', color: '#EAB308' },
-                interval: { name: 'Interval', color: '#F97316' },
-                repetition: { name: 'Rep', color: '#EF4444' },
-              };
-              const label = zoneLabels[zone];
-              if (!label) return null;
-              return (
-                <View key={zone} style={styles.zoneResultRow}>
-                  <View style={styles.zoneResultInfo}>
-                    <View style={[styles.zoneResultDot, { backgroundColor: label.color }]} />
-                    <Text style={styles.zoneResultName}>{label.name}</Text>
-                  </View>
-                  <Text style={styles.zoneResultPace}>{formatKmPace(pace)} ({pace}秒/400m)</Text>
-                </View>
-              );
-            })}
-          </View>
+          <SlideIn direction="left" delay={700}>
+            <View style={[styles.limiterCard, { borderColor: limiterInfo.color }]}>
+              <Ionicons name={limiterInfo.icon as any} size={24} color={limiterInfo.color} />
+              <Text style={[styles.limiterName, { color: limiterInfo.color }]}>{limiterInfo.name}</Text>
+            </View>
+          </SlideIn>
 
-          {/* レース予測 */}
-          <View style={styles.predictionsResultCard}>
-            <Text style={styles.predictionsResultTitle}>レース予測タイム</Text>
-            <View style={styles.predictionsResultGrid}>
-              {Object.entries(lastTestResult.predictions).map(([distance, prediction]) => {
-                const labels: Record<string, string> = {
-                  m800: '800m', m1500: '1500m', m3000: '3000m', m5000: '5000m'
-                };
+          <FadeIn delay={900}>
+            <View style={styles.zonesCard}>
+              <Text style={styles.cardTitle}>トレーニングゾーン</Text>
+              {(['jog', 'easy', 'marathon', 'threshold', 'interval', 'repetition'] as ZoneName[]).map((zone) => {
+                const pace = lastTestResult.zones[zone];
+                const zoneConfig = ZONE_COEFFICIENTS_V3[zone];
                 return (
-                  <View key={distance} style={styles.predictionResultItem}>
-                    <Text style={styles.predictionResultDistance}>{labels[distance]}</Text>
-                    <Text style={styles.predictionResultTime}>{formatTime(prediction.min)}</Text>
+                  <View key={zone} style={styles.zoneRow}>
+                    <View style={styles.zoneInfo}>
+                      <View style={[styles.zoneDot, { backgroundColor: zoneConfig.color }]} />
+                      <Text style={styles.zoneName}>{zoneConfig.label}</Text>
+                    </View>
+                    <Text style={styles.zonePace}>{formatKmPace(pace)}</Text>
                   </View>
                 );
               })}
             </View>
-          </View>
+          </FadeIn>
 
-          {/* ボタン */}
-          <Button
-            title="完了"
-            onPress={() => setShowResult(false)}
-            fullWidth
-            style={styles.completeBtn}
-          />
+          <FadeIn delay={1100}>
+            <View style={styles.predictionsCard}>
+              <Text style={styles.cardTitle}>レース予測</Text>
+              <View style={styles.predictionsGrid}>
+                {Object.entries(lastTestResult.predictions).map(([key, prediction]) => (
+                  <View key={key} style={styles.predictionItem}>
+                    <Text style={styles.predictionDistance}>
+                      {RACE_COEFFICIENTS[key as keyof typeof RACE_COEFFICIENTS].label}
+                    </Text>
+                    <Text style={styles.predictionTime}>
+                      {formatTime(prediction.min)}-{formatTime(prediction.max)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </FadeIn>
+
+          <FadeIn delay={1300}>
+            <Pressable style={styles.primaryButton} onPress={() => setView('main')}>
+              <Text style={styles.primaryButtonText}>完了</Text>
+            </Pressable>
+          </FadeIn>
         </ScrollView>
       </SafeAreaView>
     );
   }
 
-  // 結果入力フォーム
-  if (showInput) {
+  // ============================================
+  // 入力画面
+  // ============================================
+  if (view === 'input') {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
-          {/* ヘッダー */}
-          <View style={styles.inputHeader}>
-            <Pressable style={styles.backButton} onPress={() => setShowInput(false)}>
+          <View style={styles.header}>
+            <Pressable style={styles.backButton} onPress={() => setView('main')}>
               <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
             </Pressable>
-            <Text style={styles.inputHeaderTitle}>結果入力</Text>
+            <Text style={styles.headerTitle}>結果入力</Text>
+            <View style={{ width: 40 }} />
           </View>
 
-          {/* ステップインジケーター */}
-          <View style={styles.stepIndicator}>
-            <View style={styles.stepItem}>
-              <View style={[styles.stepDot, styles.stepDotCompleted]}>
-                <Ionicons name="checkmark" size={12} color="#fff" />
+          <FadeIn>
+            <View style={styles.inputCard}>
+              {/* レベル選択 */}
+              <Text style={styles.inputLabel}>実施レベル</Text>
+              <View style={styles.levelSelector}>
+                {(Object.keys(LEVELS) as LevelName[]).map((key) => (
+                  <Pressable
+                    key={key}
+                    style={[styles.levelOption, level === key && styles.levelOptionActive]}
+                    onPress={() => {
+                      setLevel(key);
+                      setCompletedLaps(Math.min(completedLaps, LEVELS[key].maxLaps));
+                    }}
+                  >
+                    <Text style={[styles.levelOptionText, level === key && styles.levelOptionTextActive]}>
+                      {key}
+                    </Text>
+                  </Pressable>
+                ))}
               </View>
-              <Text style={styles.stepLabel}>準備</Text>
             </View>
-            <View style={[styles.stepLine, styles.stepLineCompleted]} />
-            <View style={styles.stepItem}>
-              <View style={[styles.stepDot, styles.stepDotCompleted]}>
-                <Ionicons name="checkmark" size={12} color="#fff" />
-              </View>
-              <Text style={styles.stepLabel}>テスト</Text>
-            </View>
-            <View style={[styles.stepLine, styles.stepLineCompleted]} />
-            <View style={styles.stepItem}>
-              <View style={[styles.stepDot, styles.stepDotActive]} />
-              <Text style={[styles.stepLabel, styles.stepLabelActive]}>入力</Text>
-            </View>
-            <View style={styles.stepLine} />
-            <View style={styles.stepItem}>
-              <View style={styles.stepDot} />
-              <Text style={styles.stepLabel}>結果</Text>
-            </View>
-          </View>
+          </FadeIn>
 
-          {/* 実施レベル */}
-          <View style={styles.inputSection}>
-            <Text style={styles.inputLabel}>実施レベル</Text>
+          <SlideIn delay={100} direction="up">
+            <View style={styles.inputCard}>
+              {/* 周回数 */}
+              <Text style={styles.inputLabel}>完走した周回数</Text>
+              <View style={styles.lapsSelector}>
+                <Pressable
+                  style={styles.lapsButton}
+                  onPress={() => setCompletedLaps(Math.max(1, completedLaps - 1))}
+                >
+                  <Ionicons name="remove" size={24} color={COLORS.text.primary} />
+                </Pressable>
+                <View style={styles.lapsDisplay}>
+                  <Text style={styles.lapsValue}>{completedLaps}</Text>
+                  <Text style={styles.lapsMax}>/ {maxLaps}</Text>
+                </View>
+                <Pressable
+                  style={styles.lapsButton}
+                  onPress={() => setCompletedLaps(Math.min(maxLaps, completedLaps + 1))}
+                >
+                  <Ionicons name="add" size={24} color={COLORS.text.primary} />
+                </Pressable>
+              </View>
+              <View style={styles.lcpBadge}>
+                <Ionicons name="speedometer" size={14} color={COLORS.primary} />
+                <Text style={styles.lcpText}>最終ペース: {formatKmPace(lcp)} ({lcp}秒/400m)</Text>
+              </View>
+            </View>
+          </SlideIn>
+
+          <SlideIn delay={200} direction="up">
+            <View style={styles.inputCard}>
+              {/* 終了理由 */}
+              <Text style={styles.inputLabel}>なぜ止まりましたか？</Text>
+              <View style={styles.reasonGrid}>
+                {[
+                  { value: 'breath' as TerminationReason, label: '息が苦しい', icon: 'fitness' },
+                  { value: 'legs' as TerminationReason, label: '脚が重い', icon: 'footsteps' },
+                  { value: 'both' as TerminationReason, label: '両方', icon: 'body' },
+                ].map((opt) => (
+                  <Pressable
+                    key={opt.value}
+                    style={[styles.reasonOption, terminationReason === opt.value && styles.reasonOptionActive]}
+                    onPress={() => setTerminationReason(opt.value)}
+                  >
+                    <Ionicons
+                      name={opt.icon as any}
+                      size={20}
+                      color={terminationReason === opt.value ? COLORS.primary : COLORS.text.muted}
+                    />
+                    <Text style={[styles.reasonText, terminationReason === opt.value && styles.reasonTextActive]}>
+                      {opt.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </SlideIn>
+
+          <SlideIn delay={300} direction="up">
+            <View style={styles.inputCard}>
+              {/* 回復時間 */}
+              <Text style={styles.inputLabel}>息が落ち着くまでの時間</Text>
+              <View style={styles.recoveryOptions}>
+                {(['<30', '30-60', '>60'] as RecoveryTime[]).map((v) => (
+                  <Pressable
+                    key={v}
+                    style={[styles.recoveryOption, breathRecovery === v && styles.recoveryOptionActive]}
+                    onPress={() => setBreathRecovery(v)}
+                  >
+                    <Text style={[styles.recoveryText, breathRecovery === v && styles.recoveryTextActive]}>
+                      {v === '<30' ? '30秒未満' : v === '30-60' ? '30-60秒' : '60秒以上'}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </SlideIn>
+
+          <SlideIn delay={400} direction="up">
+            <Pressable style={styles.primaryButton} onPress={handleSubmit}>
+              <Text style={styles.primaryButtonText}>結果を算出</Text>
+            </Pressable>
+          </SlideIn>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // ============================================
+  // メイン画面
+  // ============================================
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
+        <FadeIn>
+          <Text style={styles.pageTitle}>ETPテスト</Text>
+          <Text style={styles.pageSubtitle}>ETPを測定してトレーニングゾーンを算出</Text>
+        </FadeIn>
+
+        {/* クイックスタートカード */}
+        <SlideIn delay={100} direction="up">
+          <View style={styles.startCard}>
+            <View style={styles.startCardHeader}>
+              <Ionicons name="timer" size={28} color={COLORS.primary} />
+              <View style={styles.startCardTitleRow}>
+                <Text style={styles.startCardTitle}>テストを実施</Text>
+                <Text style={styles.startCardHint}>400mトラックで実施</Text>
+              </View>
+            </View>
+
+            {/* レベル選択 */}
+            <Text style={styles.levelLabel}>レベル選択</Text>
             <View style={styles.levelTabs}>
               {(Object.keys(LEVELS) as LevelName[]).map((key) => (
                 <Pressable
                   key={key}
-                  style={[styles.levelTabBtn, level === key && styles.levelTabBtnActive]}
-                  onPress={() => {
-                    setLevel(key);
-                    setCompletedLaps(Math.min(completedLaps, LEVELS[key].maxLaps));
-                  }}
+                  style={[styles.levelTab, level === key && styles.levelTabActive]}
+                  onPress={() => setLevel(key)}
                 >
                   <Text style={[styles.levelTabText, level === key && styles.levelTabTextActive]}>
                     {key}
@@ -317,272 +374,124 @@ export default function TestScreen() {
                 </Pressable>
               ))}
             </View>
-          </View>
+            <Text style={styles.levelDesc}>{config.description}</Text>
 
-          {/* 完遂周回数 */}
-          <View style={styles.inputSection}>
-            <Text style={styles.inputLabel}>完遂周回数</Text>
-            <View style={styles.lapsInput}>
-              <Pressable
-                style={styles.lapsBtn}
-                onPress={() => setCompletedLaps(Math.max(1, completedLaps - 1))}
-              >
-                <Text style={styles.lapsBtnText}>−</Text>
-              </Pressable>
-              <Text style={styles.lapsValue}>{completedLaps}</Text>
-              <Pressable
-                style={styles.lapsBtn}
-                onPress={() => setCompletedLaps(Math.min(maxLaps, completedLaps + 1))}
-              >
-                <Text style={styles.lapsBtnText}>+</Text>
-              </Pressable>
-              <Text style={styles.lapsUnit}>周 / {maxLaps}周</Text>
-            </View>
-            <View style={styles.lcpDisplay}>
-              <Text style={styles.lcpText}>
-                → LCP: <Text style={styles.lcpValue}>{formatKmPace(lcp)}</Text> ({lcp}秒/400m)
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* 終了理由 */}
-          <View style={styles.inputSection}>
-            <Text style={styles.inputLabel}>なぜ止まりましたか？</Text>
-            {[
-              { value: 'breath' as TerminationReason, label: '息が苦しい' },
-              { value: 'legs' as TerminationReason, label: '脚が重い' },
-              { value: 'both' as TerminationReason, label: '両方' },
-              { value: 'other' as TerminationReason, label: 'その他' },
-            ].map((opt) => (
-              <Pressable
-                key={opt.value}
-                style={[styles.radioOption, terminationReason === opt.value && styles.radioOptionSelected]}
-                onPress={() => setTerminationReason(opt.value)}
-              >
-                <View style={[styles.radioCircle, terminationReason === opt.value && styles.radioCircleSelected]} />
-                <Text style={[styles.radioText, terminationReason === opt.value && styles.radioTextSelected]}>
-                  {opt.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          <View style={styles.divider} />
-
-          {/* 補助質問 */}
-          <View style={styles.inputSection}>
-            <Text style={styles.inputLabel}>補助質問</Text>
-
-            {/* Q1 */}
-            <View style={styles.subQuestion}>
-              <Text style={styles.subQuestionText}>Q1. もう1周できそうだった？</Text>
-              <View style={styles.boolOptions}>
-                <Pressable
-                  style={[styles.boolBtn, q1 && styles.boolBtnSelected]}
-                  onPress={() => setQ1(true)}
-                >
-                  <Text style={[styles.boolBtnText, q1 && styles.boolBtnTextSelected]}>はい</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.boolBtn, !q1 && styles.boolBtnSelected]}
-                  onPress={() => setQ1(false)}
-                >
-                  <Text style={[styles.boolBtnText, !q1 && styles.boolBtnTextSelected]}>いいえ</Text>
-                </Pressable>
+            {/* 簡易スケジュール */}
+            <View style={styles.schedulePreview}>
+              <View style={styles.scheduleRow}>
+                <Text style={styles.scheduleLabel}>開始ペース</Text>
+                <Text style={styles.scheduleValue}>{formatKmPace(config.startPace)} ({config.startPace}秒)</Text>
+              </View>
+              <View style={styles.scheduleRow}>
+                <Text style={styles.scheduleLabel}>最大周回</Text>
+                <Text style={styles.scheduleValue}>{config.maxLaps}周</Text>
+              </View>
+              <View style={styles.scheduleRow}>
+                <Text style={styles.scheduleLabel}>加速</Text>
+                <Text style={styles.scheduleValue}>毎周 -4秒</Text>
               </View>
             </View>
 
-            {/* Q2 */}
-            <View style={styles.subQuestion}>
-              <Text style={styles.subQuestionText}>Q2. 5秒遅ければ続けられた？</Text>
-              <View style={styles.boolOptions}>
-                <Pressable
-                  style={[styles.boolBtn, q2 && styles.boolBtnSelected]}
-                  onPress={() => setQ2(true)}
-                >
-                  <Text style={[styles.boolBtnText, q2 && styles.boolBtnTextSelected]}>はい</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.boolBtn, !q2 && styles.boolBtnSelected]}
-                  onPress={() => setQ2(false)}
-                >
-                  <Text style={[styles.boolBtnText, !q2 && styles.boolBtnTextSelected]}>いいえ</Text>
-                </Pressable>
-              </View>
-            </View>
-
-            {/* Q3 */}
-            <View style={styles.subQuestion}>
-              <Text style={styles.subQuestionText}>Q3. 息が落ち着くまで？</Text>
-              <View style={styles.tripleOptions}>
-                {(['<30', '30-60', '>60'] as RecoveryTime[]).map((v) => (
-                  <Pressable
-                    key={v}
-                    style={[styles.tripleBtn, q3 === v && styles.tripleBtnSelected]}
-                    onPress={() => setQ3(v)}
-                  >
-                    <Text style={[styles.tripleBtnText, q3 === v && styles.tripleBtnTextSelected]}>
-                      {v === '<30' ? '30秒未満' : v === '30-60' ? '30-60秒' : '60秒以上'}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-          </View>
-
-          <Button title="結果を算出" onPress={handleSubmit} fullWidth style={styles.submitBtn} />
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  // メイン画面（スケジュール表示）
-  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
-        <Text style={styles.sectionTitle}>テスト測定</Text>
-
-        {/* ガイダンス */}
-        <View style={styles.guidanceCard}>
-          <View style={styles.guidanceHeader}>
-            <Ionicons name="information-circle" size={20} color={COLORS.primary} />
-            <Text style={styles.guidanceTitle}>ランプテストの実施方法</Text>
-          </View>
-          <View style={styles.guidanceContent}>
-            <View style={styles.guidanceStep}>
-              <Text style={styles.guidanceStepNum}>1</Text>
-              <Text style={styles.guidanceStepText}>400mトラックで実施（GPSウォッチがあれば別の場所でも可）</Text>
-            </View>
-            <View style={styles.guidanceStep}>
-              <Text style={styles.guidanceStepNum}>2</Text>
-              <Text style={styles.guidanceStepText}>各周回の目標ペースで走り、4秒ずつ加速</Text>
-            </View>
-            <View style={styles.guidanceStep}>
-              <Text style={styles.guidanceStepNum}>3</Text>
-              <Text style={styles.guidanceStepText}>目標タイムより2秒以上遅れたら終了</Text>
-            </View>
-            <View style={styles.guidanceStep}>
-              <Text style={styles.guidanceStepNum}>4</Text>
-              <Text style={styles.guidanceStepText}>テスト後、下の「結果を入力する」から登録</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* レベルタブ */}
-        <View style={styles.levelTabs}>
-          {(Object.keys(LEVELS) as LevelName[]).map((key) => (
-            <Pressable
-              key={key}
-              style={[styles.levelTabBtn, level === key && styles.levelTabBtnActive]}
-              onPress={() => setLevel(key)}
-            >
-              <Text style={[styles.levelTabText, level === key && styles.levelTabTextActive]}>
-                {key}
-              </Text>
+            <Pressable style={styles.primaryButton} onPress={() => setView('input')}>
+              <Text style={styles.primaryButtonText}>テスト結果を入力</Text>
             </Pressable>
-          ))}
-        </View>
-
-        {/* レベル説明 */}
-        <Text style={styles.levelDescription}>{LEVELS[level].description}</Text>
-
-        {/* 初回テストチェックボックス */}
-        <Pressable
-          style={styles.firstTestOption}
-          onPress={() => setIsFirstTest(!isFirstTest)}
-        >
-          <View style={[styles.checkbox, isFirstTest && styles.checkboxChecked]}>
-            {isFirstTest && <Ionicons name="checkmark" size={14} color="#fff" />}
           </View>
-          <Text style={styles.firstTestText}>初回テスト（1段階遅いレベルで開始）</Text>
-        </Pressable>
+        </SlideIn>
 
-        {/* 調整後レベル表示 */}
-        {isFirstTest && level !== effectiveLevel && (
-          <View style={styles.adjustedNotice}>
-            <Text style={styles.adjustedText}>→ 調整後: レベル {effectiveLevel}</Text>
-          </View>
-        )}
-
-        {/* スケジュールヘッダー */}
-        <View style={styles.scheduleHeader}>
-          <Text style={styles.scheduleTitle}>レベル{effectiveLevel} 進行表</Text>
-          <Text style={styles.scheduleInfo}>
-            開始: {formatKmPace(config.startPace)} ({config.startPace}秒/400m) / 最大: {config.maxLaps}周
-          </Text>
-        </View>
-
-        {/* スケジュールテーブル */}
-        <View style={styles.scheduleTable}>
-          {/* ヘッダー行 */}
-          <View style={styles.scheduleRow}>
-            <Text style={[styles.scheduleCell, styles.scheduleCellHeader, styles.colLap]}>周</Text>
-            <Text style={[styles.scheduleCell, styles.scheduleCellHeader, styles.colKm]}>ペース/km</Text>
-            <Text style={[styles.scheduleCell, styles.scheduleCellHeader, styles.col400m]}>400m</Text>
-            <Text style={[styles.scheduleCell, styles.scheduleCellHeader, styles.col100m]}>100m</Text>
-          </View>
-          {/* データ行 */}
-          {schedule.map((lap) => (
-            <View key={lap.lap} style={styles.scheduleRow}>
-              <Text style={[styles.scheduleCell, styles.colLap]}>{lap.lap}</Text>
-              <Text style={[styles.scheduleCell, styles.colKm]}>{formatKmPace(lap.pace)}</Text>
-              <Text style={[styles.scheduleCell, styles.col400m]}>{lap.pace}秒</Text>
-              <Text style={[styles.scheduleCell, styles.col100m]}>{(lap.pace / 4).toFixed(1)}秒</Text>
+        {/* 進行表（コンパクト） */}
+        <SlideIn delay={200} direction="up">
+          <Pressable style={styles.scheduleCard}>
+            <Text style={styles.cardTitle}>レベル{level} 進行表</Text>
+            <View style={styles.scheduleTable}>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.tableCell, styles.tableHeaderCell, { width: 40 }]}>周</Text>
+                <Text style={[styles.tableCell, styles.tableHeaderCell, { flex: 1 }]}>ペース/km</Text>
+                <Text style={[styles.tableCell, styles.tableHeaderCell, { flex: 1 }]}>400m</Text>
+              </View>
+              {schedule.map((lap) => (
+                <View key={lap.lap} style={styles.tableRow}>
+                  <Text style={[styles.tableCell, { width: 40 }]}>{lap.lap}</Text>
+                  <Text style={[styles.tableCell, { flex: 1 }]}>{formatKmPace(lap.pace)}</Text>
+                  <Text style={[styles.tableCell, { flex: 1 }]}>{lap.pace}秒</Text>
+                </View>
+              ))}
             </View>
-          ))}
-        </View>
-
-        {/* 終了条件 */}
-        <Text style={styles.terminationNote}>終了条件: 設定タイムより2秒以上遅延</Text>
-
-        {/* 結果入力ボタン */}
-        <Button
-          title="✏️ 結果を入力する"
-          onPress={() => setShowInput(true)}
-          fullWidth
-          style={styles.inputButton}
-        />
+          </Pressable>
+        </SlideIn>
 
         {/* テスト履歴 */}
         {results && results.length > 0 && (
-          <View style={styles.historySection}>
-            <Text style={styles.historySectionTitle}>過去のテスト結果</Text>
-            {results.slice(0, 5).map((result, index) => (
-              <View key={result.id} style={styles.historyItem}>
-                <View style={styles.historyItemHeader}>
+          <SlideIn delay={300} direction="up">
+            <Pressable style={styles.historyCard} onPress={() => setShowHistory(!showHistory)}>
+              <View style={styles.historyHeader}>
+                <Text style={styles.cardTitle}>過去の結果</Text>
+                <Ionicons
+                  name={showHistory ? 'chevron-up' : 'chevron-down'}
+                  size={20}
+                  color={COLORS.text.muted}
+                />
+              </View>
+
+              {/* 最新結果のみ常に表示 */}
+              <View style={styles.historyItem}>
+                <View style={styles.historyLeft}>
                   <Text style={styles.historyDate}>
-                    {new Date(result.date).toLocaleDateString('ja-JP')}
+                    {new Date(results[0].date).toLocaleDateString('ja-JP')}
                   </Text>
-                  <Text style={styles.historyLevel}>レベル {result.level}</Text>
+                  <Text style={styles.historyLevel}>Lv.{results[0].level}</Text>
                 </View>
-                <View style={styles.historyItemContent}>
-                  <View style={styles.historyEtp}>
-                    <Text style={styles.historyEtpLabel}>eTP</Text>
-                    <Text style={styles.historyEtpPace}>{formatKmPace(result.eTP)}</Text>
-                    <Text style={styles.historyEtpValue}>({result.eTP}秒/400m)</Text>
-                  </View>
-                  <View style={styles.historyMeta}>
-                    <Text style={styles.historyMetaText}>
-                      {result.completedLaps}周完走
-                    </Text>
-                    <Text style={styles.historyMetaText}>
-                      {result.limiterType === 'cardio' ? '心肺' : result.limiterType === 'muscular' ? '筋持久力' : 'バランス'}
-                    </Text>
-                  </View>
+                <View style={styles.historyRight}>
+                  <Text style={styles.historyEtp}>{formatKmPace(results[0].eTP)}</Text>
+                  <Text style={styles.historyEtpSec}>{results[0].eTP}秒/400m</Text>
                 </View>
               </View>
-            ))}
-          </View>
+
+              {/* 展開時に追加表示 */}
+              {showHistory && results.slice(1, 5).map((result) => (
+                <View key={result.id} style={styles.historyItem}>
+                  <View style={styles.historyLeft}>
+                    <Text style={styles.historyDate}>
+                      {new Date(result.date).toLocaleDateString('ja-JP')}
+                    </Text>
+                    <Text style={styles.historyLevel}>Lv.{result.level}</Text>
+                  </View>
+                  <View style={styles.historyRight}>
+                    <Text style={styles.historyEtp}>{formatKmPace(result.eTP)}</Text>
+                    <Text style={styles.historyEtpSec}>{result.eTP}秒/400m</Text>
+                  </View>
+                </View>
+              ))}
+            </Pressable>
+          </SlideIn>
         )}
+
+        {/* 簡易ガイド */}
+        <SlideIn delay={400} direction="up">
+          <View style={styles.guideCard}>
+            <Text style={styles.guideTitle}>テストの流れ</Text>
+            <View style={styles.guideSteps}>
+              <View style={styles.guideStep}>
+                <View style={styles.guideStepNum}><Text style={styles.guideStepNumText}>1</Text></View>
+                <Text style={styles.guideStepText}>レベルを選択して開始ペースを確認</Text>
+              </View>
+              <View style={styles.guideStep}>
+                <View style={styles.guideStepNum}><Text style={styles.guideStepNumText}>2</Text></View>
+                <Text style={styles.guideStepText}>400mトラックで各周のペースを守る</Text>
+              </View>
+              <View style={styles.guideStep}>
+                <View style={styles.guideStepNum}><Text style={styles.guideStepNumText}>3</Text></View>
+                <Text style={styles.guideStepText}>2秒以上遅れたら終了→結果を入力</Text>
+              </View>
+            </View>
+          </View>
+        </SlideIn>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 // ============================================
-// Styles
+// スタイル
 // ============================================
 
 const styles = StyleSheet.create({
@@ -594,80 +503,93 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentPadding: {
-    padding: 16,
-    paddingBottom: 32,
+    padding: 20,
+    paddingBottom: 40,
   },
 
-  // Section Title
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 20,
-  },
-
-  // Guidance
-  guidanceCard: {
-    backgroundColor: 'rgba(59, 130, 246, 0.08)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.2)',
-  },
-  guidanceHeader: {
+  // ヘッダー
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    marginBottom: 24,
   },
-  guidanceTitle: {
-    fontSize: 14,
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 18,
     fontWeight: '600',
-    color: COLORS.primary,
-  },
-  guidanceContent: {
-    gap: 8,
-  },
-  guidanceStep: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  guidanceStepNum: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: COLORS.primary,
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
-    lineHeight: 20,
-    overflow: 'hidden',
-  },
-  guidanceStepText: {
-    flex: 1,
-    fontSize: 13,
-    color: COLORS.text.secondary,
-    lineHeight: 18,
+    color: COLORS.text.primary,
   },
 
-  // Level Tabs
+  // ページタイトル
+  pageTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    marginBottom: 4,
+  },
+  pageSubtitle: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    marginBottom: 24,
+  },
+
+  // スタートカード
+  startCard: {
+    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.2)',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+  },
+  startCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  startCardTitleRow: {
+    flex: 1,
+  },
+  startCardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  startCardHint: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginTop: 2,
+  },
+
+  // レベル選択
+  levelLabel: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginBottom: 8,
+  },
   levelTabs: {
     flexDirection: 'row',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 4,
     marginBottom: 12,
   },
-  levelTabBtn: {
+  levelTab: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: 6,
+    borderRadius: 8,
   },
-  levelTabBtnActive: {
+  levelTabActive: {
     backgroundColor: COLORS.primary,
   },
   levelTabText: {
@@ -678,579 +600,434 @@ const styles = StyleSheet.create({
   levelTabTextActive: {
     color: '#fff',
   },
-
-  // Level Description
-  levelDescription: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-
-  // First Test Option
-  firstTestOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    gap: 10,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderWidth: 2,
-    borderColor: COLORS.text.secondary,
-    borderRadius: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkboxChecked: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  firstTestText: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-  },
-
-  // Adjusted Notice
-  adjustedNotice: {
-    backgroundColor: 'rgba(234, 179, 8, 0.15)',
-    borderRadius: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-  },
-  adjustedText: {
-    fontSize: 14,
-    color: '#EAB308',
-  },
-
-  // Schedule Header
-  scheduleHeader: {
-    marginBottom: 12,
-  },
-  scheduleTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-    marginBottom: 4,
-  },
-  scheduleInfo: {
+  levelDesc: {
     fontSize: 13,
     color: COLORS.text.secondary,
+    marginBottom: 16,
+    lineHeight: 18,
   },
 
-  // Schedule Table
-  scheduleTable: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginBottom: 12,
+  // スケジュールプレビュー
+  schedulePreview: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
   },
   scheduleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
+  scheduleLabel: {
+    fontSize: 13,
+    color: COLORS.text.muted,
+  },
+  scheduleValue: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+  },
+
+  // プライマリボタン
+  primaryButton: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+
+  // 進行表カード
+  scheduleCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.muted,
+    marginBottom: 12,
+  },
+  scheduleTable: {
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
-  scheduleCell: {
+  tableCell: {
     paddingVertical: 10,
     paddingHorizontal: 8,
-    fontSize: 14,
-    color: COLORS.text.primary,
-  },
-  scheduleCellHeader: {
-    color: COLORS.text.secondary,
-    fontWeight: '600',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-  },
-  colLap: {
-    width: 40,
-    textAlign: 'center',
-  },
-  col400m: {
-    flex: 1,
-    textAlign: 'center',
-  },
-  col100m: {
-    flex: 1,
-    textAlign: 'center',
-  },
-  colKm: {
-    flex: 1.2,
-    textAlign: 'center',
-  },
-
-  // Termination Note
-  terminationNote: {
     fontSize: 13,
-    color: COLORS.text.muted,
-    marginBottom: 20,
-  },
-
-  // Input Button
-  inputButton: {
-    marginTop: 8,
-  },
-
-  // History Section
-  historySection: {
-    marginTop: 32,
-    paddingTop: 24,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  historySectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
     color: COLORS.text.primary,
+    textAlign: 'center',
+  },
+  tableHeaderCell: {
+    color: COLORS.text.secondary,
+    fontWeight: '500',
+  },
+  tableMore: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    textAlign: 'center',
+    paddingVertical: 8,
+  },
+
+  // 履歴カード
+  historyCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 16,
+    padding: 16,
     marginBottom: 16,
   },
-  historyItem: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 8,
-  },
-  historyItemHeader: {
+  historyHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+  },
+  historyItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  historyLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   historyDate: {
     fontSize: 13,
-    color: COLORS.text.muted,
+    color: COLORS.text.secondary,
   },
   historyLevel: {
-    fontSize: 13,
-    color: COLORS.text.secondary,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    paddingHorizontal: 8,
+    fontSize: 12,
+    color: COLORS.text.muted,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
-  historyItemContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  historyRight: {
+    alignItems: 'flex-end',
   },
   historyEtp: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 4,
-  },
-  historyEtpLabel: {
-    fontSize: 12,
-    color: COLORS.text.muted,
-  },
-  historyEtpValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: COLORS.text.primary,
   },
-  historyEtpPace: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
-  },
-  historyMeta: {
-    alignItems: 'flex-end',
-    gap: 2,
-  },
-  historyMetaText: {
-    fontSize: 12,
+  historyEtpSec: {
+    fontSize: 11,
     color: COLORS.text.muted,
   },
 
-  // Input Form
-  inputHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-    gap: 16,
+  // ガイドカード
+  guideCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 16,
+    padding: 16,
   },
-  backButton: {
-    padding: 4,
-  },
-  inputHeaderTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: COLORS.text.primary,
-  },
-
-  // Step Indicator
-  stepIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 24,
-    paddingVertical: 12,
-  },
-  stepItem: {
-    alignItems: 'center',
-  },
-  stepDot: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  stepDotCompleted: {
-    backgroundColor: '#22C55E',
-  },
-  stepDotActive: {
-    backgroundColor: COLORS.primary,
-  },
-  stepLine: {
-    width: 32,
-    height: 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginHorizontal: 4,
-    marginBottom: 16,
-  },
-  stepLineCompleted: {
-    backgroundColor: '#22C55E',
-  },
-  stepLabel: {
-    fontSize: 10,
-    color: COLORS.text.muted,
-  },
-  stepLabelActive: {
-    color: COLORS.primary,
-    fontWeight: '500',
-  },
-
-  inputSection: {
-    marginBottom: 20,
-  },
-  inputLabel: {
+  guideTitle: {
     fontSize: 14,
-    color: COLORS.text.secondary,
-    marginBottom: 12,
     fontWeight: '500',
+    color: COLORS.text.muted,
+    marginBottom: 12,
   },
-
-  // Laps Input
-  lapsInput: {
+  guideSteps: {
+    gap: 10,
+  },
+  guideStep: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  lapsBtn: {
-    width: 44,
-    height: 44,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderRadius: 8,
+  guideStepNum: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  lapsBtnText: {
-    fontSize: 24,
-    color: COLORS.text.primary,
-    fontWeight: '300',
+  guideStepNumText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  guideStepText: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.text.secondary,
+  },
+
+  // 入力フォーム
+  inputCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
+    marginBottom: 12,
+  },
+  levelSelector: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 10,
+    padding: 4,
+  },
+  levelOption: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  levelOptionActive: {
+    backgroundColor: COLORS.primary,
+  },
+  levelOptionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  levelOptionTextActive: {
+    color: '#fff',
+  },
+
+  // 周回数セレクター
+  lapsSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 20,
+  },
+  lapsButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lapsDisplay: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
   },
   lapsValue: {
-    fontSize: 32,
+    fontSize: 48,
     fontWeight: '700',
     color: COLORS.primary,
-    minWidth: 50,
-    textAlign: 'center',
   },
-  lapsUnit: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
+  lapsMax: {
+    fontSize: 18,
+    color: COLORS.text.muted,
     marginLeft: 4,
   },
-  lcpDisplay: {
-    marginTop: 12,
+  lcpBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 16,
     backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    borderRadius: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    borderRadius: 8,
+    paddingVertical: 10,
   },
   lcpText: {
     fontSize: 14,
-    color: COLORS.text.secondary,
-  },
-  lcpValue: {
-    color: COLORS.primary,
-    fontWeight: '600',
-  },
-
-  // Divider
-  divider: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    marginVertical: 20,
-  },
-
-  // Radio Options
-  radioOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 8,
-    gap: 12,
-  },
-  radioOptionSelected: {
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-  },
-  radioCircle: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    borderWidth: 2,
-    borderColor: COLORS.text.secondary,
-  },
-  radioCircleSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primary,
-  },
-  radioText: {
-    fontSize: 15,
-    color: COLORS.text.secondary,
-  },
-  radioTextSelected: {
-    color: COLORS.text.primary,
-  },
-
-  // Sub Questions
-  subQuestion: {
-    marginBottom: 16,
-  },
-  subQuestionText: {
-    fontSize: 14,
-    color: COLORS.text.primary,
-    marginBottom: 8,
-  },
-  boolOptions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  boolBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  boolBtnSelected: {
-    backgroundColor: 'rgba(59, 130, 246, 0.15)',
-    borderColor: COLORS.primary,
-  },
-  boolBtnText: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-  },
-  boolBtnTextSelected: {
     color: COLORS.primary,
     fontWeight: '500',
   },
-  tripleOptions: {
+
+  // 終了理由
+  reasonGrid: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
   },
-  tripleBtn: {
+  reasonOption: {
     flex: 1,
-    paddingVertical: 10,
     alignItems: 'center',
+    paddingVertical: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: 'transparent',
+    gap: 8,
   },
-  tripleBtnSelected: {
+  reasonOptionActive: {
     backgroundColor: 'rgba(59, 130, 246, 0.15)',
     borderColor: COLORS.primary,
   },
-  tripleBtnText: {
+  reasonText: {
     fontSize: 12,
     color: COLORS.text.secondary,
   },
-  tripleBtnTextSelected: {
+  reasonTextActive: {
     color: COLORS.primary,
     fontWeight: '500',
   },
 
-  // Submit Button
-  submitBtn: {
-    marginTop: 12,
+  // 回復時間
+  recoveryOptions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  recoveryOption: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  recoveryOptionActive: {
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+    borderColor: COLORS.primary,
+  },
+  recoveryText: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+  },
+  recoveryTextActive: {
+    color: COLORS.primary,
+    fontWeight: '500',
   },
 
-  // Result Screen
+  // 結果画面
   resultHeader: {
     alignItems: 'center',
     marginBottom: 24,
   },
-  resultHeaderTitle: {
+  resultTitle: {
     fontSize: 24,
     fontWeight: '700',
     color: COLORS.text.primary,
     marginBottom: 4,
   },
-  resultHeaderDate: {
+  resultDate: {
     fontSize: 14,
     color: COLORS.text.secondary,
   },
-  etpResultCard: {
+  etpCard: {
     backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    borderRadius: 16,
-    padding: 24,
-    alignItems: 'center',
-    marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(59, 130, 246, 0.3)',
+    borderRadius: 20,
+    padding: 28,
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  etpResultLabel: {
+  etpLabel: {
     fontSize: 14,
     color: COLORS.text.secondary,
     marginBottom: 8,
   },
-  etpResultValue: {
-    fontSize: 48,
+  etpValue: {
+    fontSize: 52,
     fontWeight: '800',
     color: COLORS.text.primary,
   },
-  etpResultPace: {
+  etpPace: {
     fontSize: 18,
     color: COLORS.text.secondary,
     marginTop: 4,
   },
-  limiterResultCard: {
+  limiterCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderLeftWidth: 4,
     gap: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 20,
+    borderLeftWidth: 4,
   },
-  limiterResultInfo: {
-    flex: 1,
-  },
-  limiterResultName: {
+  limiterName: {
     fontSize: 16,
     fontWeight: '600',
-    marginBottom: 4,
-  },
-  limiterResultConfidence: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
-  },
-  testDetailCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
-  },
-  testDetailTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text.secondary,
-    marginBottom: 12,
-  },
-  testDetailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  testDetailLabel: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
-  },
-  testDetailValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text.primary,
-  },
-  completeBtn: {
-    marginTop: 8,
   },
 
-  // Zones Result
-  zonesResultCard: {
+  // ゾーンカード
+  zonesCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 16,
   },
-  zonesResultTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text.muted,
-    marginBottom: 12,
-  },
-  zoneResultRow: {
+  zoneRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.05)',
   },
-  zoneResultInfo: {
+  zoneInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
-  zoneResultDot: {
+  zoneDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
   },
-  zoneResultName: {
+  zoneName: {
     fontSize: 14,
     color: COLORS.text.primary,
   },
-  zoneResultPace: {
+  zonePace: {
     fontSize: 14,
+    fontWeight: '500',
     color: COLORS.text.secondary,
   },
 
-  // Predictions Result
-  predictionsResultCard: {
+  // 予測カード
+  predictionsCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  predictionsResultTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text.muted,
-    marginBottom: 12,
-  },
-  predictionsResultGrid: {
+  predictionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  predictionResultItem: {
+  predictionItem: {
     width: '48%',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 10,
+    padding: 14,
     alignItems: 'center',
   },
-  predictionResultDistance: {
+  predictionDistance: {
     fontSize: 12,
     color: COLORS.text.muted,
     marginBottom: 4,
   },
-  predictionResultTime: {
-    fontSize: 18,
+  predictionTime: {
+    fontSize: 16,
     fontWeight: '700',
     color: COLORS.text.primary,
   },

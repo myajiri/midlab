@@ -253,3 +253,4 @@ export interface WeekProgress {
   total: number;
   days: boolean[];
 }
+

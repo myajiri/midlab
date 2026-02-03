@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastProvider } from '../src/components/ui';
 import { useSettingsStore } from '../src/stores/useAppStore';
@@ -51,29 +52,41 @@ export default function RootLayout() {
   }, [onboardingComplete, segments, isNavigationReady, isMigrationComplete]);
 
   return (
-    <SafeAreaProvider>
-      <ToastProvider>
-        <View style={styles.container}>
-          <StatusBar style="light" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: COLORS.background.dark },
-              animation: 'fade',
-            }}
-          >
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="onboarding"
-              options={{
+    <GestureHandlerRootView style={styles.container}>
+      <SafeAreaProvider>
+        <ToastProvider>
+          <View style={styles.container}>
+            <StatusBar style="light" />
+            <Stack
+              screenOptions={{
                 headerShown: false,
-                gestureEnabled: false,
+                contentStyle: { backgroundColor: COLORS.background.dark },
+                animation: 'slide_from_right',
+                gestureEnabled: true,
+                gestureDirection: 'horizontal',
               }}
-            />
-          </Stack>
-        </View>
-      </ToastProvider>
-    </SafeAreaProvider>
+            >
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="onboarding"
+                options={{
+                  headerShown: false,
+                  gestureEnabled: false,
+                }}
+              />
+              <Stack.Screen
+                name="upgrade"
+                options={{
+                  headerShown: false,
+                  gestureEnabled: true,
+                  presentation: 'card',
+                }}
+              />
+            </Stack>
+          </View>
+        </ToastProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 

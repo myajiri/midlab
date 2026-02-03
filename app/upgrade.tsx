@@ -150,7 +150,7 @@ export default function UpgradeScreen() {
                         colors={['rgba(245, 158, 11, 0.2)', 'rgba(245, 158, 11, 0.05)']}
                         style={styles.premiumActiveCard}
                     >
-                        <Text style={styles.premiumActiveIcon}>👑</Text>
+                        <Ionicons name="trophy" size={48} color="#F59E0B" />
                         <Text style={styles.premiumActiveTitle}>プレミアム会員</Text>
                         <Text style={styles.premiumActiveDescription}>
                             すべてのプレミアム機能をご利用いただけます
@@ -197,7 +197,7 @@ export default function UpgradeScreen() {
                     colors={['rgba(245, 158, 11, 0.25)', 'rgba(245, 158, 11, 0.05)']}
                     style={styles.heroSection}
                 >
-                    <Text style={styles.heroIcon}>👑</Text>
+                    <Ionicons name="trophy" size={56} color="#F59E0B" />
                     <Text style={styles.heroTitle}>MidLab Premium</Text>
                     <Text style={styles.heroSubtitle}>
                         {feature
@@ -325,10 +325,7 @@ const styles = StyleSheet.create({
         paddingVertical: 24,
         paddingHorizontal: 20,
         alignItems: 'center',
-    },
-    heroIcon: {
-        fontSize: 48,
-        marginBottom: 8,
+        gap: 8,
     },
     heroTitle: {
         fontSize: 24,
@@ -472,10 +469,7 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         padding: 32,
         alignItems: 'center',
-    },
-    premiumActiveIcon: {
-        fontSize: 56,
-        marginBottom: 12,
+        gap: 12,
     },
     premiumActiveTitle: {
         fontSize: 22,
