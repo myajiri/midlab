@@ -25,14 +25,16 @@ interface SwipeBackViewProps {
 export const SwipeBackView = ({ children, onSwipeBack, enabled = true }: SwipeBackViewProps) => {
     const translateX = useSharedValue(0);
     const isEdgeSwipe = useSharedValue(false);
+    const handled = useSharedValue(false);
 
     const panGesture = Gesture.Pan()
         .enabled(enabled)
-        .activeOffsetX([10, SCREEN_WIDTH]) // 右方向10px以上で発火
+        .activeOffsetX(10) // 右方向10px以上で発火
         .failOffsetY([-15, 15]) // 垂直15px以上で失敗（スクロール優先）
         .onBegin((event) => {
             // 左端からの開始かを判定
             isEdgeSwipe.value = event.absoluteX < EDGE_WIDTH;
+            handled.value = false;
         })
         .onUpdate((event) => {
             // 左端スワイプのみ、1:1で追従
@@ -41,22 +43,17 @@ export const SwipeBackView = ({ children, onSwipeBack, enabled = true }: SwipeBa
             }
         })
         .onEnd((event) => {
+            handled.value = true;
+
             if (!isEdgeSwipe.value) {
+                isEdgeSwipe.value = false;
                 return;
             }
 
             if (event.translationX > SWIPE_THRESHOLD && event.velocityX > 200) {
-                // スワイプ成功 - スプリングで画面外へ
-                translateX.value = withSpring(SCREEN_WIDTH, {
-                    velocity: event.velocityX,
-                    damping: 20,
-                    stiffness: 100,
-                }, (finished) => {
-                    if (finished) {
-                        runOnJS(onSwipeBack)();
-                        translateX.value = 0;
-                    }
-                });
+                // スワイプ成功 - 即座にコールバック（アンマウントとの競合回避）
+                translateX.value = 0;
+                runOnJS(onSwipeBack)();
             } else {
                 // 元に戻す - 柔らかいスプリング
                 translateX.value = withSpring(0, {
@@ -70,14 +67,14 @@ export const SwipeBackView = ({ children, onSwipeBack, enabled = true }: SwipeBa
             isEdgeSwipe.value = false;
         })
         .onFinalize(() => {
-            // キャンセル時も柔らかく戻す
-            if (translateX.value !== 0) {
-                translateX.value = withSpring(0, {
-                    damping: 20,
-                    stiffness: 200,
-                    mass: 0.8,
-                });
-            }
+            // onEndで処理済みなら何もしない
+            if (handled.value) return;
+            // キャンセル時のみ戻す
+            translateX.value = withSpring(0, {
+                damping: 20,
+                stiffness: 200,
+                mass: 0.8,
+            });
             isEdgeSwipe.value = false;
         });
 
