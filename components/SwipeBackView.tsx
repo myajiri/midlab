@@ -1,17 +1,18 @@
-import React, { useRef, ReactNode } from 'react';
-import {
-    Animated,
-    PanResponder,
-    Dimensions,
-    StyleSheet,
-    View,
-    GestureResponderEvent,
-    PanResponderGestureState,
-} from 'react-native';
+import React, { ReactNode } from 'react';
+import { Dimensions, StyleSheet } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+    useSharedValue,
+    useAnimatedStyle,
+    withTiming,
+    withSpring,
+    Easing,
+    interpolate,
+    runOnJS,
+} from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.2; // 20%以上でスワイプ成功
-const EDGE_WIDTH = 50; // 左端50pxからのスワイプを検出
+const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.25; // 25%以上でスワイプ成功
 
 interface SwipeBackViewProps {
     children: ReactNode;
@@ -21,110 +22,89 @@ interface SwipeBackViewProps {
 
 /**
  * スワイプバックジェスチャーを提供するラッパーコンポーネント
- * 左端から右スワイプで前画面に戻る動作を実現
+ * 画面全体から右スワイプで前画面に戻る（スライドアウトアニメーション付き）
  */
 export const SwipeBackView = ({ children, onSwipeBack, enabled = true }: SwipeBackViewProps) => {
-    const translateX = useRef(new Animated.Value(0)).current;
-    const isSwipeActive = useRef(false);
-    const startX = useRef(0);
+    const translateX = useSharedValue(0);
 
-    const panResponder = useRef(
-        PanResponder.create({
-            onStartShouldSetPanResponder: () => false,
-            onMoveShouldSetPanResponder: (
-                event: GestureResponderEvent,
-                gestureState: PanResponderGestureState
-            ) => {
-                // 左端からの右スワイプのみを検出
-                const shouldCapture =
-                    enabled &&
-                    gestureState.dx > 15 && // 15px以上の右移動
-                    event.nativeEvent.pageX < EDGE_WIDTH && // 左端から開始
-                    Math.abs(gestureState.dx) > Math.abs(gestureState.dy * 1.5); // 水平方向が優勢
-
-                if (shouldCapture) {
-                    isSwipeActive.current = true;
-                    startX.current = event.nativeEvent.pageX;
-                }
-                return shouldCapture;
-            },
-            onMoveShouldSetPanResponderCapture: (
-                event: GestureResponderEvent,
-                gestureState: PanResponderGestureState
-            ) => {
-                // より積極的にキャプチャ
-                return (
-                    enabled &&
-                    gestureState.dx > 15 &&
-                    event.nativeEvent.pageX < EDGE_WIDTH &&
-                    Math.abs(gestureState.dx) > Math.abs(gestureState.dy * 1.5)
-                );
-            },
-            onPanResponderGrant: () => {
-                translateX.setValue(0);
-                isSwipeActive.current = true;
-            },
-            onPanResponderMove: (_, gestureState: PanResponderGestureState) => {
-                if (isSwipeActive.current && gestureState.dx > 0) {
-                    translateX.setValue(gestureState.dx);
-                }
-            },
-            onPanResponderRelease: (_, gestureState: PanResponderGestureState) => {
-                if (!isSwipeActive.current) {
-                    return;
-                }
-
-                if (gestureState.dx > SWIPE_THRESHOLD && gestureState.vx > 0.2) {
-                    // スワイプ成功 - 画面右へスライド
-                    Animated.timing(translateX, {
-                        toValue: SCREEN_WIDTH,
-                        duration: 200,
-                        useNativeDriver: true,
-                    }).start(() => {
-                        onSwipeBack();
-                        translateX.setValue(0);
-                    });
-                } else {
-                    // 元に戻す
-                    Animated.spring(translateX, {
-                        toValue: 0,
-                        useNativeDriver: true,
-                        tension: 100,
-                        friction: 10,
-                    }).start();
-                }
-                isSwipeActive.current = false;
-            },
-            onPanResponderTerminate: () => {
-                // キャンセルされた場合は元に戻す
-                Animated.spring(translateX, {
-                    toValue: 0,
-                    useNativeDriver: true,
-                }).start();
-                isSwipeActive.current = false;
-            },
+    const panGesture = Gesture.Pan()
+        .enabled(enabled)
+        .activeOffsetX(20) // 右方向20px以上で発火
+        .failOffsetY([-20, 20]) // 垂直20px以上で失敗（スクロール優先）
+        .onUpdate((event) => {
+            // 右方向のみ追従
+            if (event.translationX > 0) {
+                translateX.value = event.translationX;
+            }
         })
-    ).current;
+        .onEnd((event) => {
+            const shouldGoBack =
+                event.translationX > SWIPE_THRESHOLD ||
+                (event.translationX > 50 && event.velocityX > 300);
+
+            if (shouldGoBack) {
+                // スワイプ成功 - 画面外へスライドアウトしてから遷移
+                const velocity = Math.max(event.velocityX, 500);
+                // 速度からdurationを計算（残りの距離 / 速度）
+                const remaining = SCREEN_WIDTH - event.translationX;
+                const duration = Math.min(Math.max(remaining / velocity * 1000, 120), 300);
+
+                translateX.value = withTiming(SCREEN_WIDTH, {
+                    duration,
+                    easing: Easing.out(Easing.cubic),
+                }, (finished) => {
+                    if (finished) {
+                        runOnJS(onSwipeBack)();
+                    }
+                });
+            } else {
+                // 元に戻す
+                translateX.value = withSpring(0, {
+                    damping: 20,
+                    stiffness: 200,
+                    mass: 0.8,
+                    velocity: event.velocityX,
+                });
+            }
+        });
+
+    // メインビューのスタイル（右にスライド + わずかに縮小）
+    const animatedStyle = useAnimatedStyle(() => ({
+        transform: [
+            { translateX: translateX.value },
+            { scale: interpolate(translateX.value, [0, SCREEN_WIDTH], [1, 0.92]) },
+        ],
+        borderRadius: interpolate(translateX.value, [0, 100], [0, 12]),
+        overflow: 'hidden' as const,
+    }));
+
+    // 背景の暗幕（スワイプ中に背景が暗くなる）
+    const overlayStyle = useAnimatedStyle(() => ({
+        opacity: interpolate(translateX.value, [0, SCREEN_WIDTH], [0, 0.4]),
+    }));
 
     return (
-        <View style={styles.container} {...panResponder.panHandlers}>
-            <Animated.View
-                style={[
-                    styles.content,
-                    {
-                        transform: [{ translateX }],
-                    },
-                ]}
-            >
-                {children}
+        <GestureDetector gesture={panGesture}>
+            <Animated.View style={styles.container}>
+                {/* 背景の暗幕 */}
+                <Animated.View style={[styles.overlay, overlayStyle]} pointerEvents="none" />
+                {/* メインコンテンツ */}
+                <Animated.View style={[styles.content, animatedStyle]}>
+                    {children}
+                </Animated.View>
             </Animated.View>
-        </View>
+        </GestureDetector>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        backgroundColor: '#000',
+    },
+    overlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: '#000',
     },
     content: {
         flex: 1,

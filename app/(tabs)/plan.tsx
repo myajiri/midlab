@@ -2,7 +2,7 @@
 // Plan Screen - トレーニング計画画面（簡素化版）
 // ============================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import {
   View,
@@ -43,6 +43,9 @@ import {
   ScheduledWorkout,
   LimiterType,
 } from '../../src/types';
+import { useSetSubScreenOpen } from '../../store/useUIStore';
+import { SwipeBackView } from '../../components/SwipeBackView';
+import { useIsFocused } from '@react-navigation/native';
 
 // シンプルなビュータイプ（3つに削減）
 type ViewType = 'overview' | 'create' | 'weekly';
@@ -57,6 +60,16 @@ export default function PlanScreen() {
   const { etp, limiter } = useEffectiveValues();
 
   const [view, setView] = useState<ViewType>(activePlan ? 'overview' : 'create');
+  const setSubScreenOpen = useSetSubScreenOpen();
+  const isFocused = useIsFocused();
+
+  // フォーカス中のタブのみフラグを制御（タブ間の競合を防止）
+  useEffect(() => {
+    if (isFocused) {
+      setSubScreenOpen(view === 'weekly');
+    }
+  }, [view, isFocused, setSubScreenOpen]);
+
   const [selectedWeek, setSelectedWeek] = useState(1);
 
   // 計画作成フォーム
@@ -269,6 +282,7 @@ export default function PlanScreen() {
     const weekPlan = activePlan.weeklyPlans?.[selectedWeek - 1];
     if (!weekPlan) {
       return (
+        <SwipeBackView onSwipeBack={() => setView('overview')}>
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.header}>
             <Pressable style={styles.backButton} onPress={() => setView('overview')}>
@@ -281,6 +295,7 @@ export default function PlanScreen() {
             <Text style={styles.emptyTitle}>データがありません</Text>
           </View>
         </SafeAreaView>
+        </SwipeBackView>
       );
     }
 
@@ -289,6 +304,7 @@ export default function PlanScreen() {
     const isCurrentWeek = selectedWeek === currentWeekNumber;
 
     return (
+      <SwipeBackView onSwipeBack={() => setView('overview')}>
       <SafeAreaView style={styles.container} edges={['top']}>
         {/* ヘッダー */}
         <View style={styles.header}>
@@ -417,6 +433,7 @@ export default function PlanScreen() {
           </FadeIn>
         </ScrollView>
       </SafeAreaView>
+      </SwipeBackView>
     );
   }
 

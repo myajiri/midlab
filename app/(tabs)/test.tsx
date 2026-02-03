@@ -2,7 +2,7 @@
 // Test Screen - ETPテスト画面（簡素化版）
 // ============================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -48,6 +48,9 @@ import {
   TestResult,
   ZoneName,
 } from '../../src/types';
+import { useSetSubScreenOpen } from '../../store/useUIStore';
+import { SwipeBackView } from '../../components/SwipeBackView';
+import { useIsFocused } from '@react-navigation/native';
 
 export default function TestScreen() {
   const profile = useProfileStore((state) => state.profile);
@@ -75,6 +78,16 @@ export default function TestScreen() {
 
   // 状態管理
   const [view, setView] = useState<'main' | 'input' | 'result'>('main');
+  const setSubScreenOpen = useSetSubScreenOpen();
+  const isFocused = useIsFocused();
+
+  // フォーカス中のタブのみフラグを制御（タブ間の競合を防止）
+  useEffect(() => {
+    if (isFocused) {
+      setSubScreenOpen(view !== 'main');
+    }
+  }, [view, isFocused, setSubScreenOpen]);
+
   const [level, setLevel] = useState<LevelName>(() => getRecommendedLevel());
   const [completedLaps, setCompletedLaps] = useState(5);
   const [terminationReason, setTerminationReason] = useState<TerminationReason>('both');
@@ -136,6 +149,7 @@ export default function TestScreen() {
   if (view === 'result' && lastTestResult) {
     const limiterInfo = LIMITER_DISPLAY[lastTestResult.limiterType];
     return (
+      <SwipeBackView onSwipeBack={() => setView('main')}>
       <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
           <SuccessCheckmark size={80} color={COLORS.success} />
@@ -208,6 +222,7 @@ export default function TestScreen() {
           </FadeIn>
         </ScrollView>
       </SafeAreaView>
+      </SwipeBackView>
     );
   }
 
@@ -216,6 +231,7 @@ export default function TestScreen() {
   // ============================================
   if (view === 'input') {
     return (
+      <SwipeBackView onSwipeBack={() => setView('main')}>
       <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
           <View style={styles.header}>
@@ -334,6 +350,7 @@ export default function TestScreen() {
           </SlideIn>
         </ScrollView>
       </SafeAreaView>
+      </SwipeBackView>
     );
   }
 
