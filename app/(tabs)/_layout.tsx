@@ -48,6 +48,19 @@ export default function TabLayout() {
     router.push(`/(tabs)/${tab === 'index' ? '' : tab}`);
   };
 
+  // スワイプ終了時の処理（JSスレッドで実行）
+  const handleSwipeEnd = (translationX: number) => {
+    const currentIndex = getCurrentIndex();
+
+    if (translationX < -SWIPE_THRESHOLD && currentIndex < TAB_ORDER.length - 1) {
+      // 左スワイプ - 次のタブへ
+      navigateToTab(currentIndex + 1);
+    } else if (translationX > SWIPE_THRESHOLD && currentIndex > 0) {
+      // 右スワイプ - 前のタブへ
+      navigateToTab(currentIndex - 1);
+    }
+  };
+
   const panGesture = Gesture.Pan()
     .activeOffsetX([-20, 20]) // 水平20px以上で発火
     .failOffsetY([-10, 10]) // 垂直10px以上で失敗（スクロール優先）
@@ -55,16 +68,7 @@ export default function TabLayout() {
       translateX.value = event.translationX * 0.3;
     })
     .onEnd((event) => {
-      const currentIndex = getCurrentIndex();
-
-      if (event.translationX < -SWIPE_THRESHOLD && currentIndex < TAB_ORDER.length - 1) {
-        // 左スワイプ - 次のタブへ
-        runOnJS(navigateToTab)(currentIndex + 1);
-      } else if (event.translationX > SWIPE_THRESHOLD && currentIndex > 0) {
-        // 右スワイプ - 前のタブへ
-        runOnJS(navigateToTab)(currentIndex - 1);
-      }
-
+      runOnJS(handleSwipeEnd)(event.translationX);
       translateX.value = withSpring(0, { damping: 20, stiffness: 200 });
     });
 
