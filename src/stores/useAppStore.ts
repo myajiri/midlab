@@ -217,6 +217,7 @@ interface PlanState {
     duration?: number;
     notes?: string;
   }) => void;
+  toggleWorkoutComplete: (weekNumber: number, workoutId: string) => void;
 }
 
 export const usePlanStore = create<PlanState>()(
@@ -243,6 +244,31 @@ export const usePlanStore = create<PlanState>()(
             days: week.days.map((d) => {
               if (!d || d.id !== workoutId) return d;
               return { ...d, completed: true, actualData };
+            }),
+          };
+        });
+
+        set({
+          activePlan: { ...plan, weeklyPlans: updatedWeeklyPlans },
+        });
+      },
+
+      // 完了状態をトグル（完了→未完了、未完了→完了）
+      toggleWorkoutComplete: (weekNumber, workoutId) => {
+        const plan = get().activePlan;
+        if (!plan) return;
+
+        const updatedWeeklyPlans = plan.weeklyPlans.map((week) => {
+          if (week.weekNumber !== weekNumber) return week;
+          return {
+            ...week,
+            workouts: week.workouts.map((w) => {
+              if (w.id !== workoutId) return w;
+              return { ...w, completed: !w.completed, actualData: w.completed ? undefined : w.actualData };
+            }),
+            days: week.days.map((d) => {
+              if (!d || d.id !== workoutId) return d;
+              return { ...d, completed: !d.completed, actualData: d.completed ? undefined : d.actualData };
             }),
           };
         });

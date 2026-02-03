@@ -20,7 +20,7 @@ import {
   useEffectiveValues,
 } from '../../src/stores/useAppStore';
 import { formatTime, formatKmPace } from '../../src/utils';
-import { Card, Button, SwipeableRow, DatePickerModal, TimePickerModal } from '../../src/components/ui';
+import { Card, Button, DatePickerModal, TimePickerModal } from '../../src/components/ui';
 import { FadeIn, SlideIn, AnimatedPressable } from '../../src/components/ui/Animated';
 import { PremiumGate } from '../../components/PremiumGate';
 import { useIsPremium } from '../../store/useSubscriptionStore';
@@ -53,7 +53,7 @@ export default function PlanScreen() {
   const activePlan = usePlanStore((state) => state.activePlan);
   const setPlan = usePlanStore((state) => state.setPlan);
   const clearPlan = usePlanStore((state) => state.clearPlan);
-  const markWorkoutComplete = usePlanStore((state) => state.markWorkoutComplete);
+  const toggleWorkoutComplete = usePlanStore((state) => state.toggleWorkoutComplete);
   const { etp, limiter } = useEffectiveValues();
 
   const [view, setView] = useState<ViewType>(activePlan ? 'overview' : 'create');
@@ -371,51 +371,49 @@ export default function PlanScreen() {
               const iconInfo = getWorkoutIconInfo(day.type);
               return (
                 <SlideIn key={i} delay={200 + i * 50} direction="up">
-                  <Pressable
-                    onPress={() => {
-                      if (!isRestDay && day.type !== 'test') {
-                        router.push({
-                          pathname: '/(tabs)/workout',
-                          params: { category: day.focusCategory || 'all' },
-                        });
-                      }
-                    }}
-                  >
-                    <SwipeableRow
-                      onSwipeComplete={() => markWorkoutComplete(weekPlan.weekNumber, day.id)}
-                      disabled={isRestDay}
-                      completed={day.completed}
+                  <View style={[styles.dayCard, day.completed && styles.dayCardCompleted]}>
+                    <Pressable
+                      style={styles.dayContent}
+                      onPress={() => {
+                        if (!isRestDay && day.type !== 'test') {
+                          router.push({
+                            pathname: '/(tabs)/workout',
+                            params: { category: day.focusCategory || 'all' },
+                          });
+                        }
+                      }}
                     >
-                      <View style={[styles.dayCard, day.completed && styles.dayCardCompleted]}>
-                        <View style={styles.dayLeft}>
-                          <Text style={styles.dayName}>{dayNames[i]}</Text>
-                          <View style={[styles.dayIcon, { backgroundColor: iconInfo.color + '20' }]}>
-                            <Ionicons name={iconInfo.name as any} size={16} color={iconInfo.color} />
-                          </View>
-                        </View>
-                        <View style={styles.dayCenter}>
-                          <Text style={[styles.dayLabel, day.isKey && styles.dayLabelKey]}>{day.label}</Text>
-                          {day.isKey && <Text style={styles.keyBadge}>Key</Text>}
-                        </View>
-                        <View style={styles.dayRight}>
-                          {day.completed ? (
-                            <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
-                          ) : isRestDay ? (
-                            <View />
-                          ) : (
-                            <Text style={styles.swipeHint}>→</Text>
-                          )}
+                      <View style={styles.dayLeft}>
+                        <Text style={styles.dayName}>{dayNames[i]}</Text>
+                        <View style={[styles.dayIcon, { backgroundColor: iconInfo.color + '20' }]}>
+                          <Ionicons name={iconInfo.name as any} size={16} color={iconInfo.color} />
                         </View>
                       </View>
-                    </SwipeableRow>
-                  </Pressable>
+                      <View style={styles.dayCenter}>
+                        <Text style={[styles.dayLabel, day.isKey && styles.dayLabelKey]}>{day.label}</Text>
+                        {day.isKey && <Text style={styles.keyBadge}>Key</Text>}
+                      </View>
+                    </Pressable>
+                    {!isRestDay && (
+                      <Pressable
+                        style={styles.checkButton}
+                        onPress={() => toggleWorkoutComplete(weekPlan.weekNumber, day.id)}
+                      >
+                        <Ionicons
+                          name={day.completed ? 'checkmark-circle' : 'ellipse-outline'}
+                          size={28}
+                          color={day.completed ? COLORS.success : COLORS.text.muted}
+                        />
+                      </Pressable>
+                    )}
+                  </View>
                 </SlideIn>
               );
             })}
           </View>
 
           <FadeIn delay={600}>
-            <Text style={styles.swipeHintText}>スワイプで完了マーク</Text>
+            <Text style={styles.completionHintText}>タップで完了マーク</Text>
           </FadeIn>
         </ScrollView>
       </SafeAreaView>
@@ -1298,16 +1296,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     borderRadius: 4,
   },
-  dayRight: {
-    width: 30,
+  dayContent: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  swipeHint: {
-    fontSize: 18,
-    color: COLORS.text.muted,
-    opacity: 0.4,
+  checkButton: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  swipeHintText: {
+  completionHintText: {
     fontSize: 12,
     color: COLORS.text.muted,
     textAlign: 'center',
