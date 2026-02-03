@@ -75,31 +75,36 @@ export const SwipeBackView = ({ children, onSwipeBack, enabled = true }: SwipeBa
                 }
 
                 if (gestureState.dx > SWIPE_THRESHOLD && gestureState.vx > 0.2) {
-                    // スワイプ成功 - 画面右へスライド
-                    Animated.timing(translateX, {
+                    // スワイプ成功 - スプリングで自然に画面外へ
+                    Animated.spring(translateX, {
                         toValue: SCREEN_WIDTH,
-                        duration: 200,
                         useNativeDriver: true,
+                        tension: 50,
+                        friction: 8,
+                        velocity: gestureState.vx,
                     }).start(() => {
                         onSwipeBack();
                         translateX.setValue(0);
                     });
                 } else {
-                    // 元に戻す
+                    // 元に戻す - 柔らかいスプリング
                     Animated.spring(translateX, {
                         toValue: 0,
                         useNativeDriver: true,
-                        tension: 100,
-                        friction: 10,
+                        tension: 65,
+                        friction: 7,
+                        velocity: gestureState.vx,
                     }).start();
                 }
                 isSwipeActive.current = false;
             },
             onPanResponderTerminate: () => {
-                // キャンセルされた場合は元に戻す
+                // キャンセルされた場合は柔らかく元に戻す
                 Animated.spring(translateX, {
                     toValue: 0,
                     useNativeDriver: true,
+                    tension: 65,
+                    friction: 7,
                 }).start();
                 isSwipeActive.current = false;
             },

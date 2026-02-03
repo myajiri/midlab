@@ -53,26 +53,31 @@ export const SwipeableRow: React.FC<SwipeableRowProps> = ({
       },
       onPanResponderRelease: (_, gestureState) => {
         if (gestureState.dx > SWIPE_THRESHOLD) {
-          // スワイプ完了 - アクションを実行
+          // スワイプ完了 - 柔らかいスプリングでアクションを実行
           Animated.spring(translateX, {
             toValue: SWIPE_THRESHOLD,
             useNativeDriver: true,
-            friction: 8,
+            tension: 50,
+            friction: 7,
+            velocity: gestureState.vx,
           }).start(() => {
             onSwipeComplete?.();
-            // 元に戻す
-            Animated.timing(translateX, {
+            // スプリングで自然に元に戻す
+            Animated.spring(translateX, {
               toValue: 0,
-              duration: 200,
               useNativeDriver: true,
+              tension: 65,
+              friction: 7,
             }).start();
           });
         } else {
-          // 元に戻す
+          // 元に戻す - 柔らかいスプリング
           Animated.spring(translateX, {
             toValue: 0,
             useNativeDriver: true,
-            friction: 8,
+            tension: 65,
+            friction: 7,
+            velocity: gestureState.vx,
           }).start();
         }
       },
