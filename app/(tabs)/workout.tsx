@@ -233,10 +233,11 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
         <SlideIn delay={200} direction="up">
           <Text style={styles.sectionLabel}>メニュー</Text>
           <View style={styles.segmentsContainer}>
-            {expandedSegments.map((seg, i) => {
-              const pace =
-                seg.zone !== 'rest' ? calculateWorkoutPace(etp, seg.zone, limiter) : 0;
-              const zoneConfig = seg.zone !== 'rest' ? ZONE_COEFFICIENTS_V3[seg.zone] : null;
+            {workout.segments.map((seg, i) => {
+              const pace = calculateWorkoutPace(etp, seg.zone, limiter);
+              const zoneConfig = ZONE_COEFFICIENTS_V3[seg.zone];
+              const reps = variant?.reps || seg.reps;
+              const recovery = variant?.recoveryDistance || seg.recoveryDistance;
 
               return (
                 <View
@@ -247,10 +248,14 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
                   ]}
                 >
                   <View style={styles.segmentItemMain}>
-                    <Text style={styles.segmentItemLabel}>{seg.label}</Text>
+                    <Text style={styles.segmentItemLabel}>
+                      {seg.label}
+                      {reps && reps > 1 ? ` × ${reps}本` : ''}
+                      {reps && reps > 1 && recovery ? `（回復${recovery}m）` : ''}
+                    </Text>
                     <Text style={styles.segmentItemDistance}>{seg.distance}m</Text>
                   </View>
-                  {seg.zone !== 'rest' && pace > 0 && (
+                  {pace > 0 && (
                     <Text style={styles.segmentItemPace}>{formatKmPace(pace)}</Text>
                   )}
                 </View>
