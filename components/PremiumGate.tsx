@@ -5,6 +5,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useIsPremium } from '../store/useSubscriptionStore';
 import { COLORS } from '../src/constants';
 
@@ -49,7 +50,8 @@ export const PremiumBadge: React.FC = () => {
 
     return (
         <View style={styles.badge}>
-            <Text style={styles.badgeText}>👑 Premium</Text>
+            <Ionicons name="trophy" size={12} color="#F59E0B" />
+            <Text style={styles.badgeText}>Premium</Text>
         </View>
     );
 };
@@ -59,7 +61,8 @@ export const PremiumBadge: React.FC = () => {
  */
 export const PremiumLabel: React.FC = () => (
     <View style={styles.label}>
-        <Text style={styles.labelText}>👑 PRO</Text>
+        <Ionicons name="trophy" size={10} color="#F59E0B" />
+        <Text style={styles.labelText}>PRO</Text>
     </View>
 );
 
@@ -69,6 +72,9 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.background.dark,
     },
     badge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
         backgroundColor: 'rgba(245, 158, 11, 0.2)',
         paddingHorizontal: 10,
         paddingVertical: 4,
@@ -80,6 +86,9 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     label: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 3,
         backgroundColor: '#F59E0B',
         paddingHorizontal: 6,
         paddingVertical: 2,
