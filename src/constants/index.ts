@@ -204,7 +204,7 @@ export const LIMITER_ICONS: Record<LimiterType, { icon: string; label: string; c
 export const WORKOUTS = [
   {
     id: 'easy-6000',
-    name: 'Easy 6000m',
+    name: 'イージー6000m',
     category: '有酸素ベース',
     description: '基礎的な有酸素能力を構築するイージーペースでの持続走。会話ができるペースで脂肪燃焼と毛細血管発達を促進。',
     segments: [
@@ -220,7 +220,7 @@ export const WORKOUTS = [
   },
   {
     id: 'long-10000',
-    name: 'Long Run 10000m',
+    name: 'ロングラン10000m',
     category: '有酸素ベース',
     description: 'プログレッシブ・ロングラン。後半にかけてペースを上げ、疲労状態でのペース維持能力を養成。',
     segments: [
@@ -238,7 +238,7 @@ export const WORKOUTS = [
   },
   {
     id: 'tempo-4000',
-    name: 'Tempo 4000m',
+    name: 'テンポ走4000m',
     category: '乳酸閾値',
     description: '閾値ペースでの持続走。乳酸処理能力を向上させ、レースペースの維持能力を高める。「快適にきつい」ペースを維持。',
     segments: [
@@ -254,7 +254,7 @@ export const WORKOUTS = [
   },
   {
     id: 'cruise-1600x3',
-    name: 'Cruise 1600m×3',
+    name: 'クルーズ1600m×3',
     category: '乳酸閾値',
     description: '閾値ペースでのクルーズインターバル。回復を挟むことで質の高い閾値刺激を維持。',
     segments: [
@@ -270,7 +270,7 @@ export const WORKOUTS = [
   },
   {
     id: 'vo2max-1000x5',
-    name: '1000m×5 Intervals',
+    name: '1000m×5インターバル',
     category: 'VO2max',
     targetLimiter: 'cardio' as LimiterType,
     description: 'インターバルペースでの高強度反復。VO2maxを刺激し最大酸素摂取量を向上。心肺リミッター型の改善に効果的。',
@@ -287,7 +287,7 @@ export const WORKOUTS = [
   },
   {
     id: 'vo2max-800x6',
-    name: '800m×6 Intervals',
+    name: '800m×6インターバル',
     category: 'VO2max',
     description: '800mインターバル。1000mより速いペースで短時間の高強度刺激。スピード持久力の養成に。',
     segments: [
@@ -303,7 +303,7 @@ export const WORKOUTS = [
   },
   {
     id: 'reps-200x10',
-    name: '200m×10 Reps',
+    name: '200m×10レペティション',
     category: '神経筋系',
     targetLimiter: 'muscular' as LimiterType,
     description: 'レペティションペースでの短距離反復。神経筋協調性とランニングエコノミーを改善。筋持久力リミッター型のスピード強化に効果的。',
@@ -320,7 +320,7 @@ export const WORKOUTS = [
   },
   {
     id: 'pyramid',
-    name: 'Pyramid',
+    name: 'ピラミッド',
     category: '総合',
     description: '段階的に距離を上げ下げするピラミッド。400→800→1200→800→400で多様なペース刺激。スピードと持久力を同時養成。',
     segments: [
