@@ -731,7 +731,7 @@ function generateWeeklySchedule(
       { id: `w${weekNumber}-d0`, dayOfWeek: 0, type: 'easy', label: 'Easy走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
       { id: `w${weekNumber}-d1`, dayOfWeek: 1, type: 'easy', label: 'Easy走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
       { id: `w${weekNumber}-d2`, dayOfWeek: 2, type: 'rest', label: '休養', isKey: false, completed: false },
-      { id: `w${weekNumber}-d3`, dayOfWeek: 3, type: 'test', label: 'ランプテスト', isKey: true, completed: false, focusKey: 'test' },
+      { id: `w${weekNumber}-d3`, dayOfWeek: 3, type: 'test', label: 'ETPテスト', isKey: true, completed: false, focusKey: 'test' },
       { id: `w${weekNumber}-d4`, dayOfWeek: 4, type: 'rest', label: '休養', isKey: false, completed: false },
       { id: `w${weekNumber}-d5`, dayOfWeek: 5, type: 'workout', label: focus?.name || '軽めの刺激', isKey: true, completed: false, focusKey: focusKeys[0], focusCategory: focus?.menuCategory },
       { id: `w${weekNumber}-d6`, dayOfWeek: 6, type: 'rest', label: '休養', isKey: false, completed: false },

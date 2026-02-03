@@ -1,5 +1,5 @@
 // ============================================
-// Test Screen - ランプテスト画面（簡素化版）
+// Test Screen - ETPテスト画面（簡素化版）
 // ============================================
 
 import React, { useState, useMemo } from 'react';
@@ -151,7 +151,7 @@ export default function TestScreen() {
 
           <ScaleIn delay={500}>
             <View style={styles.etpCard}>
-              <Text style={styles.etpLabel}>あなたのeTP</Text>
+              <Text style={styles.etpLabel}>あなたのETP</Text>
               <CountUp value={lastTestResult.eTP} duration={1500} style={styles.etpValue} suffix="秒" />
               <Text style={styles.etpPace}>{formatKmPace(lastTestResult.eTP)}</Text>
             </View>
@@ -344,8 +344,8 @@ export default function TestScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
         <FadeIn>
-          <Text style={styles.pageTitle}>ランプテスト</Text>
-          <Text style={styles.pageSubtitle}>eTPを測定してトレーニングゾーンを算出</Text>
+          <Text style={styles.pageTitle}>ETPテスト</Text>
+          <Text style={styles.pageSubtitle}>ETPを測定してトレーニングゾーンを算出</Text>
         </FadeIn>
 
         {/* クイックスタートカード */}

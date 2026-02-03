@@ -104,10 +104,10 @@ export default function WorkoutScreen() {
         <FadeIn>
           <Text style={styles.sectionTitle}>トレーニング</Text>
 
-          {/* eTP表示（2行テーブル） */}
+          {/* ETP表示（2行テーブル） */}
           <View style={styles.etpBox}>
             <View style={styles.etpTableRow}>
-              <Text style={styles.etpLabel}>eTP</Text>
+              <Text style={styles.etpLabel}>ETP</Text>
               <Text style={styles.etpValue}>{Math.round(etp)}秒 ({formatKmPace(etp)})</Text>
             </View>
             <View style={styles.etpDivider} />

@@ -43,8 +43,8 @@ export default function OnboardingResult() {
           <Text style={styles.title}>準備完了！</Text>
           <Text style={styles.subtitle}>
             {estimatedEtp
-              ? 'PBからeTPを推定しました'
-              : 'ランプテストでeTPを測定しましょう'}
+              ? 'PBからETPを推定しました'
+              : 'ETPテストでETPを測定しましょう'}
           </Text>
         </SlideIn>
 
@@ -52,7 +52,7 @@ export default function OnboardingResult() {
         {estimatedEtp && (
           <ScaleIn delay={500}>
             <View style={styles.etpCard}>
-              <Text style={styles.etpLabel}>推定eTP</Text>
+              <Text style={styles.etpLabel}>推定ETP</Text>
               <Text style={styles.etpPace}>{formatKmPace(estimatedEtp)}</Text>
               <Text style={styles.etpSec}>{estimatedEtp}秒/400m</Text>
             </View>
@@ -64,7 +64,7 @@ export default function OnboardingResult() {
           <View style={styles.nextSteps}>
             <Text style={styles.nextStepsTitle}>次のステップ</Text>
             {[
-              { icon: 'analytics', text: 'テストタブでランプテストを実施' },
+              { icon: 'analytics', text: 'テストタブでETPテストを実施' },
               { icon: 'home', text: 'ホームでゾーンを確認' },
               { icon: 'fitness', text: 'トレーニングを開始' },
             ].map((step, i) => (

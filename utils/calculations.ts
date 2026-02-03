@@ -238,7 +238,7 @@ export const determineLimiterFromRuns = (
 };
 
 /**
- * ランプテストの終了理由からリミッタータイプを判定
+ * ETPテストの終了理由からリミッタータイプを判定
  */
 export const determineLimiterFromTest = (
     reason: 'breath' | 'legs' | 'both' | 'other',
@@ -347,7 +347,7 @@ export const predict5kTime = (etp: number, limiterType: LimiterType): number => 
 };
 
 // ============================================
-// ランプテスト関連
+// ETPテスト関連
 // ============================================
 
 /**
@@ -492,7 +492,7 @@ const generateWeeklySchedule = (
         if (restDays.includes(d)) {
             schedule.push({ dayOfWeek: d, type: 'rest', label: '休養', isKey: false, completed: false });
         } else if (isRampTestWeek && d === testDay) {
-            schedule.push({ dayOfWeek: d, type: 'test', label: 'ランプテスト', isKey: true, completed: false, focusKey: 'test' });
+            schedule.push({ dayOfWeek: d, type: 'test', label: 'ETPテスト', isKey: true, completed: false, focusKey: 'test' });
         } else if (keyWorkoutDays.includes(d) && !isRecoveryWeek) {
             const idx = keyWorkoutDays.indexOf(d);
             const focusKey = focusKeys[idx] || focusKeys[0];
@@ -591,7 +591,7 @@ export const generatePlan = ({ race, baseline, weeksUntilRace, restDays = [2, 6]
         });
     }
 
-    // ランプテスト推奨週（4週間ごと）
+    // ETPテスト推奨週（4週間ごと）
     const rampTestDates: number[] = [];
     const testInterval = 4;
     for (let w = testInterval; w <= weeksUntilRace && w < 20; w += testInterval) {
