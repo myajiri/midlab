@@ -37,11 +37,11 @@ const CATEGORY_LABELS: Record<string, string> = {
   '総合': '総合',
 };
 
-// リミッターラベル
-const LIMITER_LABEL: Record<LimiterType, string> = {
-  cardio: '🫁 心肺型',
-  muscular: '🦵 筋型',
-  balanced: '⚖️ バランス型',
+// リミッター設定
+const LIMITER_CONFIG: Record<LimiterType, { icon: string; label: string }> = {
+  cardio: { icon: 'fitness', label: '心肺型' },
+  muscular: { icon: 'barbell', label: '筋型' },
+  balanced: { icon: 'scale', label: 'バランス型' },
 };
 
 interface ExpandedSegment {
@@ -96,9 +96,13 @@ export default function WorkoutScreen() {
 
           {/* eTP表示（コンパクト） */}
           <View style={styles.etpBox}>
-            <Text style={styles.etpText}>
-              eTP {formatKmPace(etp)} · {LIMITER_LABEL[limiter]}
-            </Text>
+            <View style={styles.etpRow}>
+              <Text style={styles.etpText}>eTP {formatKmPace(etp)}</Text>
+              <View style={styles.limiterBadge}>
+                <Ionicons name={LIMITER_CONFIG[limiter].icon as any} size={14} color={COLORS.primary} />
+                <Text style={styles.etpText}>{LIMITER_CONFIG[limiter].label}</Text>
+              </View>
+            </View>
           </View>
         </FadeIn>
 
@@ -213,9 +217,10 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
               {Math.round(totalDistance / 100) / 10}km
             </Text>
             {variant?.note && (
-              <Text style={styles.limiterNote}>
-                {LIMITER_LABEL[limiter]} 調整
-              </Text>
+              <View style={styles.limiterNoteRow}>
+                <Ionicons name={LIMITER_CONFIG[limiter].icon as any} size={12} color={COLORS.text.muted} />
+                <Text style={styles.limiterNote}>{LIMITER_CONFIG[limiter].label}調整</Text>
+              </View>
             )}
           </View>
 
@@ -429,11 +434,21 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 16,
   },
+  etpRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  limiterBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   etpText: {
     fontSize: 14,
     color: COLORS.primary,
     fontWeight: '500',
-    textAlign: 'center',
   },
 
   // フィルター
@@ -558,6 +573,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text.secondary,
     fontWeight: '600',
+  },
+  limiterNoteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   limiterNote: {
     fontSize: 12,

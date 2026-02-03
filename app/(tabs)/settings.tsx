@@ -55,9 +55,9 @@ const PB_FIELDS = [
 ];
 
 const LIMITER_OPTIONS = [
-  { value: 'cardio' as LimiterType, icon: '🫁', label: '心肺', desc: '息が先に上がる' },
-  { value: 'balanced' as LimiterType, icon: '⚖️', label: 'バランス', desc: '両方同時' },
-  { value: 'muscular' as LimiterType, icon: '🦵', label: '筋持久力', desc: '脚が先に疲れる' },
+  { value: 'cardio' as LimiterType, icon: 'fitness', label: '心肺', desc: '息が先に上がる' },
+  { value: 'balanced' as LimiterType, icon: 'scale', label: 'バランス', desc: '両方同時' },
+  { value: 'muscular' as LimiterType, icon: 'barbell', label: '筋持久力', desc: '脚が先に疲れる' },
 ];
 
 // ============================================
@@ -293,9 +293,11 @@ export default function SettingsScreen() {
             <View style={styles.limiterSection}>
               <Text style={styles.subsectionTitle}>リミッタータイプ</Text>
               <View style={styles.limiterDisplay}>
-                <Text style={styles.limiterIcon}>
-                  {LIMITER_OPTIONS.find((l) => l.value === limiter)?.icon || '⚖️'}
-                </Text>
+                <Ionicons
+                  name={(LIMITER_OPTIONS.find((l) => l.value === limiter)?.icon || 'scale') as any}
+                  size={20}
+                  color={COLORS.primary}
+                />
                 <Text style={styles.limiterLabel}>
                   {LIMITER_OPTIONS.find((l) => l.value === limiter)?.label || 'バランス'}
                 </Text>
@@ -319,7 +321,10 @@ export default function SettingsScreen() {
             />
             {isPremium ? (
               <View style={styles.subscriptionContent}>
-                <Text style={styles.subscriptionStatus}>👑 プレミアム会員</Text>
+                <View style={styles.subscriptionStatusRow}>
+                  <Ionicons name="trophy" size={18} color="#F59E0B" />
+                  <Text style={styles.subscriptionStatus}>プレミアム会員</Text>
+                </View>
                 <Text style={styles.subscriptionDesc}>すべてのプレミアム機能をご利用いただけます</Text>
                 <Pressable
                   style={styles.subscriptionButton}
@@ -789,9 +794,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  limiterIcon: {
-    fontSize: 24,
-  },
   limiterLabel: {
     fontSize: 16,
     fontWeight: '600',
@@ -1033,6 +1035,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   subscriptionContent: {
+    gap: 8,
+  },
+  subscriptionStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   subscriptionStatus: {

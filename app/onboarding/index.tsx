@@ -88,7 +88,7 @@ export default function OnboardingMain() {
           <FadeIn>
             <View style={styles.logoContainer}>
               <View style={styles.logoIcon}>
-                <Text style={styles.logoEmoji}>⚡</Text>
+                <Ionicons name="flash" size={40} color={COLORS.primary} />
               </View>
               <Text style={styles.appName}>MidLab</Text>
               <Text style={styles.tagline}>中距離ランナーのための{'\n'}トレーニングアプリ</Text>
@@ -312,9 +312,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
-  },
-  logoEmoji: {
-    fontSize: 40,
   },
   appName: {
     fontSize: 36,

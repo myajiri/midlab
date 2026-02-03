@@ -84,7 +84,7 @@ export default function HomeScreen() {
           {/* ウェルカムヘッダー */}
           <View style={styles.welcomeHeader}>
             <View style={styles.welcomeIconContainer}>
-              <Text style={styles.welcomeIcon}>⚡</Text>
+              <Ionicons name="flash" size={40} color={COLORS.primary} />
             </View>
             <Text style={styles.welcomeTitle}>MidLabへようこそ</Text>
             <Text style={styles.welcomeSubtitle}>
@@ -381,9 +381,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
-  },
-  welcomeIcon: {
-    fontSize: 40,
   },
   welcomeTitle: {
     fontSize: 28,
