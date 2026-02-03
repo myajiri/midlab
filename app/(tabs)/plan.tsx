@@ -3,6 +3,7 @@
 // ============================================
 
 import React, { useState, useMemo } from 'react';
+import { useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -47,6 +48,7 @@ import {
 type ViewType = 'overview' | 'create' | 'weekly';
 
 export default function PlanScreen() {
+  const router = useRouter();
   const isPremium = useIsPremium();
   const activePlan = usePlanStore((state) => state.activePlan);
   const setPlan = usePlanStore((state) => state.setPlan);
@@ -369,33 +371,44 @@ export default function PlanScreen() {
               const iconInfo = getWorkoutIconInfo(day.type);
               return (
                 <SlideIn key={i} delay={200 + i * 50} direction="up">
-                  <SwipeableRow
-                    onSwipeComplete={() => markWorkoutComplete(weekPlan.weekNumber, day.id)}
-                    disabled={isRestDay}
-                    completed={day.completed}
+                  <Pressable
+                    onPress={() => {
+                      if (!isRestDay && day.type !== 'test') {
+                        router.push({
+                          pathname: '/(tabs)/workout',
+                          params: { category: day.focusCategory || 'all' },
+                        });
+                      }
+                    }}
                   >
-                    <View style={[styles.dayCard, day.completed && styles.dayCardCompleted]}>
-                      <View style={styles.dayLeft}>
-                        <Text style={styles.dayName}>{dayNames[i]}</Text>
-                        <View style={[styles.dayIcon, { backgroundColor: iconInfo.color + '20' }]}>
-                          <Ionicons name={iconInfo.name as any} size={16} color={iconInfo.color} />
+                    <SwipeableRow
+                      onSwipeComplete={() => markWorkoutComplete(weekPlan.weekNumber, day.id)}
+                      disabled={isRestDay}
+                      completed={day.completed}
+                    >
+                      <View style={[styles.dayCard, day.completed && styles.dayCardCompleted]}>
+                        <View style={styles.dayLeft}>
+                          <Text style={styles.dayName}>{dayNames[i]}</Text>
+                          <View style={[styles.dayIcon, { backgroundColor: iconInfo.color + '20' }]}>
+                            <Ionicons name={iconInfo.name as any} size={16} color={iconInfo.color} />
+                          </View>
+                        </View>
+                        <View style={styles.dayCenter}>
+                          <Text style={[styles.dayLabel, day.isKey && styles.dayLabelKey]}>{day.label}</Text>
+                          {day.isKey && <Text style={styles.keyBadge}>Key</Text>}
+                        </View>
+                        <View style={styles.dayRight}>
+                          {day.completed ? (
+                            <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
+                          ) : isRestDay ? (
+                            <View />
+                          ) : (
+                            <Text style={styles.swipeHint}>→</Text>
+                          )}
                         </View>
                       </View>
-                      <View style={styles.dayCenter}>
-                        <Text style={[styles.dayLabel, day.isKey && styles.dayLabelKey]}>{day.label}</Text>
-                        {day.isKey && <Text style={styles.keyBadge}>Key</Text>}
-                      </View>
-                      <View style={styles.dayRight}>
-                        {day.completed ? (
-                          <Ionicons name="checkmark-circle" size={24} color={COLORS.success} />
-                        ) : isRestDay ? (
-                          <View />
-                        ) : (
-                          <Text style={styles.swipeHint}>→</Text>
-                        )}
-                      </View>
-                    </View>
-                  </SwipeableRow>
+                    </SwipeableRow>
+                  </Pressable>
                 </SlideIn>
               );
             })}

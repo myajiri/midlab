@@ -2,7 +2,7 @@
 // Workout Screen - ワークアウト画面（簡素化版）
 // ============================================
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import {
   WORKOUTS,
   ZONE_COEFFICIENTS_V3,
 } from '../../src/constants';
+import { useLocalSearchParams } from 'expo-router';
 import { WorkoutTemplate, WorkoutSegment, ZoneName, LimiterType } from '../../src/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -53,8 +54,16 @@ interface ExpandedSegment {
 export default function WorkoutScreen() {
   const isPremium = useIsPremium();
   const { etp, limiter } = useEffectiveValues();
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const params = useLocalSearchParams<{ category?: string }>();
+  const [selectedCategory, setSelectedCategory] = useState<string>(params.category || 'all');
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutTemplate | null>(null);
+
+  // 他画面からのカテゴリパラメータ変更に対応
+  useEffect(() => {
+    if (params.category) {
+      setSelectedCategory(params.category);
+    }
+  }, [params.category]);
 
   if (!isPremium) {
     return (

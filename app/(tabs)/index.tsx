@@ -262,7 +262,10 @@ export default function HomeScreen() {
             <Text style={styles.sectionLabel}>今日のトレーニング</Text>
             <Pressable
               style={styles.todayContent}
-              onPress={() => router.push('/workout')}
+              onPress={() => router.push({
+                pathname: '/(tabs)/workout',
+                params: { category: todayWorkout.focusCategory || 'all' },
+              })}
             >
               <Text style={styles.todayLabel}>{todayWorkout.label}</Text>
               <Text style={styles.todayHint}>タップして詳細を見る →</Text>
