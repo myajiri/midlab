@@ -89,8 +89,8 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => (
             <TabIcon
               focused={focused}
-              outlineName="barbell-outline"
-              filledName="barbell"
+              outlineName="walk-outline"
+              filledName="walk"
             />
           ),
         }}
