@@ -408,16 +408,13 @@ export default function TestScreen() {
                 <Text style={[styles.tableCell, styles.tableHeaderCell, { flex: 1 }]}>ペース/km</Text>
                 <Text style={[styles.tableCell, styles.tableHeaderCell, { flex: 1 }]}>400m</Text>
               </View>
-              {schedule.slice(0, 6).map((lap) => (
+              {schedule.map((lap) => (
                 <View key={lap.lap} style={styles.tableRow}>
                   <Text style={[styles.tableCell, { width: 40 }]}>{lap.lap}</Text>
                   <Text style={[styles.tableCell, { flex: 1 }]}>{formatKmPace(lap.pace)}</Text>
                   <Text style={[styles.tableCell, { flex: 1 }]}>{lap.pace}秒</Text>
                 </View>
               ))}
-              {schedule.length > 6 && (
-                <Text style={styles.tableMore}>... 全{schedule.length}周</Text>
-              )}
             </View>
           </Pressable>
         </SlideIn>
