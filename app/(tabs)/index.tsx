@@ -3,14 +3,13 @@
 // コンテキスト対応・アニメーション強化版
 // ============================================
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   Pressable,
-  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -24,12 +23,6 @@ import {
   useUserStage,
   useTrainingZones,
 } from '../../src/stores/useAppStore';
-import {
-  useAchievementStore,
-  useCurrentJourneyStep,
-  useJourneyProgress,
-  AchievementContext,
-} from '../../src/stores/useAchievementStore';
 import {
   formatTime,
   formatKmPace,
@@ -49,19 +42,9 @@ import {
   // アニメーション
   SlideIn,
   FadeIn,
-  AnimatedCard,
-  CountUp,
-  PulseView,
-  // ジャーニー・アチーブメント
-  JourneyCard,
-  JourneyCompleteBanner,
-  AchievementNotification,
-  AchievementSummary,
 } from '../../src/components/ui';
 import { COLORS, ZONE_COEFFICIENTS_V3, RACE_COEFFICIENTS } from '../../src/constants';
 import { ZoneName, LimiterType } from '../../src/types';
-
-const { width } = Dimensions.get('window');
 
 // リミッターのIoniconsアイコン
 const LIMITER_ICON: Record<LimiterType, { name: string; color: string }> = {
@@ -92,44 +75,6 @@ export default function HomeScreen() {
   const todayWorkout = activePlan ? getTodayWorkout(activePlan) : null;
   const weekProgress = activePlan ? getWeekProgress(activePlan) : null;
   const latestResult = results.length > 0 ? results[0] : null;
-
-  // ジャーニー・アチーブメント
-  const initializeJourney = useAchievementStore((state) => state.initializeJourney);
-  const checkAchievements = useAchievementStore((state) => state.checkAchievements);
-  const journey = useAchievementStore((state) => state.journey);
-  const journeyProgress = useJourneyProgress();
-
-  // フォーカスモード（今日の優先タスク）
-  const [focusMode, setFocusMode] = useState(true);
-
-  // ジャーニー初期化
-  useEffect(() => {
-    initializeJourney();
-  }, []);
-
-  // アチーブメントチェック
-  useEffect(() => {
-    const completedWorkouts = workoutLogs.filter((l) => l.completed).length;
-
-    // eTP改善チェック（複数テスト結果がある場合）
-    let hasImprovement = false;
-    if (results.length >= 2) {
-      const latest = results[0].eTP;
-      const previous = results[1].eTP;
-      hasImprovement = latest < previous; // eTPは低いほど速い
-    }
-
-    const context: AchievementContext = {
-      stage,
-      testCount: results.length,
-      workoutCount: completedWorkouts,
-      streak: 0, // TODO: 連続日数計算
-      hasImprovement,
-      hasPlan: !!activePlan,
-    };
-
-    checkAchievements(context);
-  }, [stage, results.length, workoutLogs.length, activePlan]);
 
   // 新規ユーザー向けガイド（ウェルカム画面）
   if (stage === 'new') {
@@ -199,35 +144,11 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* アチーブメント通知 */}
-      <AchievementNotification />
-
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* ヘッダー */}
         <FadeIn delay={0}>
-          <View style={styles.headerRow}>
-            <Text style={styles.pageTitle}>ダッシュボード</Text>
-            {/* フォーカスモード切り替え */}
-            <Pressable
-              style={styles.focusToggle}
-              onPress={() => setFocusMode(!focusMode)}
-            >
-              <Ionicons
-                name={focusMode ? 'flash' : 'flash-outline'}
-                size={20}
-                color={focusMode ? COLORS.primary : COLORS.text.muted}
-              />
-            </Pressable>
-          </View>
+          <Text style={styles.pageTitle}>ダッシュボード</Text>
         </FadeIn>
-
-        {/* ジャーニーガイド（未完了の場合） */}
-        {journey && journey.currentStep !== 'completed' && journeyProgress < 1 && (
-          <JourneyCard compact={!focusMode} />
-        )}
-
-        {/* ジャーニー完了バナー */}
-        <JourneyCompleteBanner />
 
         {/* ステータスカード */}
         <SlideIn direction="up" delay={100}>
@@ -422,20 +343,6 @@ export default function HomeScreen() {
             })}
           </View>
         </View>
-
-        {/* アチーブメントサマリー */}
-        <SlideIn direction="up" delay={400}>
-          <View style={styles.achievementSection}>
-            <SectionHeader
-              title="アチーブメント"
-              icon="trophy-outline"
-              iconColor="#EAB308"
-              actionLabel="すべて見る"
-              onAction={() => {/* TODO: アチーブメント一覧画面 */}}
-            />
-            <AchievementSummary />
-          </View>
-        </SlideIn>
       </ScrollView>
     </SafeAreaView>
   );
@@ -452,28 +359,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 32,
-  },
-
-  // ヘッダー
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  focusToggle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // アチーブメントセクション
-  achievementSection: {
-    marginTop: 8,
-    marginBottom: 16,
   },
 
   // ============================================

@@ -38,14 +38,3 @@ export {
   CountUp,
   StaggeredList,
 } from './Animated';
-
-// ガイド付きジャーニー
-export { JourneyCard, JourneyTimeline, JourneyCompleteBanner } from './JourneyGuide';
-
-// アチーブメント
-export {
-  AchievementNotification,
-  AchievementBadge,
-  AchievementList,
-  AchievementSummary,
-} from './AchievementUI';
