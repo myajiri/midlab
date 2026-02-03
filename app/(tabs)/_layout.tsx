@@ -50,15 +50,21 @@ export default function TabLayout() {
           backgroundColor: COLORS.background.dark,
           borderTopColor: 'rgba(255, 255, 255, 0.1)',
           borderTopWidth: 1,
-          height: 85,
-          paddingTop: 8,
+          height: 88,
           paddingBottom: 28,
+        },
+        tabBarItemStyle: {
+          paddingTop: 6,
         },
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.text.secondary,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '500',
+          marginTop: 0,
+        },
+        tabBarIconStyle: {
+          marginBottom: -2,
         },
         tabBarShowIcon: true,
         tabBarIndicatorStyle: { height: 0 },
