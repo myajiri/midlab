@@ -2,7 +2,7 @@
 // Settings Screen - 設定画面（簡素化版）
 // ============================================
 
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,8 @@ import { COLORS } from '../../src/constants';
 import { AgeCategory, Experience, LimiterType } from '../../src/types';
 import { useRouter } from 'expo-router';
 import { useIsPremium, useSubscriptionStore } from '../../store/useSubscriptionStore';
+import { useSetSubScreenOpen } from '../../store/useUIStore';
+import { useIsFocused } from '@react-navigation/native';
 
 // ============================================
 // 定数（簡素化）
@@ -88,6 +90,13 @@ export default function SettingsScreen() {
   const router = useRouter();
   const isPremium = useIsPremium();
   const { restore } = useSubscriptionStore();
+  const setSubScreenOpen = useSetSubScreenOpen();
+  const isFocused = useIsFocused();
+
+  // 設定画面にはサブビューがないので、フォーカス時に必ずリセット
+  useEffect(() => {
+    if (isFocused) setSubScreenOpen(false);
+  }, [isFocused, setSubScreenOpen]);
 
   // ストア
   const profile = useProfileStore((state) => state.profile);

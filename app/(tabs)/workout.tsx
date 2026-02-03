@@ -26,6 +26,9 @@ import {
 } from '../../src/constants';
 import { useLocalSearchParams } from 'expo-router';
 import { WorkoutTemplate, WorkoutSegment, ZoneName, LimiterType } from '../../src/types';
+import { useSetSubScreenOpen } from '../../store/useUIStore';
+import { SwipeBackView } from '../../components/SwipeBackView';
+import { useIsFocused } from '@react-navigation/native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -58,6 +61,15 @@ export default function WorkoutScreen() {
   const params = useLocalSearchParams<{ category?: string }>();
   const [selectedCategory, setSelectedCategory] = useState<string>(params.category || 'all');
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutTemplate | null>(null);
+  const setSubScreenOpen = useSetSubScreenOpen();
+  const isFocused = useIsFocused();
+
+  // フォーカス中のタブのみフラグを制御（タブ間の競合を防止）
+  useEffect(() => {
+    if (isFocused) {
+      setSubScreenOpen(selectedWorkout !== null);
+    }
+  }, [selectedWorkout, isFocused, setSubScreenOpen]);
 
   // 他画面からのカテゴリパラメータ変更に対応
   useEffect(() => {
@@ -88,12 +100,14 @@ export default function WorkoutScreen() {
   // 詳細画面
   if (selectedWorkout) {
     return (
-      <WorkoutDetailScreen
-        workout={selectedWorkout}
-        etp={etp}
-        limiter={limiter}
-        onBack={() => setSelectedWorkout(null)}
-      />
+      <SwipeBackView onSwipeBack={() => setSelectedWorkout(null)}>
+        <WorkoutDetailScreen
+          workout={selectedWorkout}
+          etp={etp}
+          limiter={limiter}
+          onBack={() => setSelectedWorkout(null)}
+        />
+      </SwipeBackView>
     );
   }
 

@@ -3,7 +3,7 @@
 // コンテキスト対応・アニメーション強化版
 // ============================================
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -46,6 +46,8 @@ import {
 } from '../../src/components/ui';
 import { COLORS, ZONE_COEFFICIENTS_V3, RACE_COEFFICIENTS } from '../../src/constants';
 import { ZoneName, LimiterType } from '../../src/types';
+import { useSetSubScreenOpen } from '../../store/useUIStore';
+import { useIsFocused } from '@react-navigation/native';
 
 // リミッターのIoniconsアイコン
 const LIMITER_ICON: Record<LimiterType, { name: string; color: string }> = {
@@ -62,6 +64,14 @@ const LIMITER_LABEL: Record<LimiterType, string> = {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const setSubScreenOpen = useSetSubScreenOpen();
+  const isFocused = useIsFocused();
+
+  // ホーム画面にはサブビューがないので、フォーカス時に必ずリセット
+  useEffect(() => {
+    if (isFocused) setSubScreenOpen(false);
+  }, [isFocused, setSubScreenOpen]);
+
   const profile = useProfileStore((state) => state.profile);
   const results = useTestResultsStore((state) => state.results);
   const activePlan = usePlanStore((state) => state.activePlan);
