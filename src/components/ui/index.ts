@@ -26,6 +26,9 @@ export { ProgressSteps, ProgressBar, WeekProgress } from './ProgressSteps';
 export { ActionCard, ActionListItem, StatCard } from './ActionCard';
 export { SectionHeader, Divider, PageHeader } from './SectionHeader';
 
+// チャート
+export { EtpTrendChart } from './EtpTrendChart';
+
 // アニメーション
 export {
   FadeIn,
