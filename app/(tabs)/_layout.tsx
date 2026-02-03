@@ -8,8 +8,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
-  withTiming,
-  Easing,
+  withSpring,
   runOnJS,
 } from 'react-native-reanimated';
 import { COLORS } from '../../src/constants';
@@ -63,26 +62,28 @@ export default function TabLayout() {
   };
 
   const panGesture = Gesture.Pan()
-    .activeOffsetX([-20, 20]) // 水平20px以上で発火
+    .activeOffsetX([-15, 15]) // 水平15pxで発火（より素早く反応）
     .failOffsetY([-10, 10]) // 垂直10px以上で失敗（スクロール優先）
     .onUpdate((event) => {
-      // 係数を0.8に増加（指に追従する動きが大きくなる）
-      translateX.value = event.translationX * 0.8;
+      // 1:1で指に追従（ぬるぬる感を最大化）
+      translateX.value = event.translationX;
     })
     .onEnd((event) => {
       const velocity = event.velocityX;
       const shouldNavigate =
         Math.abs(event.translationX) > SWIPE_THRESHOLD ||
-        Math.abs(velocity) > 500;
+        Math.abs(velocity) > 300;
 
       if (shouldNavigate) {
         runOnJS(handleSwipeEnd)(event.translationX);
       }
 
-      // バウンスなしで滑らかに戻す
-      translateX.value = withTiming(0, {
-        duration: 200,
-        easing: Easing.out(Easing.cubic),
+      // スプリングアニメーションで自然に戻す
+      translateX.value = withSpring(0, {
+        damping: 20,
+        stiffness: 200,
+        mass: 0.8,
+        velocity: event.velocityX,
       });
     });
 
