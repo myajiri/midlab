@@ -39,6 +39,7 @@ import {
   SectionHeader,
   StatCard,
   WeekProgress,
+  EtpTrendChart,
   // アニメーション
   SlideIn,
   FadeIn,
@@ -197,6 +198,13 @@ export default function HomeScreen() {
           </View>
         </View>
         </SlideIn>
+
+        {/* ETP推移グラフ */}
+        {results.length > 0 && (
+          <SlideIn direction="up" delay={200}>
+            <EtpTrendChart results={results} />
+          </SlideIn>
+        )}
 
         {/* 次のステップを促すカード */}
         {(source !== 'measured' || !activePlan) && (
