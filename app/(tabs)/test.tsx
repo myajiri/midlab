@@ -190,7 +190,7 @@ export default function TestScreen() {
               <Text style={styles.etpResultLabel}>あなたのeTP</Text>
               <View style={styles.etpResultValueRow}>
                 <CountUp
-                  to={lastTestResult.eTP}
+                  value={lastTestResult.eTP}
                   duration={1500}
                   style={styles.etpResultValue}
                   suffix="秒"
