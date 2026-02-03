@@ -1,5 +1,5 @@
 // ============================================
-// Workout Screen - ワークアウト画面
+// Workout Screen - ワークアウト画面（簡素化版）
 // ============================================
 
 import React, { useState, useMemo } from 'react';
@@ -15,73 +15,47 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffectiveValues } from '../../src/stores/useAppStore';
 import { formatTime, formatKmPace, calculateWorkoutPace } from '../../src/utils';
-import { Card, Chip } from '../../src/components/ui';
 import { PremiumGate } from '../../components/PremiumGate';
 import { useIsPremium } from '../../store/useSubscriptionStore';
+import { FadeIn, SlideIn } from '../../src/components/ui/Animated';
 import {
   COLORS,
   WORKOUTS,
   ZONE_COEFFICIENTS_V3,
-  WORKOUT_LIMITER_CONFIG,
 } from '../../src/constants';
 import { WorkoutTemplate, WorkoutSegment, ZoneName, LimiterType } from '../../src/types';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-type CategoryFilter = 'all' | 'vo2max' | 'threshold' | 'neuromuscular' | 'aerobic' | 'mixed';
-
+// カテゴリラベル（簡素化）
 const CATEGORY_LABELS: Record<string, string> = {
   all: 'すべて',
-  vo2max: 'VO2max',
-  threshold: '乳酸閾値',
-  '乳酸閾値': '乳酸閾値',
-  neuromuscular: '神経筋系',
-  '神経筋系': '神経筋系',
-  aerobic: '有酸素ベース',
-  '有酸素ベース': '有酸素ベース',
-  mixed: '総合',
-  '総合': '総合',
   VO2max: 'VO2max',
+  '乳酸閾値': '乳酸閾値',
+  '神経筋系': '神経筋系',
+  '有酸素ベース': '有酸素ベース',
+  '総合': '総合',
 };
 
-// FTP%（強度グラフ用）
-const FTP_PERCENT: Record<ZoneName | 'rest', number> = {
-  jog: 55,
-  easy: 70,
-  marathon: 85,
-  threshold: 95,
-  interval: 105,
-  repetition: 125,
-  rest: 40,
-};
-
-// リミッター絵文字
-const LIMITER_EMOJI: Record<LimiterType, string> = {
-  cardio: '🫁',
-  muscular: '🦵',
-  balanced: '⚖️',
-};
-
+// リミッターラベル
 const LIMITER_LABEL: Record<LimiterType, string> = {
-  cardio: '心肺リミッター型',
-  muscular: '筋持久力リミッター型',
-  balanced: 'バランス型',
+  cardio: '🫁 心肺型',
+  muscular: '🦵 筋型',
+  balanced: '⚖️ バランス型',
 };
 
 interface ExpandedSegment {
   zone: ZoneName | 'rest';
   distance: number;
   label: string;
-  isRecovery?: boolean;
 }
 
 export default function WorkoutScreen() {
   const isPremium = useIsPremium();
   const { etp, limiter } = useEffectiveValues();
-  const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutTemplate | null>(null);
 
-  // プレミアム機能チェック
   if (!isPremium) {
     return (
       <PremiumGate featureName="トレーニング">
@@ -90,7 +64,7 @@ export default function WorkoutScreen() {
     );
   }
 
-  // カテゴリ一覧を取得
+  // カテゴリ一覧
   const categories = useMemo(() => {
     const cats = new Set(WORKOUTS.map((w) => w.category));
     return ['all', ...cats] as string[];
@@ -98,17 +72,7 @@ export default function WorkoutScreen() {
 
   const filteredWorkouts = useMemo(() => {
     if (selectedCategory === 'all') return WORKOUTS;
-    return WORKOUTS.filter((w) => {
-      const categoryMap: Record<string, string[]> = {
-        'vo2max': ['VO2max', 'vo2max'],
-        'threshold': ['乳酸閾値', 'threshold'],
-        'neuromuscular': ['神経筋系', 'neuromuscular'],
-        'aerobic': ['有酸素ベース', 'aerobic'],
-        'mixed': ['総合', 'mixed'],
-      };
-      const matches = categoryMap[selectedCategory] || [selectedCategory];
-      return matches.includes(w.category);
-    });
+    return WORKOUTS.filter((w) => w.category === selectedCategory);
   }, [selectedCategory]);
 
   // 詳細画面
@@ -127,124 +91,76 @@ export default function WorkoutScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
-        <Text style={styles.sectionTitle}>トレーニング</Text>
+        <FadeIn>
+          <Text style={styles.sectionTitle}>トレーニング</Text>
 
-        {/* eTP/リミッター設定ボックス */}
-        <View style={styles.etpBox}>
-          <View style={styles.etpRow}>
-            <Text style={styles.etpLabel}>eTP: {formatKmPace(etp)} ({etp}秒/400m)</Text>
-            <View style={styles.limiterBadge}>
-              <Text style={styles.limiterEmoji}>{LIMITER_EMOJI[limiter]}</Text>
-              <Text style={styles.limiterText}>{LIMITER_LABEL[limiter]}</Text>
-            </View>
+          {/* eTP表示（コンパクト） */}
+          <View style={styles.etpBox}>
+            <Text style={styles.etpText}>
+              eTP {formatKmPace(etp)} · {LIMITER_LABEL[limiter]}
+            </Text>
           </View>
-        </View>
-
-        {/* ゾーン凡例 */}
-        <ZoneLegend />
+        </FadeIn>
 
         {/* カテゴリフィルター */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.filterScroll}
-          contentContainerStyle={styles.filterContent}
-        >
-          {categories.map((cat) => {
-            const isActive = selectedCategory === cat;
-            return (
-              <Pressable
-                key={cat}
-                style={[styles.filterBtn, isActive && styles.filterBtnActive]}
-                onPress={() => setSelectedCategory(cat as CategoryFilter)}
-              >
-                <Text style={[styles.filterBtnText, isActive && styles.filterBtnTextActive]}>
-                  {CATEGORY_LABELS[cat] || cat}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        <SlideIn delay={100} direction="up">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.filterScroll}
+            contentContainerStyle={styles.filterContent}
+          >
+            {categories.map((cat) => {
+              const isActive = selectedCategory === cat;
+              return (
+                <Pressable
+                  key={cat}
+                  style={[styles.filterBtn, isActive && styles.filterBtnActive]}
+                  onPress={() => setSelectedCategory(cat)}
+                >
+                  <Text style={[styles.filterBtnText, isActive && styles.filterBtnTextActive]}>
+                    {CATEGORY_LABELS[cat] || cat}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </SlideIn>
 
-        {/* ワークアウトカード一覧 */}
-        <View style={styles.workoutList}>
-          {filteredWorkouts.map((workout) => (
-            <WorkoutCardV4
-              key={workout.id}
-              workout={workout}
-              etp={etp}
-              limiter={limiter}
-              onPress={() => setSelectedWorkout(workout)}
-            />
-          ))}
-        </View>
+        {/* ワークアウト一覧 */}
+        <SlideIn delay={200} direction="up">
+          <View style={styles.workoutList}>
+            {filteredWorkouts.map((workout) => {
+              const variant = workout.limiterVariants?.[limiter];
+              const totalDistance = calculateTotalDistance(workout.segments, variant);
+
+              return (
+                <Pressable
+                  key={workout.id}
+                  style={styles.workoutCard}
+                  onPress={() => setSelectedWorkout(workout)}
+                >
+                  <View style={styles.workoutCardHeader}>
+                    <Text style={styles.workoutCardName}>{workout.name}</Text>
+                    <Text style={styles.workoutCardCategory}>
+                      {CATEGORY_LABELS[workout.category] || workout.category}
+                    </Text>
+                  </View>
+                  <Text style={styles.workoutCardDistance}>
+                    {Math.round(totalDistance / 100) / 10}km
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </SlideIn>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 // ============================================
-// Zone Legend
-// ============================================
-
-function ZoneLegend() {
-  return (
-    <View style={styles.zoneLegend}>
-      {(Object.entries(ZONE_COEFFICIENTS_V3) as [ZoneName, typeof ZONE_COEFFICIENTS_V3[ZoneName]][]).map(
-        ([key, zone]) => (
-          <View key={key} style={styles.zoneLegendItem}>
-            <View style={[styles.zoneLegendBox, { backgroundColor: zone.color }]} />
-            <Text style={styles.zoneLegendText}>{zone.name}</Text>
-          </View>
-        )
-      )}
-    </View>
-  );
-}
-
-// ============================================
-// Workout Card V4
-// ============================================
-
-interface WorkoutCardV4Props {
-  workout: WorkoutTemplate;
-  etp: number;
-  limiter: LimiterType;
-  onPress: () => void;
-}
-
-function WorkoutCardV4({ workout, etp, limiter, onPress }: WorkoutCardV4Props) {
-  const variant = workout.limiterVariants?.[limiter];
-  const totalDistance = calculateTotalDistance(workout.segments, variant);
-
-  return (
-    <Pressable style={styles.workoutCard} onPress={onPress}>
-      <View style={styles.workoutCardHeader}>
-        <View style={styles.workoutCardInfo}>
-          <Text style={styles.workoutCardName}>{workout.name}</Text>
-          <Text style={styles.workoutCardDistance}>
-            総距離: {Math.round(totalDistance / 100) / 10}km
-          </Text>
-        </View>
-        <View style={styles.workoutCardCategory}>
-          <Text style={styles.workoutCardCategoryText}>
-            {CATEGORY_LABELS[workout.category] || workout.category}
-          </Text>
-        </View>
-      </View>
-      {variant?.note && (
-        <View style={styles.workoutCardNote}>
-          <Text style={styles.workoutCardNoteText}>
-            {LIMITER_EMOJI[limiter]} {variant.note}
-          </Text>
-        </View>
-      )}
-    </Pressable>
-  );
-}
-
-// ============================================
-// Workout Detail Screen
+// Workout Detail Screen（簡素化）
 // ============================================
 
 interface WorkoutDetailScreenProps {
@@ -259,7 +175,7 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
   const expandedSegments = expandSegments(workout.segments, variant);
   const totalDistance = calculateTotalDistance(workout.segments, variant);
 
-  // インターバルセグメントを探す（ラップ表用）
+  // インターバルペース計算
   const intervalSegment = workout.segments.find(
     (s) => s.zone === 'interval' || s.zone === 'repetition'
   );
@@ -270,87 +186,77 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
-        {/* ヘッダー */}
-        <View style={styles.detailHeader}>
-          <Pressable style={styles.backButton} onPress={onBack}>
-            <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
-          </Pressable>
-          <Text style={styles.detailTitle}>{workout.name}</Text>
-        </View>
-
-        {/* 強度プロファイル（FTP%棒グラフ） */}
-        <WorkoutIntensityGraph segments={expandedSegments} etp={etp} limiter={limiter} />
-
-        {/* ゾーン凡例 */}
-        <ZoneLegend />
-
-        {/* カテゴリ・総距離 */}
-        <View style={styles.detailMeta}>
-          <View style={styles.categoryTag}>
-            <Text style={styles.categoryTagText}>
-              {CATEGORY_LABELS[workout.category] || workout.category}
-            </Text>
+        <FadeIn>
+          {/* ヘッダー */}
+          <View style={styles.detailHeader}>
+            <Pressable style={styles.backButton} onPress={onBack}>
+              <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+            </Pressable>
+            <Text style={styles.detailTitle}>{workout.name}</Text>
           </View>
-          <Text style={styles.detailDistance}>
-            総距離: {Math.round(totalDistance / 100) / 10}km
-          </Text>
-        </View>
+        </FadeIn>
 
-        {/* リミッター調整パネル */}
-        {variant?.note && (
-          <View style={styles.limiterPanel}>
-            <Text style={styles.limiterPanelTitle}>
-              {LIMITER_EMOJI[limiter]} {LIMITER_LABEL[limiter]}調整
+        {/* 強度グラフ */}
+        <SlideIn delay={100} direction="up">
+          <IntensityGraph segments={expandedSegments} />
+        </SlideIn>
+
+        {/* メタ情報 */}
+        <SlideIn delay={150} direction="up">
+          <View style={styles.detailMeta}>
+            <View style={styles.categoryTag}>
+              <Text style={styles.categoryTagText}>
+                {CATEGORY_LABELS[workout.category] || workout.category}
+              </Text>
+            </View>
+            <Text style={styles.detailDistance}>
+              {Math.round(totalDistance / 100) / 10}km
             </Text>
-            <Text style={styles.limiterPanelText}>{variant.note}</Text>
+            {variant?.note && (
+              <Text style={styles.limiterNote}>
+                {LIMITER_LABEL[limiter]} 調整
+              </Text>
+            )}
           </View>
-        )}
 
-        {/* 説明 */}
-        <Text style={styles.detailDescription}>{workout.description}</Text>
+          <Text style={styles.detailDescription}>{workout.description}</Text>
+        </SlideIn>
 
-        {/* トレーニング詳細セクション */}
-        <Text style={styles.sectionLabel}>トレーニング詳細</Text>
-        <View style={styles.segmentsContainer}>
-          {expandedSegments.map((seg, i) => {
-            const pace =
-              seg.zone !== 'rest'
-                ? calculateWorkoutPace(etp, seg.zone, limiter)
-                : 0;
-            const zoneConfig =
-              seg.zone !== 'rest' ? ZONE_COEFFICIENTS_V3[seg.zone] : null;
+        {/* セグメント一覧 */}
+        <SlideIn delay={200} direction="up">
+          <Text style={styles.sectionLabel}>メニュー</Text>
+          <View style={styles.segmentsContainer}>
+            {expandedSegments.map((seg, i) => {
+              const pace =
+                seg.zone !== 'rest' ? calculateWorkoutPace(etp, seg.zone, limiter) : 0;
+              const zoneConfig = seg.zone !== 'rest' ? ZONE_COEFFICIENTS_V3[seg.zone] : null;
 
-            return (
-              <View
-                key={i}
-                style={[
-                  styles.segmentItem,
-                  {
-                    borderLeftColor: zoneConfig?.color || '#4B5563',
-                  },
-                ]}
-              >
-                <View style={styles.segmentItemMain}>
-                  <Text style={styles.segmentItemLabel}>{seg.label}</Text>
-                  <Text style={styles.segmentItemDistance}>{seg.distance}m</Text>
-                </View>
-                {seg.zone !== 'rest' && pace > 0 && (
-                  <View style={styles.segmentItemPace}>
-                    <Text style={styles.segmentItemPaceKm}>{formatKmPace(pace)}</Text>
-                    <Text style={styles.segmentItemPaceValue}>({pace}秒/400m)</Text>
+              return (
+                <View
+                  key={i}
+                  style={[
+                    styles.segmentItem,
+                    { borderLeftColor: zoneConfig?.color || '#4B5563' },
+                  ]}
+                >
+                  <View style={styles.segmentItemMain}>
+                    <Text style={styles.segmentItemLabel}>{seg.label}</Text>
+                    <Text style={styles.segmentItemDistance}>{seg.distance}m</Text>
                   </View>
-                )}
-              </View>
-            );
-          })}
-        </View>
+                  {seg.zone !== 'rest' && pace > 0 && (
+                    <Text style={styles.segmentItemPace}>{formatKmPace(pace)}</Text>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        </SlideIn>
 
-        {/* ラップ早見表（インターバル時） */}
+        {/* ラップ早見表（インターバル時、最初の4件のみ） */}
         {intervalSegment && intervalPace && (
-          <LapTableV4
-            distance={intervalSegment.distance}
-            pace400m={intervalPace}
-          />
+          <SlideIn delay={300} direction="up">
+            <CompactLapTable distance={intervalSegment.distance} pace400m={intervalPace} />
+          </SlideIn>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -358,47 +264,39 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
 }
 
 // ============================================
-// Workout Intensity Graph (FTP% Bar Chart)
+// Intensity Graph（シンプル版）
 // ============================================
 
-interface WorkoutIntensityGraphProps {
+interface IntensityGraphProps {
   segments: ExpandedSegment[];
-  etp: number;
-  limiter: LimiterType;
 }
 
-function WorkoutIntensityGraph({ segments, etp, limiter }: WorkoutIntensityGraphProps) {
+function IntensityGraph({ segments }: IntensityGraphProps) {
   const totalDistance = segments.reduce((sum, s) => sum + s.distance, 0);
-  const graphWidth = SCREEN_WIDTH - 32;
-  const maxBarHeight = 100;
 
-  const getBarHeight = (ftpPercent: number): number => {
-    const normalized = Math.min(150, Math.max(40, ftpPercent));
-    return 15 + ((normalized - 40) / 110) * (maxBarHeight - 15);
+  const getBarHeight = (zone: ZoneName | 'rest'): number => {
+    const heights: Record<string, number> = {
+      repetition: 95,
+      interval: 80,
+      threshold: 65,
+      marathon: 50,
+      easy: 35,
+      jog: 25,
+      rest: 15,
+    };
+    return heights[zone] || 30;
   };
 
-  const getBarColor = (ftpPercent: number, zone: ZoneName | 'rest'): string => {
+  const getBarColor = (zone: ZoneName | 'rest'): string => {
     if (zone === 'rest') return '#4B5563';
-    if (ftpPercent >= 120) return '#EF4444';
-    if (ftpPercent >= 100) return '#F97316';
-    if (ftpPercent >= 90) return '#EAB308';
-    if (ftpPercent >= 80) return '#22C55E';
-    if (ftpPercent >= 65) return '#3B82F6';
-    return '#9CA3AF';
+    return ZONE_COEFFICIENTS_V3[zone]?.color || '#6B7280';
   };
-
-  let xOffset = 0;
 
   return (
     <View style={styles.intensityContainer}>
-      <Text style={styles.intensitySectionLabel}>強度プロファイル</Text>
       <View style={styles.intensityGraph}>
         {segments.map((seg, i) => {
           const widthPercent = (seg.distance / totalDistance) * 100;
-          const ftpPercent = FTP_PERCENT[seg.zone];
-          const barHeight = getBarHeight(ftpPercent);
-          const barColor = getBarColor(ftpPercent, seg.zone);
-
           return (
             <View
               key={i}
@@ -406,44 +304,37 @@ function WorkoutIntensityGraph({ segments, etp, limiter }: WorkoutIntensityGraph
                 styles.intensityBar,
                 {
                   width: `${widthPercent}%`,
-                  height: barHeight,
-                  backgroundColor: barColor,
+                  height: getBarHeight(seg.zone),
+                  backgroundColor: getBarColor(seg.zone),
                 },
               ]}
             />
           );
         })}
       </View>
-      {/* FTPライン */}
-      <View style={styles.ftpLineContainer}>
-        <View style={styles.ftpLine100} />
-        <Text style={styles.ftpLineLabel}>100% FTP</Text>
-      </View>
     </View>
   );
 }
 
 // ============================================
-// Lap Table V4
+// Compact Lap Table（最初の4件のみ）
 // ============================================
 
-interface LapTableV4Props {
+interface CompactLapTableProps {
   distance: number;
   pace400m: number;
 }
 
-function LapTableV4({ distance, pace400m }: LapTableV4Props) {
+function CompactLapTable({ distance, pace400m }: CompactLapTableProps) {
   const splits: { distance: number; time: string }[] = [];
-  for (let d = 200; d <= distance; d += 200) {
+  for (let d = 200; d <= distance && splits.length < 4; d += 200) {
     const time = (d / 400) * pace400m;
     splits.push({ distance: d, time: formatTime(time) });
   }
-  const pace100m = (pace400m / 4).toFixed(1);
 
   return (
     <View style={styles.lapTable}>
-      <Text style={styles.sectionLabel}>ラップ早見表</Text>
-      <Text style={styles.lapTablePace100}>100m: {pace100m}秒</Text>
+      <Text style={styles.sectionLabel}>ラップ目安</Text>
       <View style={styles.lapTableGrid}>
         {splits.map((split, i) => (
           <View key={i} style={styles.lapTableItem}>
@@ -472,26 +363,13 @@ function expandSegments(
       const recovery = variant?.recoveryDistance || seg.recoveryDistance || 200;
 
       for (let i = 0; i < reps; i++) {
-        expanded.push({
-          zone: seg.zone,
-          distance: seg.distance,
-          label: seg.label,
-        });
+        expanded.push({ zone: seg.zone, distance: seg.distance, label: seg.label });
         if (i < reps - 1 && recovery > 0) {
-          expanded.push({
-            zone: 'jog',
-            distance: recovery,
-            label: '回復',
-            isRecovery: true,
-          });
+          expanded.push({ zone: 'jog', distance: recovery, label: '回復' });
         }
       }
     } else {
-      expanded.push({
-        zone: seg.zone,
-        distance: seg.distance,
-        label: seg.label,
-      });
+      expanded.push({ zone: seg.zone, distance: seg.distance, label: seg.label });
     }
   });
 
@@ -529,76 +407,36 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
 
-  // Section Title
+  // タイトル
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 24,
+    fontWeight: '700',
     color: COLORS.text.primary,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   sectionLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.text.secondary,
     marginBottom: 12,
-    marginTop: 16,
+    marginTop: 20,
   },
 
-  // eTP Box
+  // eTP表示（コンパクト）
   etpBox: {
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-  },
-  etpRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  etpLabel: {
-    fontSize: 14,
-    color: COLORS.text.primary,
-  },
-  limiterBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  limiterEmoji: {
-    fontSize: 18,
-  },
-  limiterText: {
-    fontSize: 13,
-    color: COLORS.text.secondary,
-  },
-
-  // Zone Legend
-  zoneLegend: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    padding: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
     borderRadius: 10,
+    padding: 12,
     marginBottom: 16,
   },
-  zoneLegendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  zoneLegendBox: {
-    width: 12,
-    height: 12,
-    borderRadius: 3,
-  },
-  zoneLegendText: {
-    fontSize: 12,
-    color: '#D1D5DB',
+  etpText: {
+    fontSize: 14,
+    color: COLORS.primary,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 
-  // Filter
+  // フィルター
   filterScroll: {
     marginBottom: 16,
     marginHorizontal: -16,
@@ -610,12 +448,12 @@ const styles = StyleSheet.create({
   },
   filterBtn: {
     paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: '#374151',
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   filterBtnActive: {
-    backgroundColor: '#F97316',
+    backgroundColor: COLORS.primary,
   },
   filterBtnText: {
     fontSize: 13,
@@ -626,125 +464,94 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
 
-  // Workout List
+  // ワークアウト一覧
   workoutList: {
-    gap: 12,
+    gap: 10,
   },
-
-  // Workout Card
   workoutCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 14,
+    padding: 14,
   },
   workoutCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  workoutCardInfo: {
-    flex: 1,
+    alignItems: 'center',
+    marginBottom: 4,
   },
   workoutCardName: {
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     color: COLORS.text.primary,
-    marginBottom: 4,
+    flex: 1,
+  },
+  workoutCardCategory: {
+    fontSize: 12,
+    color: COLORS.primary,
+    fontWeight: '500',
   },
   workoutCardDistance: {
     fontSize: 13,
     color: COLORS.text.muted,
   },
-  workoutCardCategory: {
-    backgroundColor: 'rgba(249, 115, 22, 0.2)',
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 10,
-  },
-  workoutCardCategoryText: {
-    fontSize: 12,
-    color: '#F97316',
-    fontWeight: '500',
-  },
-  workoutCardNote: {
-    marginTop: 12,
-    backgroundColor: 'rgba(96, 165, 250, 0.1)',
-    borderRadius: 8,
-    padding: 10,
-  },
-  workoutCardNoteText: {
-    fontSize: 13,
-    color: '#60A5FA',
-  },
 
-  // Detail Screen
+  // 詳細画面
   detailHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
-    gap: 16,
+    gap: 12,
   },
   backButton: {
-    padding: 4,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   detailTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.text.primary,
+    flex: 1,
   },
 
-  // Intensity Graph
+  // 強度グラフ
   intensityContainer: {
     marginBottom: 16,
-  },
-  intensitySectionLabel: {
-    fontSize: 13,
-    color: COLORS.text.secondary,
-    marginBottom: 8,
   },
   intensityGraph: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     height: 100,
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 8,
+    borderRadius: 12,
     overflow: 'hidden',
+    padding: 4,
   },
   intensityBar: {
-    borderRadius: 2,
-  },
-  ftpLineContainer: {
-    position: 'relative',
-    marginTop: -60,
-    marginBottom: 60,
-    paddingLeft: 4,
-  },
-  ftpLine100: {
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
-    marginBottom: 2,
-  },
-  ftpLineLabel: {
-    fontSize: 10,
-    color: '#666',
+    borderRadius: 4,
+    marginHorizontal: 1,
   },
 
-  // Detail Meta
+  // メタ情報
   detailMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginBottom: 16,
+    marginBottom: 12,
+    flexWrap: 'wrap',
   },
   categoryTag: {
-    backgroundColor: 'rgba(249, 115, 22, 0.2)',
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
     paddingVertical: 4,
     paddingHorizontal: 10,
-    borderRadius: 10,
+    borderRadius: 8,
   },
   categoryTagText: {
     fontSize: 12,
-    color: '#F97316',
+    color: COLORS.primary,
     fontWeight: '600',
   },
   detailDistance: {
@@ -752,44 +559,25 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     fontWeight: '600',
   },
-
-  // Limiter Panel
-  limiterPanel: {
-    backgroundColor: 'rgba(96, 165, 250, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(96, 165, 250, 0.3)',
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
+  limiterNote: {
+    fontSize: 12,
+    color: COLORS.text.muted,
   },
-  limiterPanelTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#60A5FA',
-    marginBottom: 4,
-  },
-  limiterPanelText: {
-    fontSize: 13,
-    color: COLORS.text.secondary,
-  },
-
-  // Description
   detailDescription: {
     fontSize: 14,
     color: COLORS.text.secondary,
     lineHeight: 20,
-    marginBottom: 8,
   },
 
-  // Segments
+  // セグメント
   segmentsContainer: {
-    gap: 8,
+    gap: 6,
   },
   segmentItem: {
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderLeftWidth: 4,
+    borderLeftWidth: 3,
     borderRadius: 10,
-    padding: 14,
+    padding: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -798,36 +586,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   segmentItemLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: COLORS.text.primary,
-    marginBottom: 2,
   },
   segmentItemDistance: {
     fontSize: 12,
     color: COLORS.text.muted,
   },
   segmentItemPace: {
-    alignItems: 'flex-end',
-  },
-  segmentItemPaceValue: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: COLORS.text.primary,
   },
-  segmentItemPaceKm: {
-    fontSize: 12,
-    color: COLORS.text.muted,
-  },
 
-  // Lap Table
+  // ラップ表
   lapTable: {
-    marginTop: 8,
-  },
-  lapTablePace100: {
-    fontSize: 13,
-    color: COLORS.text.secondary,
-    marginBottom: 8,
+    marginTop: 4,
   },
   lapTableGrid: {
     flexDirection: 'row',
