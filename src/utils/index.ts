@@ -254,7 +254,7 @@ export const recommendTestLevel = (
   const recommended = levels[adjustedIndex];
   const alternative = adjustedIndex > 0 ? levels[adjustedIndex - 1] : undefined;
 
-  let reason = `eTP ${etp}秒に基づく推奨`;
+  let reason = `ETP ${etp}秒に基づく推奨`;
   if (levelAdj !== 0) {
     reason += `（属性により${levelAdj > 0 ? '難易度下げ' : '難易度上げ'}）`;
   }
@@ -457,7 +457,7 @@ export const getWeekProgress = (plan: RacePlan): WeekProgress | null => {
 };
 
 /**
- * 次回ランプテスト推奨を取得
+ * 次回ETPテスト推奨を取得
  */
 export const getNextTestRecommendation = (results: TestResult[]): { reason: string } | null => {
   if (!results || results.length === 0) {

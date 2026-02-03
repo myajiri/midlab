@@ -88,7 +88,7 @@ export default function HomeScreen() {
             </View>
             <Text style={styles.welcomeTitle}>MidLabへようこそ</Text>
             <Text style={styles.welcomeSubtitle}>
-              ランプテストであなたに最適なトレーニングを見つけましょう
+              ETPテストであなたに最適なトレーニングを見つけましょう
             </Text>
           </View>
 
@@ -109,7 +109,7 @@ export default function HomeScreen() {
                 <Text style={styles.stepNumberTextMuted}>2</Text>
               </View>
               <View style={styles.stepContent}>
-                <Text style={styles.stepTitleMuted}>ランプテストを実施</Text>
+                <Text style={styles.stepTitleMuted}>ETPテストを実施</Text>
                 <Text style={styles.stepDesc}>持久力タイプを測定</Text>
               </View>
             </View>
@@ -155,7 +155,7 @@ export default function HomeScreen() {
           <View style={styles.statusCard}>
           <View style={styles.etpDisplay}>
             <View style={styles.etpLabelRow}>
-              <Text style={styles.etpLabel}>eTP</Text>
+              <Text style={styles.etpLabel}>ETP</Text>
               <View style={styles.etpSourceBadge}>
                 <Text style={styles.etpSourceText}>
                   {source === 'estimated' ? '推定' : source === 'measured' ? '測定' : 'デフォルト'}
@@ -213,8 +213,8 @@ export default function HomeScreen() {
               <ActionCard
                 icon="analytics-outline"
                 iconColor="#8B5CF6"
-                title="ランプテストを実施"
-                description="正確なeTPとリミッタータイプを測定しましょう"
+                title="ETPテストを実施"
+                description="正確なETPとリミッタータイプを測定しましょう"
                 onPress={() => router.push('/test')}
                 variant="highlight"
                 badge={source === 'estimated' ? '推奨' : undefined}
@@ -320,7 +320,7 @@ export default function HomeScreen() {
         {/* トレーニングゾーン */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>トレーニングゾーン</Text>
-          <Text style={styles.etpBadge}>eTP: {formatKmPace(etp)} ({etp}秒/400m)</Text>
+          <Text style={styles.etpBadge}>ETP: {formatKmPace(etp)} ({etp}秒/400m)</Text>
           <View style={styles.zonesTable}>
             {(['jog', 'easy', 'marathon', 'threshold', 'interval', 'repetition'] as ZoneName[]).map((zone) => {
               const pace = zones[zone];

@@ -202,7 +202,7 @@ export default function SettingsScreen() {
               </Pressable>
               {estimatedEtp && !profile.current && (
                 <Text style={styles.etpHint}>
-                  推定eTP: {formatKmPace(estimatedEtp)}
+                  推定ETP: {formatKmPace(estimatedEtp)}
                 </Text>
               )}
             </View>

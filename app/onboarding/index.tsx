@@ -35,7 +35,7 @@ const EXPERIENCE_LEVELS: { key: Experience; label: string; desc: string }[] = [
   { key: 'advanced', label: '上級者', desc: '3年以上' },
 ];
 
-// eTP推定（1500m PBから）
+// ETP推定（1500m PBから）
 const estimateEtpFrom1500 = (pb1500: number): number => {
   return Math.round(pb1500 / 3.30);
 };
@@ -98,7 +98,7 @@ export default function OnboardingMain() {
           <SlideIn delay={200} direction="up">
             <View style={styles.features}>
               {[
-                { icon: 'analytics', color: '#3B82F6', title: 'ランプテスト', desc: '持久力タイプを科学的に判定' },
+                { icon: 'analytics', color: '#3B82F6', title: 'ETPテスト', desc: '持久力タイプを科学的に判定' },
                 { icon: 'speedometer', color: '#22C55E', title: 'ゾーン計算', desc: '最適なペースを自動算出' },
                 { icon: 'fitness', color: '#8B5CF6', title: 'パーソナライズ', desc: 'あなた専用のトレーニング' },
               ].map((f, i) => (
@@ -218,7 +218,7 @@ export default function OnboardingMain() {
               <View style={styles.etpPreview}>
                 <Ionicons name="flash" size={14} color={COLORS.primary} />
                 <Text style={styles.etpPreviewText}>
-                  推定eTP: {formatKmPace(estimatedEtp)} ({estimatedEtp}秒/400m)
+                  推定ETP: {formatKmPace(estimatedEtp)} ({estimatedEtp}秒/400m)
                 </Text>
               </View>
             )}
