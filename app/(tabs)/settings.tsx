@@ -55,8 +55,8 @@ const LIMITER_OPTIONS: { key: LimiterType; icon: string; label: string }[] = [
 // 用語ヘルプ定義
 const HELP_ITEMS: { term: string; description: string }[] = [
   {
-    term: 'ETP（Estimated Training Performance）',
-    description: '400mあたりの推定持久力ペース（秒）。ETPテストまたは自己ベストから算出されます。値が小さいほど走力が高いことを意味します。',
+    term: 'ETP（Estimated Threshold Pace）',
+    description: '400mあたりの推定閾値ペース（秒）。ETPテストまたは自己ベストから算出されます。値が小さいほど走力が高いことを意味します。',
   },
   {
     term: 'リミッタータイプ',
