@@ -26,6 +26,8 @@ import {
 } from '../../src/constants';
 import { useLocalSearchParams } from 'expo-router';
 import { WorkoutTemplate, WorkoutSegment, ZoneName, LimiterType } from '../../src/types';
+import { useSetSubScreenOpen } from '../../store/useUIStore';
+import { SwipeBackView } from '../../components/SwipeBackView';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -58,6 +60,14 @@ export default function WorkoutScreen() {
   const params = useLocalSearchParams<{ category?: string }>();
   const [selectedCategory, setSelectedCategory] = useState<string>(params.category || 'all');
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutTemplate | null>(null);
+  const setSubScreenOpen = useSetSubScreenOpen();
+
+  // サブビュー（詳細画面）表示中はタブスワイプを無効化
+  useEffect(() => {
+    const isSubView = selectedWorkout !== null;
+    setSubScreenOpen(isSubView);
+    return () => setSubScreenOpen(false);
+  }, [selectedWorkout, setSubScreenOpen]);
 
   // 他画面からのカテゴリパラメータ変更に対応
   useEffect(() => {
@@ -88,12 +98,14 @@ export default function WorkoutScreen() {
   // 詳細画面
   if (selectedWorkout) {
     return (
-      <WorkoutDetailScreen
-        workout={selectedWorkout}
-        etp={etp}
-        limiter={limiter}
-        onBack={() => setSelectedWorkout(null)}
-      />
+      <SwipeBackView onSwipeBack={() => setSelectedWorkout(null)}>
+        <WorkoutDetailScreen
+          workout={selectedWorkout}
+          etp={etp}
+          limiter={limiter}
+          onBack={() => setSelectedWorkout(null)}
+        />
+      </SwipeBackView>
     );
   }
 

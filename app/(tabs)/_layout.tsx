@@ -14,6 +14,7 @@ import {
 } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../src/constants';
+import { useIsSubScreenOpen } from '../../store/useUIStore';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -42,6 +43,8 @@ const TabIcon = ({ focused, outlineName, filledName }: TabIconProps) => (
 );
 
 export default function TabLayout() {
+  const isSubScreenOpen = useIsSubScreenOpen();
+
   return (
     <MaterialTopTabs
       tabBarPosition="bottom"
@@ -67,13 +70,10 @@ export default function TabLayout() {
           marginHorizontal: 0,
           textTransform: 'none',
         },
-        tabBarIconStyle: {
-          marginBottom: -2,
-        },
         tabBarShowIcon: true,
         tabBarIndicatorStyle: { height: 0 },
-        // ネイティブページャーのスワイプ設定
-        swipeEnabled: true,
+        // サブ画面表示中はタブスワイプを無効化
+        swipeEnabled: !isSubScreenOpen,
         lazy: true,
         lazyPreloadDistance: 1, // 隣接タブを事前読み込み
       }}
