@@ -1,354 +1,216 @@
 // ============================================
-// オンボーディング: 結果・完了画面
+// オンボーディング: 完了画面（簡素化版）
 // ============================================
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useProfileStore, useSettingsStore } from '../../src/stores/useAppStore';
-import { estimateVO2max, formatKmPace } from '../../src/utils';
-import { LIMITER_CONFIG } from '../../constants';
-import { LimiterType } from '../../src/types';
-
-// Speed Index計算（PBから推定）
-const calculateSpeedIndex = (pbs: Record<string, number | undefined>): number | null => {
-    const short = pbs.m400 || pbs.m800;
-    const long = pbs.m3000 || pbs.m5000;
-    if (!short || !long) return null;
-    return short / (long / (pbs.m5000 ? 12.5 : 7.5));
-};
-
-// Speed Indexからリミッター推定
-const estimateLimiterFromSpeedIndex = (speedIndex: number | null): { type: LimiterType; confidence: 'high' | 'medium' | 'low' } => {
-    if (!speedIndex) return { type: 'balanced', confidence: 'low' };
-    if (speedIndex < 0.95) return { type: 'muscular', confidence: speedIndex < 0.9 ? 'high' : 'medium' };
-    if (speedIndex > 1.05) return { type: 'cardio', confidence: speedIndex > 1.1 ? 'high' : 'medium' };
-    return { type: 'balanced', confidence: 'medium' };
-};
+import { formatKmPace } from '../../src/utils';
+import { ProgressBar, SuccessCheckmark } from '../../src/components/ui';
+import { FadeIn, SlideIn, ScaleIn } from '../../src/components/ui/Animated';
+import { COLORS } from '../../src/constants';
 
 export default function OnboardingResult() {
-    const router = useRouter();
-    const profile = useProfileStore((state) => state.profile);
-    const setOnboardingComplete = useSettingsStore((state) => state.setOnboardingComplete);
+  const router = useRouter();
+  const profile = useProfileStore((state) => state.profile);
+  const setOnboardingComplete = useSettingsStore((state) => state.setOnboardingComplete);
 
-    // ストアに保存された推定値を使用（attributes.tsxで選択したリミッタータイプを保持）
-    const estimatedEtp = profile.estimated?.etp || null;
-    const userSelectedLimiter = profile.estimated?.limiterType || 'balanced';
-    const vo2max = estimatedEtp ? estimateVO2max(estimatedEtp) : null;
+  const estimatedEtp = profile.estimated?.etp || null;
 
-    // 表示用にユーザーが選択したリミッタータイプを使用
-    const limiterConfig = LIMITER_CONFIG[userSelectedLimiter];
+  const handleComplete = () => {
+    setOnboardingComplete(true);
+    router.replace('/(tabs)');
+  };
 
-    const handleComplete = () => {
-        // 既にストアに保存されているので、オンボーディング完了フラグのみ設定
-        setOnboardingComplete(true);
-        router.replace('/(tabs)');
-    };
+  const handleBack = () => {
+    router.back();
+  };
 
-    const handleBack = () => {
-        router.back();
-    };
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.progressContainer}>
+        <ProgressBar progress={1} height={4} color={COLORS.success} />
+      </View>
 
-    return (
-        <SafeAreaView style={styles.container}>
-            <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-                {/* ヘッダー */}
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                        <Text style={styles.backButtonText}>← 戻る</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.step}>3 / 3</Text>
-                </View>
+      <View style={styles.content}>
+        {/* 成功アニメーション */}
+        <SuccessCheckmark size={80} color={COLORS.success} />
 
-                <Text style={styles.title}>準備完了！</Text>
-                <Text style={styles.subtitle}>
-                    {estimatedEtp
-                        ? 'PBから推定したあなたの初期データです'
-                        : 'ランプテストを実施してあなたのデータを取得しましょう'}
-                </Text>
+        <SlideIn direction="up" delay={300}>
+          <Text style={styles.title}>準備完了！</Text>
+          <Text style={styles.subtitle}>
+            {estimatedEtp
+              ? 'PBからeTPを推定しました'
+              : 'ランプテストでeTPを測定しましょう'}
+          </Text>
+        </SlideIn>
 
-                {estimatedEtp ? (
-                    <>
-                        {/* eTPカード */}
-                        <View style={styles.etpCard}>
-                            <LinearGradient
-                                colors={['rgba(59, 130, 246, 0.15)', 'rgba(139, 92, 246, 0.15)']}
-                                style={styles.etpGradient}
-                            >
-                                <Text style={styles.etpLabel}>推定eTP</Text>
-                                <Text style={styles.etpPace}>{formatKmPace(estimatedEtp)}</Text>
-                                <View style={styles.etpRow}>
-                                    <Text style={styles.etpUnit}>({estimatedEtp}秒/400m)</Text>
-                                </View>
-
-                                {vo2max && (
-                                    <View style={styles.vo2Section}>
-                                        <Text style={styles.vo2Label}>推定VO2max</Text>
-                                        <Text style={styles.vo2Value}>{vo2max}</Text>
-                                    </View>
-                                )}
-                            </LinearGradient>
-                        </View>
-
-                        {/* リミッタータイプ */}
-                        <View style={[styles.limiterCard, { borderColor: limiterConfig.color }]}>
-                            <Text style={styles.limiterIcon}>{limiterConfig.icon}</Text>
-                            <View style={styles.limiterInfo}>
-                                <Text style={[styles.limiterName, { color: limiterConfig.color }]}>
-                                    {limiterConfig.name}
-                                </Text>
-                                <Text style={styles.limiterDesc}>
-                                    （選択したタイプ）
-                                </Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.noteCard}>
-                            <Text style={styles.noteText}>
-                                💡 より正確なeTPとリミッター判定のために、ランプテストの実施をおすすめします
-                            </Text>
-                        </View>
-                    </>
-                ) : (
-                    <View style={styles.noDataCard}>
-                        <Text style={styles.noDataIcon}>📊</Text>
-                        <Text style={styles.noDataTitle}>データがありません</Text>
-                        <Text style={styles.noDataText}>
-                            ランプテストを実施すると、あなたの持久力タイプとトレーニングゾーンが判定されます
-                        </Text>
-                    </View>
-                )}
-
-                {/* 次のステップ */}
-                <View style={styles.nextSteps}>
-                    <Text style={styles.nextStepsTitle}>次のステップ</Text>
-                    <View style={styles.stepItem}>
-                        <Text style={styles.stepNumber}>1</Text>
-                        <Text style={styles.stepText}>テストタブからランプテストを実施</Text>
-                    </View>
-                    <View style={styles.stepItem}>
-                        <Text style={styles.stepNumber}>2</Text>
-                        <Text style={styles.stepText}>ホームでトレーニングゾーンを確認</Text>
-                    </View>
-                    <View style={styles.stepItem}>
-                        <Text style={styles.stepNumber}>3</Text>
-                        <Text style={styles.stepText}>トレーニングタブでトレーニングを選択</Text>
-                    </View>
-                </View>
-            </ScrollView>
-
-            {/* 完了ボタン */}
-            <View style={styles.buttonContainer}>
-                <TouchableOpacity style={styles.completeButton} onPress={handleComplete}>
-                    <LinearGradient
-                        colors={['#22c55e', '#16a34a']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.completeButtonGradient}
-                    >
-                        <Text style={styles.completeButtonText}>アプリを始める</Text>
-                    </LinearGradient>
-                </TouchableOpacity>
+        {/* eTPカード（ある場合） */}
+        {estimatedEtp && (
+          <ScaleIn delay={500}>
+            <View style={styles.etpCard}>
+              <Text style={styles.etpLabel}>推定eTP</Text>
+              <Text style={styles.etpPace}>{formatKmPace(estimatedEtp)}</Text>
+              <Text style={styles.etpSec}>{estimatedEtp}秒/400m</Text>
             </View>
-        </SafeAreaView>
-    );
+          </ScaleIn>
+        )}
+
+        {/* 次のステップ */}
+        <SlideIn delay={700} direction="up">
+          <View style={styles.nextSteps}>
+            <Text style={styles.nextStepsTitle}>次のステップ</Text>
+            {[
+              { icon: 'analytics', text: 'テストタブでランプテストを実施' },
+              { icon: 'home', text: 'ホームでゾーンを確認' },
+              { icon: 'fitness', text: 'トレーニングを開始' },
+            ].map((step, i) => (
+              <View key={i} style={styles.stepRow}>
+                <View style={styles.stepNum}>
+                  <Text style={styles.stepNumText}>{i + 1}</Text>
+                </View>
+                <Ionicons name={step.icon as any} size={18} color={COLORS.text.muted} />
+                <Text style={styles.stepText}>{step.text}</Text>
+              </View>
+            ))}
+          </View>
+        </SlideIn>
+      </View>
+
+      <SlideIn delay={900} direction="up">
+        <View style={styles.buttonArea}>
+          <Pressable style={styles.completeButton} onPress={handleComplete}>
+            <Text style={styles.completeButtonText}>アプリを始める</Text>
+          </Pressable>
+          <Pressable style={styles.backButton} onPress={handleBack}>
+            <Text style={styles.backButtonText}>戻る</Text>
+          </Pressable>
+        </View>
+      </SlideIn>
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0a0a0f',
-    },
-    scrollView: {
-        flex: 1,
-        paddingHorizontal: 24,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: 16,
-        marginBottom: 32,
-    },
-    backButton: {
-        padding: 8,
-        marginLeft: -8,
-    },
-    backButtonText: {
-        color: '#3B82F6',
-        fontSize: 16,
-    },
-    step: {
-        color: '#6b7280',
-        fontSize: 14,
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: '800',
-        color: '#ffffff',
-        marginBottom: 8,
-    },
-    subtitle: {
-        fontSize: 15,
-        color: '#6b7280',
-        marginBottom: 32,
-    },
-    etpCard: {
-        borderRadius: 20,
-        overflow: 'hidden',
-        marginBottom: 20,
-    },
-    etpGradient: {
-        padding: 24,
-        alignItems: 'center',
-    },
-    etpLabel: {
-        color: '#6b7280',
-        fontSize: 14,
-        marginBottom: 8,
-    },
-    etpRow: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        gap: 8,
-    },
-    etpValue: {
-        fontSize: 48,
-        fontWeight: '800',
-        color: '#ffffff',
-    },
-    etpUnit: {
-        fontSize: 16,
-        color: '#9ca3af',
-    },
-    etpPace: {
-        fontSize: 18,
-        color: '#9ca3af',
-        marginTop: 4,
-    },
-    vo2Section: {
-        marginTop: 20,
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        gap: 8,
-    },
-    vo2Label: {
-        color: '#6b7280',
-        fontSize: 13,
-    },
-    vo2Value: {
-        color: '#22c55e',
-        fontSize: 24,
-        fontWeight: '700',
-    },
-    limiterCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 16,
-        padding: 16,
-        borderLeftWidth: 4,
-        marginBottom: 20,
-    },
-    limiterIcon: {
-        fontSize: 32,
-        marginRight: 16,
-    },
-    limiterInfo: {
-        flex: 1,
-    },
-    limiterName: {
-        fontSize: 16,
-        fontWeight: '600',
-        marginBottom: 4,
-    },
-    limiterDesc: {
-        fontSize: 12,
-        color: '#6b7280',
-    },
-    noteCard: {
-        backgroundColor: 'rgba(251, 191, 36, 0.1)',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 24,
-    },
-    noteText: {
-        color: '#fbbf24',
-        fontSize: 13,
-        lineHeight: 20,
-    },
-    noDataCard: {
-        alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 20,
-        padding: 32,
-        marginBottom: 24,
-    },
-    noDataIcon: {
-        fontSize: 48,
-        marginBottom: 16,
-    },
-    noDataTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#ffffff',
-        marginBottom: 8,
-    },
-    noDataText: {
-        fontSize: 14,
-        color: '#6b7280',
-        textAlign: 'center',
-        lineHeight: 20,
-    },
-    nextSteps: {
-        backgroundColor: 'rgba(255, 255, 255, 0.05)',
-        borderRadius: 16,
-        padding: 20,
-    },
-    nextStepsTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#ffffff',
-        marginBottom: 16,
-    },
-    stepItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    stepNumber: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: '#3B82F6',
-        color: '#ffffff',
-        fontSize: 12,
-        fontWeight: '600',
-        textAlign: 'center',
-        lineHeight: 24,
-        marginRight: 12,
-    },
-    stepText: {
-        flex: 1,
-        fontSize: 14,
-        color: '#9ca3af',
-    },
-    buttonContainer: {
-        padding: 24,
-    },
-    completeButton: {
-        borderRadius: 16,
-        overflow: 'hidden',
-    },
-    completeButtonGradient: {
-        paddingVertical: 18,
-        alignItems: 'center',
-    },
-    completeButtonText: {
-        color: '#ffffff',
-        fontSize: 18,
-        fontWeight: '600',
-    },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background.dark,
+  },
+  progressContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 8,
+  },
+  content: {
+    flex: 1,
+    padding: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    textAlign: 'center',
+    marginTop: 24,
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: COLORS.text.secondary,
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+
+  // eTPカード
+  etpCard: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+    borderRadius: 20,
+    padding: 28,
+    alignItems: 'center',
+    marginBottom: 32,
+    width: '100%',
+  },
+  etpLabel: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginBottom: 8,
+  },
+  etpPace: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: COLORS.text.primary,
+  },
+  etpSec: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+    marginTop: 4,
+  },
+
+  // 次のステップ
+  nextSteps: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 16,
+    padding: 20,
+    width: '100%',
+  },
+  nextStepsTitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.muted,
+    marginBottom: 16,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  stepNum: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepNumText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  stepText: {
+    flex: 1,
+    fontSize: 13,
+    color: COLORS.text.secondary,
+  },
+
+  // ボタン
+  buttonArea: {
+    padding: 24,
+    gap: 12,
+  },
+  completeButton: {
+    backgroundColor: COLORS.success,
+    borderRadius: 16,
+    paddingVertical: 18,
+    alignItems: 'center',
+  },
+  completeButtonText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  backButton: {
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  backButtonText: {
+    fontSize: 14,
+    color: COLORS.text.muted,
+  },
 });
