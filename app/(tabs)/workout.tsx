@@ -216,28 +216,32 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
               </Text>
             </View>
             <Text style={styles.detailDistance}>
-              {Math.round(totalDistance / 100) / 10}km
+              総距離 {totalDistance.toLocaleString()}m ({(totalDistance / 400).toFixed(1)}周)
             </Text>
-            {variant?.note && (
-              <View style={styles.limiterNoteRow}>
-                <Ionicons name={LIMITER_CONFIG[limiter].icon as any} size={12} color={COLORS.text.muted} />
-                <Text style={styles.limiterNote}>{LIMITER_CONFIG[limiter].label}調整</Text>
-              </View>
-            )}
           </View>
+
+          {variant?.note && (
+            <View style={styles.limiterCard}>
+              <Ionicons name={LIMITER_CONFIG[limiter].icon as any} size={20} color={COLORS.primary} />
+              <View>
+                <Text style={styles.limiterCardTitle}>{LIMITER_CONFIG[limiter].label}リミッター向け調整</Text>
+                <Text style={styles.limiterCardNote}>{variant.note}</Text>
+              </View>
+            </View>
+          )}
 
           <Text style={styles.detailDescription}>{workout.description}</Text>
         </SlideIn>
 
         {/* セグメント一覧 */}
         <SlideIn delay={200} direction="up">
-          <Text style={styles.sectionLabel}>メニュー</Text>
+          <Text style={styles.sectionLabel}>メニュー詳細</Text>
           <View style={styles.segmentsContainer}>
             {workout.segments.map((seg, i) => {
               const pace = calculateWorkoutPace(etp, seg.zone, limiter);
               const zoneConfig = ZONE_COEFFICIENTS_V3[seg.zone];
-              const reps = variant?.reps || seg.reps;
-              const recovery = variant?.recoveryDistance || seg.recoveryDistance;
+              const reps = seg.reps ? (variant?.reps || seg.reps) : undefined;
+              const recovery = seg.recoveryDistance ? (variant?.recoveryDistance || seg.recoveryDistance) : undefined;
 
               return (
                 <View
@@ -247,16 +251,20 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
                     { borderLeftColor: zoneConfig?.color || '#4B5563' },
                   ]}
                 >
-                  <View style={styles.segmentItemMain}>
-                    <Text style={styles.segmentItemLabel}>
-                      {seg.label}
-                      {reps && reps > 1 ? ` × ${reps}本` : ''}
-                      {reps && reps > 1 && recovery ? `（回復${recovery}m）` : ''}
-                    </Text>
-                    <Text style={styles.segmentItemDistance}>{seg.distance}m</Text>
+                  <View style={styles.segmentRow}>
+                    <View style={styles.segmentLeft}>
+                      <Text style={styles.segmentLabel}>
+                        {seg.label}{reps && reps > 1 ? ` × ${reps}本` : ''}
+                      </Text>
+                      <Text style={styles.segmentZone}>{zoneConfig?.label || seg.zone}</Text>
+                    </View>
+                    <View style={styles.segmentRight}>
+                      <Text style={styles.segmentPace400}>{Math.round(pace)}秒/400m</Text>
+                      <Text style={styles.segmentPaceKm}>{formatKmPace(pace)}</Text>
+                    </View>
                   </View>
-                  {pace > 0 && (
-                    <Text style={styles.segmentItemPace}>{formatKmPace(pace)}</Text>
+                  {reps && reps > 1 && recovery && (
+                    <Text style={styles.segmentRecovery}>回復 {recovery}m</Text>
                   )}
                 </View>
               );
@@ -584,14 +592,25 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     fontWeight: '600',
   },
-  limiterNoteRow: {
+  limiterCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 12,
+    marginBottom: 4,
   },
-  limiterNote: {
-    fontSize: 12,
-    color: COLORS.text.muted,
+  limiterCardTitle: {
+    fontSize: 14,
+    color: COLORS.text.primary,
+    fontWeight: '500',
+  },
+  limiterCardNote: {
+    fontSize: 13,
+    color: '#22C55E',
+    marginTop: 2,
   },
   detailDescription: {
     fontSize: 14,
@@ -608,26 +627,42 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderRadius: 10,
     padding: 12,
+  },
+  segmentRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
-  segmentItemMain: {
+  segmentLeft: {
     flex: 1,
   },
-  segmentItemLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.text.primary,
+  segmentRight: {
+    alignItems: 'flex-end',
   },
-  segmentItemDistance: {
-    fontSize: 12,
-    color: COLORS.text.muted,
-  },
-  segmentItemPace: {
-    fontSize: 15,
+  segmentLabel: {
+    fontSize: 16,
     fontWeight: '700',
     color: COLORS.text.primary,
+  },
+  segmentZone: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginTop: 2,
+  },
+  segmentPace400: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  segmentPaceKm: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginTop: 2,
+  },
+  segmentRecovery: {
+    fontSize: 12,
+    color: '#22C55E',
+    marginTop: 6,
   },
 
   // ラップ表
