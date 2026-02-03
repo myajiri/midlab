@@ -43,12 +43,15 @@ import {
   COLORS,
   LEVELS,
   PACE_INCREMENT,
+  ZONE_COEFFICIENTS_V3,
+  RACE_COEFFICIENTS,
 } from '../../src/constants';
 import {
   LevelName,
   TerminationReason,
   RecoveryTime,
   TestResult,
+  ZoneName,
 } from '../../src/types';
 
 // レベル調整（初回テスト用）
@@ -236,22 +239,14 @@ export default function TestScreen() {
             <View style={styles.zonesResultCard}>
               <Text style={styles.zonesResultTitle}>トレーニングゾーン</Text>
               <StaggeredList staggerDelay={80} initialDelay={200}>
-                {Object.entries(lastTestResult.zones).map(([zone, pace]) => {
-                  const zoneLabels: Record<string, { name: string; color: string }> = {
-                    jog: { name: 'Jog', color: '#9CA3AF' },
-                    easy: { name: 'Easy', color: '#3B82F6' },
-                    marathon: { name: 'Marathon', color: '#22C55E' },
-                    threshold: { name: 'Threshold', color: '#EAB308' },
-                    interval: { name: 'Interval', color: '#F97316' },
-                    repetition: { name: 'Rep', color: '#EF4444' },
-                  };
-                  const label = zoneLabels[zone];
-                  if (!label) return null;
+                {(['jog', 'easy', 'marathon', 'threshold', 'interval', 'repetition'] as ZoneName[]).map((zone) => {
+                  const pace = lastTestResult.zones[zone];
+                  const zoneConfig = ZONE_COEFFICIENTS_V3[zone];
                   return (
                     <View key={zone} style={styles.zoneResultRow}>
                       <View style={styles.zoneResultInfo}>
-                        <View style={[styles.zoneResultDot, { backgroundColor: label.color }]} />
-                        <Text style={styles.zoneResultName}>{label.name}</Text>
+                        <View style={[styles.zoneResultDot, { backgroundColor: zoneConfig.color }]} />
+                        <Text style={styles.zoneResultName}>{zoneConfig.label}</Text>
                       </View>
                       <Text style={styles.zoneResultPace}>{formatKmPace(pace)} ({pace}秒/400m)</Text>
                     </View>
@@ -266,19 +261,16 @@ export default function TestScreen() {
             <View style={styles.predictionsResultCard}>
               <Text style={styles.predictionsResultTitle}>レース予測タイム</Text>
               <View style={styles.predictionsResultGrid}>
-                {Object.entries(lastTestResult.predictions).map(([distance, prediction], index) => {
-                  const labels: Record<string, string> = {
-                    m800: '800m', m1500: '1500m', m3000: '3000m', m5000: '5000m'
-                  };
-                  return (
-                    <ScaleIn key={distance} delay={100 * index}>
-                      <View style={styles.predictionResultItem}>
-                        <Text style={styles.predictionResultDistance}>{labels[distance]}</Text>
-                        <Text style={styles.predictionResultTime}>{formatTime(prediction.min)}</Text>
-                      </View>
-                    </ScaleIn>
-                  );
-                })}
+                {Object.entries(lastTestResult.predictions).map(([key, prediction]) => (
+                  <View key={key} style={styles.predictionResultItem}>
+                    <Text style={styles.predictionResultDistance}>
+                      {RACE_COEFFICIENTS[key as keyof typeof RACE_COEFFICIENTS].label}
+                    </Text>
+                    <Text style={styles.predictionResultTime}>
+                      {formatTime(prediction.min)}-{formatTime(prediction.max)}
+                    </Text>
+                  </View>
+                ))}
               </View>
             </View>
           </FadeIn>
@@ -1224,7 +1216,7 @@ const styles = StyleSheet.create({
   predictionsResultGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    justifyContent: 'space-between',
   },
   predictionResultItem: {
     width: '48%',
@@ -1232,6 +1224,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     alignItems: 'center',
+    marginBottom: 8,
   },
   predictionResultDistance: {
     fontSize: 12,
