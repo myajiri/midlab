@@ -55,6 +55,8 @@ export default function TabLayout() {
         },
         tabBarItemStyle: {
           paddingTop: 6,
+          paddingHorizontal: 0,
+          minWidth: 0,
         },
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.text.secondary,
@@ -62,6 +64,7 @@ export default function TabLayout() {
           fontSize: 10,
           fontWeight: '500',
           marginTop: 0,
+          marginHorizontal: 0,
           textTransform: 'none',
         },
         tabBarIconStyle: {
