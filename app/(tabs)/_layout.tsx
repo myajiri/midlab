@@ -65,11 +65,25 @@ export default function TabLayout() {
     .activeOffsetX([-20, 20]) // 水平20px以上で発火
     .failOffsetY([-10, 10]) // 垂直10px以上で失敗（スクロール優先）
     .onUpdate((event) => {
-      translateX.value = event.translationX * 0.3;
+      // 係数を0.8に増加（指に追従する動きが大きくなる）
+      translateX.value = event.translationX * 0.8;
     })
     .onEnd((event) => {
-      runOnJS(handleSwipeEnd)(event.translationX);
-      translateX.value = withSpring(0, { damping: 20, stiffness: 200 });
+      const velocity = event.velocityX;
+      const shouldNavigate =
+        Math.abs(event.translationX) > SWIPE_THRESHOLD ||
+        Math.abs(velocity) > 500;
+
+      if (shouldNavigate) {
+        runOnJS(handleSwipeEnd)(event.translationX);
+      }
+
+      // velocityを活かしたスプリングアニメーション
+      translateX.value = withSpring(0, {
+        velocity: velocity,
+        damping: 15,
+        stiffness: 150,
+      });
     });
 
   const animatedStyle = useAnimatedStyle(() => ({
