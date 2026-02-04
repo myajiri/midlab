@@ -4,6 +4,12 @@
 
 MidLab（中距離走専用トレーニング管理アプリ）を App Store および Google Play Store にリリースするための作業計画。
 
+### 初期リリース方針
+- **アカウント機能: 無効**（Supabase 認証は未使用。ログイン/サインアップ UI なし）
+- **課金機能: 有効**（RevenueCat によるサブスクリプション ¥780/月）
+- **データ保存: ローカルのみ**（Zustand + AsyncStorage）
+- アカウント機能は将来のアップデートで導入予定
+
 ---
 
 ## 現状の整理
@@ -12,17 +18,16 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 - Expo + React Native によるアプリ本体の実装
 - Expo Router によるナビゲーション構成
 - Zustand + AsyncStorage によるローカル状態管理
-- Supabase による認証基盤（Email / Apple / Google）
 - RevenueCat によるサブスクリプション基盤（¥780/月）
 - EAS Build プロファイル（development / preview / production）
 - アプリアイコン・スプラッシュ画面のアセット
 - Maestro による E2E テスト
-- アカウント削除機能（Supabase Edge Function）
+- アカウント機能のコード実装（将来のアップデート用、現在は未使用）
 
 ### 未完了 ❌
 - App Store Connect / Google Play Console のアカウント・アプリ登録
 - ストア提出用クレデンシャルの設定（`eas.json` の `submit` セクション）
-- 環境変数（Supabase / RevenueCat API キー）の本番設定
+- RevenueCat API キーの本番設定
 - プライバシーポリシー・利用規約の作成
 - ストアメタデータ（説明文・スクリーンショット等）の準備
 - 本番環境テスト
@@ -49,26 +54,27 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 
 ---
 
-## フェーズ 2: バックエンド・サービス本番設定
+## フェーズ 2: RevenueCat・課金設定
 
-### 2-1. Supabase 本番環境
-- [ ] 本番用 Supabase プロジェクトを作成（または既存プロジェクトの確認）
-- [ ] 本番 URL と Anon Key を EAS Secrets に登録
-  ```bash
-  eas secret:create --name EXPO_PUBLIC_SUPABASE_URL --value "https://xxx.supabase.co"
-  eas secret:create --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value "xxx"
-  ```
-- [ ] Row Level Security (RLS) ポリシーの確認・強化
-- [ ] Edge Function（delete-user）の本番デプロイ
-- [ ] OAuth リダイレクト URL の本番設定（`midlab://auth/callback`）
+### 2-1. App Store Connect 課金設定
+- [ ] App Store Connect で App 内課金を作成
+  - 種類: 自動更新サブスクリプション
+  - Product ID: `midlab_premium_monthly`
+  - 価格: ¥780/月
+- [ ] サブスクリプショングループの作成
+- [ ] ローカライズ情報の入力（表示名・説明文）
 
-### 2-2. RevenueCat 設定
+### 2-2. Google Play Console 課金設定
+- [ ] Google Play Console で定期購入を作成
+  - Product ID: `midlab_premium_monthly`
+  - 価格: ¥780/月
+- [ ] 基本プランと特典の設定
+
+### 2-3. RevenueCat 設定
 - [ ] RevenueCat でプロジェクトを作成
 - [ ] App Store Connect API キーを RevenueCat に登録
 - [ ] Google Play Service Account を RevenueCat に登録
-- [ ] プロダクト `midlab_premium_monthly` を作成
-  - iOS: App Store Connect で App 内課金（自動更新サブスクリプション）を設定
-  - Android: Google Play Console で定期購入を設定
+- [ ] プロダクト `midlab_premium_monthly` を紐付け
 - [ ] エンタイトルメント `premium` を作成・プロダクトに紐付け
 - [ ] iOS / Android 用 API キーを EAS Secrets に登録
   ```bash
@@ -76,9 +82,11 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
   eas secret:create --name EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID --value "goog_xxx"
   ```
 
-### 2-3. EAS プロジェクト設定
+### 2-4. EAS プロジェクト設定
 - [ ] `eas secret:create` で EAS_PROJECT_ID を登録
 - [ ] EAS の owner 設定を確認（現在: `myajiri`）
+
+> **注意:** Supabase の設定は初期リリースでは不要。環境変数は空のままで問題なし（`lib/supabase.ts` は空文字列を安全に処理する）。
 
 ---
 
@@ -86,27 +94,37 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 
 ### 3-1. プライバシーポリシー
 - [ ] プライバシーポリシーを作成（日本語 + 英語）
-  - 収集データ: メールアドレス、トレーニングデータ、ETP テスト結果
-  - 利用目的: アカウント管理、トレーニングデータの保存と表示
-  - 第三者提供: Supabase（データベース）、RevenueCat（課金管理）
-  - データ削除: アプリ内アカウント削除機能
-- [ ] プライバシーポリシーを Web 上に公開（Supabase Hosting / GitHub Pages 等）
+  - 収集データ: サブスクリプション情報（RevenueCat 経由）
+  - **端末内のみに保存されるデータ**: トレーニングデータ、ETP テスト結果、プロフィール情報
+  - 第三者提供: RevenueCat（課金管理）
+  - ※ アカウント機能なしのため、メールアドレス等の個人情報はサーバーに送信されない
+- [ ] プライバシーポリシーを Web 上に公開（GitHub Pages 等）
 - [ ] アプリ内設定画面にリンクを追加
 
 ### 3-2. 利用規約
 - [ ] 利用規約を作成（日本語 + 英語）
+  - サブスクリプションの自動更新・解約方法の明記（Apple 審査で必須）
 - [ ] Web 上に公開
 - [ ] アプリ内設定画面にリンクを追加
 
 ### 3-3. Apple 固有の要件
 - [ ] App Tracking Transparency (ATT) 対応の確認
-  - 現状トラッキングを行っていない場合は不要
-- [ ] Apple ログイン実装済み ✅（`expo-apple-authentication`）
+  - トラッキングを行っていないため不要
 - [ ] App Privacy Details（App Store Connect のプライバシー質問）への回答準備
+  - 「Data Not Collected」に該当する項目が多い（ローカル保存のみ）
+  - 購入履歴のみ RevenueCat 経由で収集
+- [ ] サブスクリプション関連の表示要件
+  - 価格・更新頻度・解約方法をアプリ内に明記
 - [ ] EULA（必要に応じてカスタム利用規約を設定）
+
+> **注意:** アカウント機能がないため以下は **不要**:
+> - Apple ログイン（Sign in with Apple）の実装義務なし（サードパーティログインを提供しないため）
+> - アカウント削除機能の実装義務なし（アカウントが存在しないため）
 
 ### 3-4. Google 固有の要件
 - [ ] データセーフティセクションの回答準備
+  - データはデバイス上にのみ保存される旨を記載
+  - 購入データのみ第三者（RevenueCat）と共有
 - [ ] コンテンツレーティング質問への回答
 - [ ] ターゲットユーザー層と対象年齢の設定
 
@@ -162,15 +180,22 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
   - トレーニングプラン生成（Premium 機能）
   - ワークアウト記録
   - サブスクリプション購入・復元（Sandbox 環境）
-  - Apple ログインの動作確認
-  - アカウント削除の動作確認
   - ダークモード表示の確認
+  - 各画面の表示崩れチェック
 - [ ] Android: Google Play 内部テストトラック
   - 上記と同様の項目をテスト
-  - Google OAuth ログインの動作確認
   - 各種画面サイズでのレイアウト確認
 
-### 5-3. パフォーマンス・品質チェック
+### 5-3. サブスクリプションテスト（重要）
+- [ ] iOS Sandbox 環境でのテスト
+  - 購入フローの完了確認
+  - 購入後に Premium 機能がアンロックされるか確認
+  - 復元ボタンの動作確認
+  - サブスクリプション解約フローの確認
+- [ ] Android テスト環境でのテスト
+  - 同上の項目を確認
+
+### 5-4. パフォーマンス・品質チェック
 - [ ] 起動時間の確認（3秒以内が目安）
 - [ ] メモリ使用量の確認
 - [ ] オフライン状態での動作確認（ローカルデータ操作）
@@ -194,10 +219,10 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 - [ ] App Review に提出
 - [ ] レビュー対応（リジェクト時の修正）
   - よくあるリジェクト理由:
-    - サブスクリプション利用規約の不備
-    - アカウント削除フローの不備 → 実装済み ✅
+    - サブスクリプションの価格・更新頻度・解約方法が明記されていない
     - プライバシーポリシーの不備
     - スクリーンショットの不整合
+    - メタデータの不備
 
 ### 6-2. Google Play Store 提出
 - [ ] EAS Submit で Play Store に提出
@@ -222,17 +247,19 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 - [ ] クラッシュレポートの監視
 - [ ] ストアレビューの確認・返信
 - [ ] サブスクリプション売上の確認（RevenueCat Dashboard）
-- [ ] Supabase のデータベース使用量の監視
 
-### 7-2. 次期アップデート準備
+### 7-2. 次期アップデート計画
 - [ ] ユーザーフィードバックの収集・分析
 - [ ] バージョン管理ルールの策定
   - バージョン番号: Semantic Versioning（MAJOR.MINOR.PATCH）
   - `buildNumber`（iOS）/ `versionCode`（Android）のインクリメント管理
+- [ ] アカウント機能の導入（Supabase 認証、クラウド同期）
 
 ---
 
-## `eas.json` に設定が必要な項目一覧
+## 設定リファレンス
+
+### `eas.json` に設定が必要な項目
 
 ```json
 {
@@ -252,24 +279,34 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 }
 ```
 
-## EAS Secrets に登録が必要な環境変数
+### EAS Secrets に登録が必要な環境変数
 
-| 変数名 | 用途 |
-|--------|------|
-| `EXPO_PUBLIC_SUPABASE_URL` | Supabase プロジェクト URL |
-| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase 匿名キー |
-| `EXPO_PUBLIC_REVENUECAT_API_KEY_IOS` | RevenueCat iOS API キー |
-| `EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID` | RevenueCat Android API キー |
-| `EAS_PROJECT_ID` | EAS プロジェクト ID |
+| 変数名 | 用途 | 初期リリースで必要 |
+|--------|------|:------------------:|
+| `EXPO_PUBLIC_REVENUECAT_API_KEY_IOS` | RevenueCat iOS API キー | ✅ |
+| `EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID` | RevenueCat Android API キー | ✅ |
+| `EAS_PROJECT_ID` | EAS プロジェクト ID | ✅ |
+| `EXPO_PUBLIC_SUPABASE_URL` | Supabase プロジェクト URL | ❌ 不要 |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Supabase 匿名キー | ❌ 不要 |
+
+### 本番ビルドの環境変数（`eas.json` の `production.env`）
+
+```json
+{
+  "EXPO_PUBLIC_ENABLE_PURCHASES": "true"
+}
+```
+
+> `EXPO_PUBLIC_ENABLE_PURCHASES` は既に production プロファイルで `true` に設定済み。
 
 ---
 
 ## 推奨作業順序
 
 ```
-フェーズ 1（アカウント準備）
+フェーズ 1（アカウント・コンソール準備）
     ↓
-フェーズ 2（バックエンド設定）＋ フェーズ 3（法務）← 並行作業可能
+フェーズ 2（RevenueCat 課金設定）＋ フェーズ 3（法務）← 並行作業可能
     ↓
 フェーズ 4（メタデータ準備）
     ↓
@@ -283,5 +320,6 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 **注意事項:**
 - Apple のレビューは通常 1〜3 日程度かかる（初回はさらに長くなる場合あり）
 - Google Play のレビューは通常 1〜7 日程度
-- サブスクリプションのサンドボックステストは必ず実施すること
+- サブスクリプションの Sandbox テストは必ず実施すること
 - iPad 対応（`supportsTablet: true`）のため、iPad のスクリーンショットとレイアウト確認が必要
+- アカウント機能がないため、Supabase 関連の設定は初期リリースでは一切不要
