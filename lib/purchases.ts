@@ -20,7 +20,7 @@ export const PRODUCT_IDS = {
 
 // エンタイトルメントID
 export const ENTITLEMENTS = {
-    PREMIUM: 'premium',
+    PREMIUM: 'MidLab Pro',
 } as const;
 
 /**
