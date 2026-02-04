@@ -222,7 +222,7 @@ export default function UpgradeScreen() {
                         <View>
                             <Text style={styles.pricingTitle}>月額プラン</Text>
                             <View style={styles.priceRow}>
-                                <Text style={styles.price}>¥780</Text>
+                                <Text style={styles.price}>¥980</Text>
                                 <Text style={styles.period}>/月</Text>
                             </View>
                         </View>
@@ -285,21 +285,21 @@ export default function UpgradeScreen() {
                         購入により
                         <Text
                             style={styles.legalLink}
-                            onPress={() => Linking.openURL('https://myajiri.github.io/midlab/terms')}
+                            onPress={() => Linking.openURL('https://myajiri.github.io/midlab/terms.html')}
                         >
                             利用規約
                         </Text>
                         ・
                         <Text
                             style={styles.legalLink}
-                            onPress={() => Linking.openURL('https://myajiri.github.io/midlab/privacy')}
+                            onPress={() => Linking.openURL('https://myajiri.github.io/midlab/privacy.html')}
                         >
                             プライバシーポリシー
                         </Text>
                         に同意
                     </Text>
                     <Text style={styles.legalNote}>
-                        無料トライアル終了後、月額¥780で自動更新されます。{'\n'}
+                        無料トライアル終了後、月額¥980（年額¥9,800）で自動更新されます。{'\n'}
                         解約はいつでも{Platform.OS === 'ios' ? 'App Store' : 'Google Play'}の設定から可能です。
                     </Text>
                 </View>

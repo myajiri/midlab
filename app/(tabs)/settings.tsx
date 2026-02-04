@@ -363,7 +363,7 @@ export default function SettingsScreen() {
             <Text style={styles.sectionTitle}>法的情報</Text>
             <Pressable
               style={styles.legalItem}
-              onPress={() => Linking.openURL('https://myajiri.github.io/midlab/privacy')}
+              onPress={() => Linking.openURL('https://myajiri.github.io/midlab/privacy.html')}
             >
               <View style={styles.legalItemRow}>
                 <Ionicons name="shield-checkmark-outline" size={18} color={COLORS.text.muted} />
@@ -373,7 +373,7 @@ export default function SettingsScreen() {
             </Pressable>
             <Pressable
               style={styles.legalItem}
-              onPress={() => Linking.openURL('https://myajiri.github.io/midlab/terms')}
+              onPress={() => Linking.openURL('https://myajiri.github.io/midlab/terms.html')}
             >
               <View style={styles.legalItemRow}>
                 <Ionicons name="document-text-outline" size={18} color={COLORS.text.muted} />
