@@ -185,6 +185,18 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 
 ## フェーズ 5: ビルド・テスト
 
+### 5-0. 外部テスター向けビルド（課金スキップ）
+- [x] `eas.json` に `testing` プロファイルを追加済み
+  - `EXPO_PUBLIC_ENABLE_PURCHASES=false`（課金UI非表示）
+  - `EXPO_PUBLIC_FORCE_PREMIUM=true`（全プレミアム機能アンロック）
+  - `distribution: "internal"`（外部テスターに配布可能）
+- [ ] テスト用ビルドの作成
+  ```bash
+  eas build --profile testing --platform ios
+  eas build --profile testing --platform android
+  ```
+- [ ] テスターへの配布・フィードバック収集
+
 ### 5-1. 本番ビルドの作成
 - [ ] iOS Production ビルド
   ```bash
