@@ -50,18 +50,5 @@
         "EXPO_PUBLIC_ENABLE_PURCHASES": "true"
       }
     }
-  },
-  "submit": {
-    "production": {
-      "ios": {
-        "appleId": "",
-        "ascAppId": "",
-        "appleTeamId": ""
-      },
-      "android": {
-        "serviceAccountKeyPath": "",
-        "track": "internal"
-      }
-    }
   }
 }
