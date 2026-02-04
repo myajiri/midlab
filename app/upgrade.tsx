@@ -282,11 +282,25 @@ export default function UpgradeScreen() {
                 {/* 利用規約・プライバシーポリシー */}
                 <View style={styles.legalSection}>
                     <Text style={styles.legalText}>
-                        購入により<Text style={styles.legalLink}>利用規約</Text>・
-                        <Text style={styles.legalLink}>プライバシーポリシー</Text>に同意
+                        購入により
+                        <Text
+                            style={styles.legalLink}
+                            onPress={() => Linking.openURL('https://myajiri.github.io/midlab/terms')}
+                        >
+                            利用規約
+                        </Text>
+                        ・
+                        <Text
+                            style={styles.legalLink}
+                            onPress={() => Linking.openURL('https://myajiri.github.io/midlab/privacy')}
+                        >
+                            プライバシーポリシー
+                        </Text>
+                        に同意
                     </Text>
                     <Text style={styles.legalNote}>
-                        無料トライアル後、月額¥780で自動更新
+                        無料トライアル終了後、月額¥780で自動更新されます。{'\n'}
+                        解約はいつでも{Platform.OS === 'ios' ? 'App Store' : 'Google Play'}の設定から可能です。
                     </Text>
                 </View>
             </View>
@@ -454,6 +468,7 @@ const styles = StyleSheet.create({
     },
     legalLink: {
         color: COLORS.primary,
+        textDecorationLine: 'underline',
     },
     legalNote: {
         fontSize: 11,
