@@ -54,6 +54,7 @@ export default function UpgradeScreen() {
     const packages = usePackages();
     const { purchase, restore } = useSubscriptionStore();
     const [restoring, setRestoring] = useState(false);
+    const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
     const isNavigatingRef = useRef(false);
 
     // PremiumGateから来た場合、スワイプバック・ハードウェアバックを
@@ -89,25 +90,29 @@ export default function UpgradeScreen() {
         };
     }, [feature, navigation, router]);
 
-    // 月額プランを取得
+    // プランを取得
     const monthlyPackage = packages.find(pkg =>
         pkg.identifier.includes('monthly') || pkg.packageType === 'MONTHLY'
     );
+    const yearlyPackage = packages.find(pkg =>
+        pkg.identifier.includes('yearly') || pkg.packageType === 'ANNUAL'
+    );
+    const selectedPackage = selectedPlan === 'yearly' ? yearlyPackage : monthlyPackage;
 
     // 購入処理
     const handlePurchase = useCallback(async () => {
-        if (!monthlyPackage) {
+        if (!selectedPackage) {
             Alert.alert('エラー', '購入可能なプランが見つかりません');
             return;
         }
 
-        const success = await purchase(monthlyPackage);
+        const success = await purchase(selectedPackage);
         if (success) {
             Alert.alert('購入完了', 'プレミアムプランへのアップグレードが完了しました！', [
                 { text: 'OK', onPress: () => router.back() }
             ]);
         }
-    }, [monthlyPackage, purchase, router]);
+    }, [selectedPackage, purchase, router]);
 
     // 購入復元
     const handleRestore = useCallback(async () => {
@@ -216,20 +221,41 @@ export default function UpgradeScreen() {
                     ))}
                 </View>
 
-                {/* 価格カード */}
-                <View style={styles.pricingCard}>
-                    <View style={styles.pricingRow}>
-                        <View>
-                            <Text style={styles.pricingTitle}>月額プラン</Text>
-                            <View style={styles.priceRow}>
-                                <Text style={styles.price}>¥980</Text>
-                                <Text style={styles.period}>/月</Text>
-                            </View>
+                {/* プラン選択 */}
+                <View style={styles.planSelector}>
+                    {/* 年額プラン */}
+                    <Pressable
+                        style={[styles.planCard, selectedPlan === 'yearly' && styles.planCardSelected]}
+                        onPress={() => setSelectedPlan('yearly')}
+                    >
+                        <View style={styles.planBadge}>
+                            <Text style={styles.planBadgeText}>おすすめ</Text>
                         </View>
-                        <View style={styles.trialBadge}>
-                            <Text style={styles.trialBadgeText}>初回1週間無料</Text>
+                        <Text style={styles.planTitle}>年額プラン</Text>
+                        <View style={styles.priceRow}>
+                            <Text style={styles.price}>¥9,800</Text>
+                            <Text style={styles.period}>/年</Text>
                         </View>
-                    </View>
+                        <Text style={styles.planSaving}>月あたり¥817 — 2ヶ月分おトク</Text>
+                    </Pressable>
+
+                    {/* 月額プラン */}
+                    <Pressable
+                        style={[styles.planCard, selectedPlan === 'monthly' && styles.planCardSelected]}
+                        onPress={() => setSelectedPlan('monthly')}
+                    >
+                        <Text style={styles.planTitle}>月額プラン</Text>
+                        <View style={styles.priceRow}>
+                            <Text style={styles.price}>¥980</Text>
+                            <Text style={styles.period}>/月</Text>
+                        </View>
+                    </Pressable>
+                </View>
+
+                {/* トライアルバッジ */}
+                <View style={styles.trialBadge}>
+                    <Ionicons name="gift-outline" size={14} color="#000" />
+                    <Text style={styles.trialBadgeText}>初回1週間無料</Text>
                 </View>
 
                 {/* 購入ボタン */}
@@ -299,7 +325,7 @@ export default function UpgradeScreen() {
                         に同意
                     </Text>
                     <Text style={styles.legalNote}>
-                        無料トライアル終了後、月額¥980（年額¥9,800）で自動更新されます。{'\n'}
+                        無料トライアル終了後、{selectedPlan === 'yearly' ? '年額¥9,800' : '月額¥980'}で自動更新されます。{'\n'}
                         解約はいつでも{Platform.OS === 'ios' ? 'App Store' : 'Google Play'}の設定から可能です。
                     </Text>
                 </View>
@@ -373,41 +399,70 @@ const styles = StyleSheet.create({
         color: COLORS.text.primary,
         fontWeight: '500',
     },
-    pricingCard: {
-        marginHorizontal: 20,
+    planSelector: {
+        flexDirection: 'row',
+        paddingHorizontal: 20,
+        gap: 10,
+    },
+    planCard: {
+        flex: 1,
         backgroundColor: COLORS.background.light,
         borderRadius: 16,
-        padding: 20,
+        padding: 16,
         borderWidth: 2,
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        position: 'relative',
+    },
+    planCardSelected: {
         borderColor: COLORS.premium,
     },
-    pricingRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+    planBadge: {
+        position: 'absolute',
+        top: -10,
+        right: 12,
+        backgroundColor: COLORS.premium,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 8,
     },
-    pricingTitle: {
-        fontSize: 14,
+    planBadgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: '#000',
+    },
+    planTitle: {
+        fontSize: 13,
         color: COLORS.text.secondary,
         marginBottom: 4,
+    },
+    planSaving: {
+        fontSize: 11,
+        color: COLORS.premium,
+        marginTop: 4,
+        fontWeight: '500',
     },
     priceRow: {
         flexDirection: 'row',
         alignItems: 'baseline',
     },
     price: {
-        fontSize: 32,
+        fontSize: 24,
         fontWeight: '700',
         color: COLORS.text.primary,
     },
     period: {
-        fontSize: 14,
+        fontSize: 13,
         color: COLORS.text.secondary,
         marginLeft: 2,
     },
     trialBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
         backgroundColor: COLORS.premium,
-        paddingHorizontal: 12,
+        alignSelf: 'center',
+        paddingHorizontal: 14,
         paddingVertical: 6,
         borderRadius: 12,
     },
