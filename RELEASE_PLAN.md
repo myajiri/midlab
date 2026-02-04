@@ -6,7 +6,7 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 
 ### 初期リリース方針
 - **アカウント機能: 無効**（Supabase 認証は未使用。ログイン/サインアップ UI なし）
-- **課金機能: 有効**（RevenueCat によるサブスクリプション ¥780/月）
+- **課金機能: 有効**（RevenueCat によるサブスクリプション ¥980/月・¥9,800/年・初回1週間無料）
 - **データ保存: ローカルのみ**（Zustand + AsyncStorage）
 - アカウント機能は将来のアップデートで導入予定
 
@@ -18,7 +18,7 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 - Expo + React Native によるアプリ本体の実装
 - Expo Router によるナビゲーション構成
 - Zustand + AsyncStorage によるローカル状態管理
-- RevenueCat によるサブスクリプション基盤（¥780/月）
+- RevenueCat によるサブスクリプション基盤（¥980/月・¥9,800/年・初回1週間無料）
 - EAS Build プロファイル（development / preview / production）
 - アプリアイコン・スプラッシュ画面のアセット
 - Maestro による E2E テスト
@@ -60,14 +60,14 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 - [ ] App Store Connect で App 内課金を作成
   - 種類: 自動更新サブスクリプション
   - Product ID: `midlab_premium_monthly`
-  - 価格: ¥780/月
+  - 価格: ¥980/月・¥9,800/年・初回1週間無料
 - [ ] サブスクリプショングループの作成
 - [ ] ローカライズ情報の入力（表示名・説明文）
 
 ### 2-2. Google Play Console 課金設定
 - [ ] Google Play Console で定期購入を作成
   - Product ID: `midlab_premium_monthly`
-  - 価格: ¥780/月
+  - 価格: ¥980/月・¥9,800/年・初回1週間無料
 - [ ] 基本プランと特典の設定
 
 ### 2-3. RevenueCat 設定
