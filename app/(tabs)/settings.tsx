@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Pressable,
   Alert,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -356,8 +357,35 @@ export default function SettingsScreen() {
           </View>
         </SlideIn>
 
-        {/* バージョン */}
+        {/* 法的情報 */}
         <SlideIn delay={500} direction="up">
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>法的情報</Text>
+            <Pressable
+              style={styles.legalItem}
+              onPress={() => Linking.openURL('https://myajiri.github.io/midlab/privacy')}
+            >
+              <View style={styles.legalItemRow}>
+                <Ionicons name="shield-checkmark-outline" size={18} color={COLORS.text.muted} />
+                <Text style={styles.legalItemText}>プライバシーポリシー</Text>
+              </View>
+              <Ionicons name="open-outline" size={16} color={COLORS.text.muted} />
+            </Pressable>
+            <Pressable
+              style={styles.legalItem}
+              onPress={() => Linking.openURL('https://myajiri.github.io/midlab/terms')}
+            >
+              <View style={styles.legalItemRow}>
+                <Ionicons name="document-text-outline" size={18} color={COLORS.text.muted} />
+                <Text style={styles.legalItemText}>利用規約</Text>
+              </View>
+              <Ionicons name="open-outline" size={16} color={COLORS.text.muted} />
+            </Pressable>
+          </View>
+        </SlideIn>
+
+        {/* バージョン */}
+        <SlideIn delay={600} direction="up">
           <View style={styles.version}>
             <Text style={styles.versionText}>MidLab v1.0.0</Text>
           </View>
@@ -624,6 +652,25 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     lineHeight: 20,
     marginTop: 8,
+  },
+
+  // 法的情報
+  legalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  legalItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  legalItemText: {
+    fontSize: 14,
+    color: COLORS.text.primary,
   },
 
   // バージョン

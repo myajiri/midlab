@@ -20,14 +20,16 @@ export default {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.midlab.app"
+      bundleIdentifier: "com.midlab.app",
+      buildNumber: "1"
     },
     android: {
       adaptiveIcon: {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#0a0a0f"
       },
-      package: "com.midlab.app"
+      package: "com.midlab.app",
+      versionCode: 1
     },
     web: {
       bundler: "metro",
