@@ -13,9 +13,8 @@ const ENABLE_PURCHASES = Constants.expoConfig?.extra?.enablePurchases || false;
 
 // 商品ID
 export const PRODUCT_IDS = {
-    PREMIUM_MONTHLY: 'midlab_premium_monthly',  // ¥780/月
-    // 将来用
-    // PREMIUM_YEARLY: 'midlab_premium_yearly',
+    PREMIUM_MONTHLY: 'midlab_premium_monthly',  // ¥980/月
+    PREMIUM_YEARLY: 'midlab_premium_yearly',    // ¥9,800/年
     // COACHING_MONTHLY: 'midlab_coaching_monthly', // ¥2,980/月
 } as const;
 
