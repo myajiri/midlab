@@ -484,27 +484,46 @@ export const getNextTestRecommendation = (results: TestResult[]): { reason: stri
 
 /**
  * PBからリミッタータイプを推定
- * 800mと1500mの比率から推定
+ * 利用可能な全PBペアのeTP比率を加重平均して推定
+ * 距離差が大きいペアほど判別力が高いため、距離比の対数で重み付け
  */
 export const estimateLimiterFromPBs = (pbs: PBs): LimiterType => {
-  const m800 = pbs.m800;
-  const m1500 = pbs.m1500;
+  const distanceOrder: (keyof PBs)[] = ['m800', 'm1500', 'm3000', 'm5000'];
+  const distanceMeters: Record<keyof PBs, number> = { m800: 800, m1500: 1500, m3000: 3000, m5000: 5000 };
+  const available = distanceOrder.filter(d => pbs[d] != null && pbs[d]! > 0);
 
-  if (!m800 || !m1500) return 'balanced';
+  if (available.length < 2) return 'balanced';
 
-  // 800m/1500mのスピード指数比率でリミッターを推定
-  const speedIndex800 = m800 / PB_COEFFICIENTS.m800.coef;
-  const speedIndex1500 = m1500 / PB_COEFFICIENTS.m1500.coef;
-  const ratio = speedIndex800 / speedIndex1500;
-
-  if (ratio < 0.94) {
-    // 800mが相対的に遅い = 心肺系が強い
-    return 'cardio';
-  } else if (ratio > 1.06) {
-    // 800mが相対的に速い = 筋持久力系が強い
-    return 'muscular';
+  // 各PBからeTPを推定
+  const etpByDistance: Partial<Record<keyof PBs, number>> = {};
+  for (const d of available) {
+    etpByDistance[d] = pbs[d]! / PB_COEFFICIENTS[d].coef;
   }
 
+  // 全ペア（短距離 vs 長距離）の比率を加重平均
+  // ratio < 1: 短距離が相対的に速い → 心肺系リミッター
+  // ratio > 1: 短距離が相対的に遅い → 筋持久力リミッター
+  let weightedRatioSum = 0;
+  let totalWeight = 0;
+
+  for (let i = 0; i < available.length; i++) {
+    for (let j = i + 1; j < available.length; j++) {
+      const shorter = available[i];
+      const longer = available[j];
+      const ratio = etpByDistance[shorter]! / etpByDistance[longer]!;
+      // 距離差が大きいペアほど判別力が高い
+      const weight = Math.log(distanceMeters[longer] / distanceMeters[shorter]);
+      weightedRatioSum += ratio * weight;
+      totalWeight += weight;
+    }
+  }
+
+  if (totalWeight === 0) return 'balanced';
+
+  const avgRatio = weightedRatioSum / totalWeight;
+
+  if (avgRatio < 0.94) return 'cardio';
+  if (avgRatio > 1.06) return 'muscular';
   return 'balanced';
 };
 
