@@ -22,7 +22,7 @@ import {
   useSettingsStore,
   useEffectiveValues,
 } from '../../src/stores/useAppStore';
-import { formatTime, formatKmPace, parseTime, estimateEtpFromPb, calculateSpeedIndex, estimateLimiterFromSpeedIndex, calculateEtp } from '../../src/utils';
+import { formatTime, formatKmPace, calculateSpeedIndex, estimateLimiterFromSpeedIndex, calculateEtp } from '../../src/utils';
 import { TimePickerModal } from '../../src/components/ui';
 import { FadeIn, SlideIn } from '../../src/components/ui/Animated';
 import { COLORS, PB_COEFFICIENTS } from '../../src/constants';
@@ -170,20 +170,11 @@ export default function SettingsScreen() {
     }
   }, [profile.current, estimatedEtp, setCurrent, setEstimated]);
 
-  // PB変更（汎用）
+  // PB変更（ストア側でeTP・リミッター自動更新）
   const handlePbChange = useCallback((seconds: number) => {
     if (!activePickerDistance) return;
-    const newPbs = { ...profile.pbs, [activePickerDistance]: seconds };
     updatePBs({ [activePickerDistance]: seconds } as PBs);
-
-    // テスト結果がない場合、推定eTPを更新
-    if (!profile.current) {
-      const etpResult = calculateEtp(newPbs, profile.ageCategory, profile.experience);
-      if (etpResult) {
-        setEstimated(etpResult.adjustedEtp, limiter);
-      }
-    }
-  }, [activePickerDistance, profile.pbs, profile.current, profile.ageCategory, profile.experience, updatePBs, limiter, setEstimated]);
+  }, [activePickerDistance, updatePBs]);
 
   // PBクリア
   const handlePbClear = useCallback((key: keyof PBs) => {
@@ -332,7 +323,7 @@ export default function SettingsScreen() {
                 <View style={styles.speedIndexRow}>
                   <Ionicons name="analytics" size={14} color={COLORS.secondary} />
                   <Text style={styles.speedIndexText}>
-                    スピード指標: {speedIndex.value.toFixed(2)} → {limiterFromPbs.reason}
+                    スピード指標: {speedIndex.value.toFixed(2)} → {limiterFromPbs.reason}（自動設定）
                   </Text>
                 </View>
               )}
