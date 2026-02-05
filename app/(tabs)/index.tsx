@@ -263,9 +263,6 @@ export default function HomeScreen() {
               <Text style={styles.planMeta}>
                 {new Date(activePlan.race.date).toLocaleDateString('ja-JP')} | {activePlan.race.distance}m
               </Text>
-              <Text style={styles.planTarget}>
-                目標: {formatTime(activePlan.race.targetTime)}
-              </Text>
             </Pressable>
           </View>
         )}
@@ -636,12 +633,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text.muted,
   },
-  planTarget: {
-    fontSize: 14,
-    color: COLORS.primary,
-    marginTop: 8,
-  },
-
   // Today Workout
   todayWorkout: {
     marginBottom: 20,
