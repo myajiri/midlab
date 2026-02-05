@@ -625,11 +625,9 @@ interface GeneratePlanParams {
 }
 
 function generatePlan({ race, baseline, restDay = 6, ageCategory = 'senior', experience = 'intermediate' }: GeneratePlanParams): RacePlan {
-  // 年齢×競技歴によるボリューム係数と回復週サイクルを算出
-  const ageConfig = AGE_CATEGORY_CONFIG[ageCategory];
-  const expConfig = EXPERIENCE_CONFIG[experience];
-  const volumeMultiplier = ageConfig.volumeCoef * expConfig.volumeCoef;
-  const recoveryCycle = Math.min(ageConfig.recoveryCycle, expConfig.recoveryCycle);
+  // 年齢×競技歴による回復週サイクルを算出（短い方を採用）
+  // 個別ワークアウトの質・量は維持し、回復頻度で調整する
+  const recoveryCycle = Math.min(AGE_CATEGORY_CONFIG[ageCategory].recoveryCycle, EXPERIENCE_CONFIG[experience].recoveryCycle);
   const today = new Date();
   const raceDate = new Date(race.date);
   const weeksUntilRace = Math.floor((raceDate.getTime() - today.getTime()) / (7 * 24 * 60 * 60 * 1000));
@@ -683,11 +681,10 @@ function generatePlan({ race, baseline, restDay = 6, ageCategory = 'senior', exp
     // 回復週サイクルを年齢・競技歴に応じて可変（デフォルト3週、若年/高齢/初心者は2週）
     const isRecoveryWeek = weeksIntoPhase > 0 && weeksIntoPhase % recoveryCycle === 0;
 
-    // 基準距離にボリューム係数（年齢×競技歴）を適用
-    let baseDistance = Math.round((eventDistance[phaseType] || 50000) * volumeMultiplier);
+    let baseDistance = eventDistance[phaseType] || 50000;
     if (phaseType === 'taper') {
       const taperConfig = TAPER_CONFIG[baseline.limiterType] || TAPER_CONFIG.balanced;
-      baseDistance = Math.round(eventDistance.peak * volumeMultiplier * (1 - taperConfig.volumeReduction * phaseProgress));
+      baseDistance = Math.round(eventDistance.peak * (1 - taperConfig.volumeReduction * phaseProgress));
     } else if (isRecoveryWeek) {
       baseDistance = Math.round(baseDistance * 0.7);
     } else {
