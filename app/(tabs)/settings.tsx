@@ -50,9 +50,9 @@ const EXPERIENCE_OPTIONS: { key: Experience; label: string }[] = [
 ];
 
 const LIMITER_OPTIONS: { key: LimiterType; icon: string; label: string }[] = [
-  { key: 'cardio', icon: 'fitness', label: '心肺型' },
+  { key: 'cardio', icon: 'fitness', label: '心肺' },
   { key: 'balanced', icon: 'scale', label: 'バランス' },
-  { key: 'muscular', icon: 'barbell', label: '筋型' },
+  { key: 'muscular', icon: 'barbell', label: '筋持久力' },
 ];
 
 // 用語ヘルプ定義
@@ -63,7 +63,7 @@ const HELP_ITEMS: { term: string; description: string }[] = [
   },
   {
     term: 'リミッタータイプ',
-    description: '持久力の制限要因を3タイプに分類したもの。心肺型（呼吸が先に限界）、筋持久力型（脚が先に限界）、バランス型（均等）の3種類があり、タイプに応じてトレーニングの重点が変わります。',
+    description: '持久力の制限要因を3タイプに分類したもの。心肺リミッター型（呼吸が先に限界）、筋持久力リミッター型（脚が先に限界）、バランス型（均等）の3種類があり、タイプに応じてトレーニングの重点が変わります。',
   },
   {
     term: 'トレーニングゾーン',
@@ -182,8 +182,41 @@ export default function SettingsScreen() {
           <Text style={styles.title}>設定</Text>
         </FadeIn>
 
-        {/* プロフィール */}
+        {/* サブスクリプション */}
         <SlideIn delay={100} direction="up">
+          <Pressable style={styles.card} onPress={() => router.push('/upgrade')}>
+            <View style={styles.subRow}>
+              <View style={styles.subInfo}>
+                <Ionicons
+                  name={isPremium ? 'trophy' : 'diamond-outline'}
+                  size={20}
+                  color={isPremium ? '#F59E0B' : COLORS.text.muted}
+                />
+                <Text style={styles.subLabel}>
+                  {isPremium ? 'プレミアム会員' : '無料プラン'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
+            </View>
+            {!isPremium && (
+              <Pressable
+                style={styles.restoreBtn}
+                onPress={async () => {
+                  const restored = await restore();
+                  Alert.alert(
+                    restored ? '復元完了' : '復元結果',
+                    restored ? '購入が復元されました' : '復元可能な購入がありません'
+                  );
+                }}
+              >
+                <Text style={styles.restoreText}>購入を復元</Text>
+              </Pressable>
+            )}
+          </Pressable>
+        </SlideIn>
+
+        {/* プロフィール */}
+        <SlideIn delay={200} direction="up">
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>プロフィール</Text>
 
@@ -276,39 +309,6 @@ export default function SettingsScreen() {
               </View>
             </View>
           </View>
-        </SlideIn>
-
-        {/* サブスクリプション */}
-        <SlideIn delay={200} direction="up">
-          <Pressable style={styles.card} onPress={() => router.push('/upgrade')}>
-            <View style={styles.subRow}>
-              <View style={styles.subInfo}>
-                <Ionicons
-                  name={isPremium ? 'trophy' : 'diamond-outline'}
-                  size={20}
-                  color={isPremium ? '#F59E0B' : COLORS.text.muted}
-                />
-                <Text style={styles.subLabel}>
-                  {isPremium ? 'プレミアム会員' : '無料プラン'}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
-            </View>
-            {!isPremium && (
-              <Pressable
-                style={styles.restoreBtn}
-                onPress={async () => {
-                  const restored = await restore();
-                  Alert.alert(
-                    restored ? '復元完了' : '復元結果',
-                    restored ? '購入が復元されました' : '復元可能な購入がありません'
-                  );
-                }}
-              >
-                <Text style={styles.restoreText}>購入を復元</Text>
-              </Pressable>
-            )}
-          </Pressable>
         </SlideIn>
 
         {/* 用語ヘルプ */}

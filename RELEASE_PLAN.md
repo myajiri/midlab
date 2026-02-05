@@ -29,11 +29,13 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 - サブスクリプション自動更新・解約方法の表示（Apple審査要件対応済み）
 - `eas.json` にストア提出用テンプレート追加済み（値は要設定）
 - iOS `buildNumber` / Android `versionCode` 設定済み
+- 法的文書の連絡先メールアドレスを `myajiri@gmail.com` に統一済み
 
 ### 未完了 ❌
 - App Store Connect / Google Play Console のアカウント・アプリ登録
 - ストア提出用クレデンシャルの実値設定（`eas.json` の `submit` セクション）
-- RevenueCat API キーの本番設定（EAS Secrets）
+- RevenueCat アカウント作成・API キーの本番設定（EAS Secrets）
+- アプリアイコンの改善（nanobanana で再生成）
 - ストアメタデータ（説明文・スクリーンショット等）の準備
 - 本番環境テスト
 
@@ -76,6 +78,7 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 - [ ] 基本プランと特典の設定
 
 ### 2-3. RevenueCat 設定
+- [ ] RevenueCat アカウントを作成（https://www.revenuecat.com/ で登録）
 - [ ] RevenueCat でプロジェクトを作成
 - [ ] App Store Connect API キーを RevenueCat に登録
 - [ ] Google Play Service Account を RevenueCat に登録
@@ -111,6 +114,11 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
   - サブスクリプションの自動更新・解約方法の明記（Apple 審査で必須）
 - [x] Web 上に公開（GitHub Pages: `docs/terms.html`, `docs/terms-en.html`）
 - [x] アプリ内設定画面にリンクを追加
+
+### 3-2.1. 法的文書のメールアドレス更新
+- [x] プライバシーポリシー・利用規約の連絡先メールアドレスを更新
+  - `midlab.app@gmail.com` → `myajiri@gmail.com`
+  - 対象ファイル: `docs/privacy.html`, `docs/privacy-en.html`, `docs/terms.html`, `docs/terms-en.html`
 
 ### 3-3. Apple 固有の要件
 - [x] App Tracking Transparency (ATT) 対応の確認
@@ -163,9 +171,31 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 - [x] スプラッシュスクリーン: `splash-icon.png` 設定済み
 - [x] Favicon: `favicon.png` 48x48 設定済み
 
+### 4-4. アプリアイコンの改善
+- [ ] nanobanana を使用してよりクリーンなアイコンを生成（手動ステップ）
+  - プロンプトは `scripts/icon_prompts.md` を参照
+  - 2x2 グリッド形式で出力される
+- [ ] 生成された画像を `scripts/source_icon.png` として保存
+- [ ] `python3 scripts/process_icons.py scripts/source_icon.png` を実行してアイコンを分割・処理
+- [ ] 生成されたアイコンの品質を目視確認
+
+> **注意:** 現在のアイコンは `scripts/generate_icons.py` でプロシージャル生成されたものだが、仕上がりが粗い。nanobanana で生成し直すことでよりクリーンな仕上がりを目指す。`scripts/process_icons.py` は nanobanana の 2x2 グリッド出力に対応済み。
+
 ---
 
 ## フェーズ 5: ビルド・テスト
+
+### 5-0. 外部テスター向けビルド（課金スキップ）
+- [x] `eas.json` に `testing` プロファイルを追加済み
+  - `EXPO_PUBLIC_ENABLE_PURCHASES=false`（課金UI非表示）
+  - `EXPO_PUBLIC_FORCE_PREMIUM=true`（全プレミアム機能アンロック）
+  - `distribution: "internal"`（外部テスターに配布可能）
+- [ ] テスト用ビルドの作成
+  ```bash
+  eas build --profile testing --platform ios
+  eas build --profile testing --platform android
+  ```
+- [ ] テスターへの配布・フィードバック収集
 
 ### 5-1. 本番ビルドの作成
 - [ ] iOS Production ビルド

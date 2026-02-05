@@ -56,3 +56,27 @@ Tiny 48x48 pixel favicon for a running app. Dark background (#0a0a0f). A simplif
 - adaptive-icon.png は **背景を透明** にすること（`app.config.js` で `backgroundColor: "#0a0a0f"` を指定済み）
 - splash-icon.png も **背景を透明** にすること
 - 生成後、各画像を `/home/user/midlab/assets/images/` に配置して差し替え
+
+---
+
+## nanobanana での生成手順
+
+1. 上記の各プロンプト（1〜4）を nanobanana に入力して画像を生成
+2. nanobanana は 2x2 グリッド形式で出力する:
+   - 左上: App Icon (icon.png)
+   - 右上: Adaptive Icon (adaptive-icon.png)
+   - 左下: Splash Icon (splash-icon.png)
+   - 右下: Favicon (favicon.png)
+3. 生成画像を `scripts/source_icon.png` として保存
+4. 処理スクリプトを実行:
+   ```bash
+   python3 scripts/process_icons.py scripts/source_icon.png
+   ```
+5. `assets/images/` と `assets/` に自動的にアイコンが配置される
+
+### process_icons.py の処理内容
+- 2x2 グリッドを4分割
+- App Icon: ラベルテキスト領域を黒で塗りつぶし、RGB変換
+- Adaptive Icon: チェッカー柄背景・ラベル・ガイド線を透過処理
+- Splash Icon: ラベルテキスト領域を白で塗りつぶし、チェッカー柄を白に置換
+- Favicon: チェッカー柄を透過処理後、48x48にリサイズ

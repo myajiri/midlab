@@ -6,6 +6,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import {
     initializePurchases,
     getCustomerInfo,
@@ -21,11 +22,13 @@ import {
 } from '../lib/purchases';
 
 // ============================================
-// 開発用モック設定
+// 開発用・テスト用モック設定
 // DEV_FORCE_PREMIUM を true にするとプレミアム状態を強制
 // Expo Go環境でも課金UIの確認が可能
+// EXPO_PUBLIC_FORCE_PREMIUM=true で本番以外のビルドでも強制可能
 // ============================================
-const DEV_FORCE_PREMIUM = __DEV__ && true; // trueで強制プレミアム
+const ENV_FORCE_PREMIUM = Constants.expoConfig?.extra?.forcePremium === true;
+const DEV_FORCE_PREMIUM = (__DEV__ && true) || ENV_FORCE_PREMIUM;
 
 interface SubscriptionState {
     isPremium: boolean;
