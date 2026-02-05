@@ -271,7 +271,7 @@ export default function PlanScreen() {
   const totalWeeks = activePlan.weeklyPlans?.length || 0;
   const firstWeekStart = activePlan.weeklyPlans?.[0]?.startDate ? new Date(activePlan.weeklyPlans[0].startDate) : new Date();
   const currentWeekNumber = totalWeeks > 0
-    ? Math.min(Math.max(1, Math.ceil((new Date().getTime() - firstWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1), totalWeeks)
+    ? Math.min(Math.max(1, Math.floor((new Date().getTime() - firstWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1), totalWeeks)
     : 1;
   const currentWeekPlan = activePlan.weeklyPlans?.[currentWeekNumber - 1];
 
