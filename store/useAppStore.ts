@@ -118,7 +118,6 @@ export interface TrainingPlan {
         name: string;
         date: string;
         distance: number;  // 800, 1500, 3000, 5000
-        targetTime: number;  // 秒
     };
     baseline: {
         etp: number;

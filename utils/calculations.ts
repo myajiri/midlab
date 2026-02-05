@@ -426,7 +426,6 @@ interface GeneratePlanParams {
         name: string;
         date: string;
         distance: number;
-        targetTime: number;
     };
     baseline: {
         etp: number;
