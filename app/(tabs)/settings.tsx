@@ -536,11 +536,12 @@ const styles = StyleSheet.create({
   },
   limiterBtn: {
     flex: 1,
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
+    gap: 4,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
     borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
@@ -551,8 +552,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(59, 130, 246, 0.1)',
   },
   limiterText: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.text.secondary,
+    textAlign: 'center',
   },
   limiterTextActive: {
     color: COLORS.primary,
