@@ -732,19 +732,19 @@ function generateWeeklySchedule(
   if (isRecoveryWeek) {
     const focus = PHYSIOLOGICAL_FOCUS_CATEGORIES[focusKeys[0]];
     days.push(
-      { id: `w${weekNumber}-d0`, dayOfWeek: 0, type: 'easy', label: 'Easy走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-      { id: `w${weekNumber}-d1`, dayOfWeek: 1, type: 'easy', label: 'Easy走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
+      { id: `w${weekNumber}-d0`, dayOfWeek: 0, type: 'easy', label: 'イージー', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
+      { id: `w${weekNumber}-d1`, dayOfWeek: 1, type: 'easy', label: 'イージー', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
       { id: `w${weekNumber}-d2`, dayOfWeek: 2, type: 'rest', label: '休養', isKey: false, completed: false },
       { id: `w${weekNumber}-d3`, dayOfWeek: 3, type: 'workout', label: focus?.name || '軽めの刺激', isKey: true, completed: false, focusKey: focusKeys[0], focusCategory: focus?.menuCategory },
-      { id: `w${weekNumber}-d4`, dayOfWeek: 4, type: 'easy', label: 'Easy走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-      { id: `w${weekNumber}-d5`, dayOfWeek: 5, type: 'long', label: 'Long走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
+      { id: `w${weekNumber}-d4`, dayOfWeek: 4, type: 'easy', label: 'イージー', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
+      { id: `w${weekNumber}-d5`, dayOfWeek: 5, type: 'long', label: 'ロング', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
       { id: `w${weekNumber}-d6`, dayOfWeek: 6, type: 'rest', label: '休養', isKey: false, completed: false },
     );
   } else if (isRampTestWeek) {
     const focus = PHYSIOLOGICAL_FOCUS_CATEGORIES[focusKeys[0]];
     days.push(
-      { id: `w${weekNumber}-d0`, dayOfWeek: 0, type: 'easy', label: 'Easy走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-      { id: `w${weekNumber}-d1`, dayOfWeek: 1, type: 'easy', label: 'Easy走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
+      { id: `w${weekNumber}-d0`, dayOfWeek: 0, type: 'easy', label: 'イージー', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
+      { id: `w${weekNumber}-d1`, dayOfWeek: 1, type: 'easy', label: 'イージー', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
       { id: `w${weekNumber}-d2`, dayOfWeek: 2, type: 'rest', label: '休養', isKey: false, completed: false },
       { id: `w${weekNumber}-d3`, dayOfWeek: 3, type: 'test', label: 'ETPテスト', isKey: true, completed: false, focusKey: 'test' },
       { id: `w${weekNumber}-d4`, dayOfWeek: 4, type: 'rest', label: '休養', isKey: false, completed: false },
@@ -758,12 +758,12 @@ function generateWeeklySchedule(
     const secondary = PHYSIOLOGICAL_FOCUS_CATEGORIES[secondaryFocus];
 
     days.push(
-      { id: `w${weekNumber}-d0`, dayOfWeek: 0, type: 'easy', label: 'Easy走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
+      { id: `w${weekNumber}-d0`, dayOfWeek: 0, type: 'easy', label: 'イージー', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
       { id: `w${weekNumber}-d1`, dayOfWeek: 1, type: 'workout', label: primary?.name || 'ポイント練習', isKey: true, completed: false, focusKey: primaryFocus, focusCategory: primary?.menuCategory },
-      { id: `w${weekNumber}-d2`, dayOfWeek: 2, type: 'easy', label: 'Easy走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
+      { id: `w${weekNumber}-d2`, dayOfWeek: 2, type: 'easy', label: 'イージー', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
       { id: `w${weekNumber}-d3`, dayOfWeek: 3, type: 'workout', label: secondary?.name || 'ポイント練習', isKey: true, completed: false, focusKey: secondaryFocus, focusCategory: secondary?.menuCategory },
-      { id: `w${weekNumber}-d4`, dayOfWeek: 4, type: 'easy', label: 'Easy走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-      { id: `w${weekNumber}-d5`, dayOfWeek: 5, type: 'long', label: 'Long走', isKey: true, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
+      { id: `w${weekNumber}-d4`, dayOfWeek: 4, type: 'easy', label: 'イージー', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
+      { id: `w${weekNumber}-d5`, dayOfWeek: 5, type: 'long', label: 'ロング', isKey: true, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
       { id: `w${weekNumber}-d6`, dayOfWeek: 6, type: 'rest', label: '休養', isKey: false, completed: false },
     );
   }
