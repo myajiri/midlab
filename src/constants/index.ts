@@ -51,14 +51,15 @@ export const LIMITER_ADJUSTMENTS = {
 };
 
 // 年齢カテゴリ設定
-export const AGE_CATEGORY_CONFIG: Record<AgeCategory, { label: string; desc: string; etpAdj: number; levelAdj: number }> = {
-  junior_high: { label: '中学生', desc: '12〜15歳', etpAdj: 0, levelAdj: -1 },
-  high_school: { label: '高校生', desc: '15〜18歳', etpAdj: 0, levelAdj: 0 },
-  collegiate: { label: '大学生', desc: '18〜22歳', etpAdj: 0, levelAdj: 0 },
-  senior: { label: '一般', desc: '22〜39歳', etpAdj: 0, levelAdj: 0 },
-  masters_40: { label: 'マスターズ40代', desc: '40〜49歳', etpAdj: 2, levelAdj: 0 },
-  masters_50: { label: 'マスターズ50代', desc: '50〜59歳', etpAdj: 4, levelAdj: -1 },
-  masters_60: { label: 'マスターズ60歳以上', desc: '60歳以上', etpAdj: 6, levelAdj: -1 },
+// recoveryCycle: 回復週の挿入サイクル（週数）。若年・高齢者は短いサイクルで回復週を設ける
+export const AGE_CATEGORY_CONFIG: Record<AgeCategory, { label: string; desc: string; etpAdj: number; levelAdj: number; recoveryCycle: number }> = {
+  junior_high: { label: '中学生', desc: '12〜15歳', etpAdj: 0, levelAdj: -1, recoveryCycle: 2 },
+  high_school: { label: '高校生', desc: '15〜18歳', etpAdj: 0, levelAdj: 0, recoveryCycle: 3 },
+  collegiate: { label: '大学生', desc: '18〜22歳', etpAdj: 0, levelAdj: 0, recoveryCycle: 3 },
+  senior: { label: '一般', desc: '22〜39歳', etpAdj: 0, levelAdj: 0, recoveryCycle: 3 },
+  masters_40: { label: 'マスターズ40代', desc: '40〜49歳', etpAdj: 2, levelAdj: 0, recoveryCycle: 3 },
+  masters_50: { label: 'マスターズ50代', desc: '50〜59歳', etpAdj: 4, levelAdj: -1, recoveryCycle: 2 },
+  masters_60: { label: 'マスターズ60歳以上', desc: '60歳以上', etpAdj: 6, levelAdj: -1, recoveryCycle: 2 },
 };
 
 // 性別設定
@@ -69,11 +70,12 @@ export const GENDER_CONFIG: Record<Gender, { label: string; etpAdj: number; note
 };
 
 // 競技歴設定
-export const EXPERIENCE_CONFIG: Record<Experience, { label: string; desc: string; etpAdj: number; levelAdj: number; confidence: 'low' | 'medium' | 'high' }> = {
-  beginner: { label: '初心者', desc: '競技歴2年未満', etpAdj: 3, levelAdj: -1, confidence: 'low' },
-  intermediate: { label: '中級者', desc: '競技歴2〜5年', etpAdj: 1, levelAdj: 0, confidence: 'medium' },
-  advanced: { label: '上級者', desc: '競技歴5年以上', etpAdj: 0, levelAdj: 0, confidence: 'high' },
-  elite: { label: 'エリート', desc: '全国大会出場レベル', etpAdj: -1, levelAdj: 0, confidence: 'high' },
+// recoveryCycle: 回復週の挿入サイクル（週数）。初心者は短いサイクルで回復週を設ける
+export const EXPERIENCE_CONFIG: Record<Experience, { label: string; desc: string; etpAdj: number; levelAdj: number; confidence: 'low' | 'medium' | 'high'; recoveryCycle: number }> = {
+  beginner: { label: '初心者', desc: '競技歴2年未満', etpAdj: 3, levelAdj: -1, confidence: 'low', recoveryCycle: 2 },
+  intermediate: { label: '中級者', desc: '競技歴2〜5年', etpAdj: 1, levelAdj: 0, confidence: 'medium', recoveryCycle: 3 },
+  advanced: { label: '上級者', desc: '競技歴5年以上', etpAdj: 0, levelAdj: 0, confidence: 'high', recoveryCycle: 3 },
+  elite: { label: 'エリート', desc: '全国大会出場レベル', etpAdj: -1, levelAdj: 0, confidence: 'high', recoveryCycle: 3 },
 };
 
 // 複数PB係数

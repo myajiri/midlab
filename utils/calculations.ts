@@ -413,7 +413,11 @@ import {
     KEY_WORKOUTS_BY_PHASE,
     WEEKLY_DISTANCE_BY_EVENT,
     TAPER_CONFIG,
+    AGE_CATEGORY_CONFIG,
+    EXPERIENCE_CONFIG,
     type PhaseType,
+    type AgeCategory,
+    type Experience,
 } from '../constants';
 import type { TrainingPlan, WeeklyPlan, PlanPhase, DaySchedule } from '../store/useAppStore';
 
@@ -430,6 +434,8 @@ interface GeneratePlanParams {
     };
     weeksUntilRace: number;
     restDays?: number[];  // 休養日（0=月, 1=火... 6=日）
+    ageCategory?: AgeCategory;
+    experience?: Experience;
 }
 
 /**
@@ -518,7 +524,11 @@ const generateWeeklySchedule = (
 /**
  * トレーニング計画を生成
  */
-export const generatePlan = ({ race, baseline, weeksUntilRace, restDays = [2, 6] }: GeneratePlanParams): TrainingPlan => {
+export const generatePlan = ({ race, baseline, weeksUntilRace, restDays = [2, 6], ageCategory = 'senior' as AgeCategory, experience = 'intermediate' as Experience }: GeneratePlanParams): TrainingPlan => {
+    // 年齢×競技歴による回復週サイクルを算出（短い方を採用）
+    // 個別ワークアウトの質・量は維持し、回復頻度で調整する
+    const recoveryCycle = Math.min(AGE_CATEGORY_CONFIG[ageCategory].recoveryCycle, EXPERIENCE_CONFIG[experience].recoveryCycle);
+
     // 期間に応じた配分を決定
     const distribution = weeksUntilRace >= 16 ? 'long'
         : weeksUntilRace >= 10 ? 'medium'
@@ -632,16 +642,16 @@ export const generatePlan = ({ race, baseline, weeksUntilRace, restDays = [2, 6]
         const phaseLength = phase?.weeks || 1;
         const phaseProgress = weeksIntoPhase / phaseLength;
 
-        // 3週ごとに回復週
-        const isRecoveryWeek = weeksIntoPhase > 0 && weeksIntoPhase % 3 === 0;
+        // 回復週サイクルを年齢・競技歴に応じて可変（デフォルト3週、若年/高齢/初心者は2週）
+        const isRecoveryWeek = weeksIntoPhase > 0 && weeksIntoPhase % recoveryCycle === 0;
 
         // 基準距離を計算
         let baseDistance: number = eventDistance[phaseType] || 50000;
 
         if (phaseType === 'taper') {
             const taperConf = TAPER_CONFIG[baseline.limiterType] || TAPER_CONFIG.balanced;
-            const volumeMultiplier = 1 - (taperConf.volumeReduction * phaseProgress);
-            baseDistance = Math.round(eventDistance.peak * volumeMultiplier);
+            const taperMultiplier = 1 - (taperConf.volumeReduction * phaseProgress);
+            baseDistance = Math.round(eventDistance.peak * taperMultiplier);
         } else if (isRecoveryWeek) {
             baseDistance = Math.round(baseDistance * 0.7);
         } else {

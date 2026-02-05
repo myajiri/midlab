@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import {
   usePlanStore,
+  useProfileStore,
   useEffectiveValues,
 } from '../../src/stores/useAppStore';
 import { formatTime, formatKmPace } from '../../src/utils';
@@ -33,6 +34,8 @@ import {
   WEEKLY_DISTANCE_BY_EVENT,
   TAPER_CONFIG,
   PHYSIOLOGICAL_FOCUS_CATEGORIES,
+  AGE_CATEGORY_CONFIG,
+  EXPERIENCE_CONFIG,
 } from '../../src/constants';
 import {
   RacePlan,
@@ -42,6 +45,8 @@ import {
   WeeklyPlan,
   ScheduledWorkout,
   LimiterType,
+  AgeCategory,
+  Experience,
 } from '../../src/types';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
@@ -58,6 +63,7 @@ export default function PlanScreen() {
   const clearPlan = usePlanStore((state) => state.clearPlan);
   const toggleWorkoutComplete = usePlanStore((state) => state.toggleWorkoutComplete);
   const { etp, limiter } = useEffectiveValues();
+  const profile = useProfileStore((state) => state.profile);
 
   const [view, setView] = useState<ViewType>(activePlan ? 'overview' : 'create');
   const setSubScreenOpen = useSetSubScreenOpen();
@@ -124,6 +130,8 @@ export default function PlanScreen() {
       race: { name: raceName, date: raceDate.toISOString(), distance, targetTime },
       baseline: { etp, limiterType: limiter },
       restDay,
+      ageCategory: profile.ageCategory,
+      experience: profile.experience,
     });
     setPlan(plan);
     setView('overview');
@@ -612,9 +620,14 @@ interface GeneratePlanParams {
   race: { name: string; date: string; distance: RaceDistance; targetTime: number };
   baseline: { etp: number; limiterType: LimiterType };
   restDay?: number; // 0=月〜6=日、デフォルト6（日曜）
+  ageCategory?: AgeCategory;
+  experience?: Experience;
 }
 
-function generatePlan({ race, baseline, restDay = 6 }: GeneratePlanParams): RacePlan {
+function generatePlan({ race, baseline, restDay = 6, ageCategory = 'senior', experience = 'intermediate' }: GeneratePlanParams): RacePlan {
+  // 年齢×競技歴による回復週サイクルを算出（短い方を採用）
+  // 個別ワークアウトの質・量は維持し、回復頻度で調整する
+  const recoveryCycle = Math.min(AGE_CATEGORY_CONFIG[ageCategory].recoveryCycle, EXPERIENCE_CONFIG[experience].recoveryCycle);
   const today = new Date();
   const raceDate = new Date(race.date);
   const weeksUntilRace = Math.floor((raceDate.getTime() - today.getTime()) / (7 * 24 * 60 * 60 * 1000));
@@ -665,7 +678,8 @@ function generatePlan({ race, baseline, restDay = 6 }: GeneratePlanParams): Race
     const weeksIntoPhase = weekNumber - (phase?.startWeek || 1);
     const phaseLength = phase?.weeks || 1;
     const phaseProgress = weeksIntoPhase / phaseLength;
-    const isRecoveryWeek = weeksIntoPhase > 0 && weeksIntoPhase % 3 === 0;
+    // 回復週サイクルを年齢・競技歴に応じて可変（デフォルト3週、若年/高齢/初心者は2週）
+    const isRecoveryWeek = weeksIntoPhase > 0 && weeksIntoPhase % recoveryCycle === 0;
 
     let baseDistance = eventDistance[phaseType] || 50000;
     if (phaseType === 'taper') {
