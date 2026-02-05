@@ -53,11 +53,22 @@ export default function OnboardingMain() {
   const [step, setStep] = useState<'welcome' | 'setup'>('welcome');
   const [ageCategory, setAgeCategory] = useState<AgeCategory>(profile.ageCategory || 'senior');
   const [experience, setExperience] = useState<Experience>(profile.experience || 'intermediate');
+  const [pb800, setPb800] = useState<number | null>(null);
   const [pb1500, setPb1500] = useState<number | null>(null);
-  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [activeTimePicker, setActiveTimePicker] = useState<'800' | '1500' | null>(null);
 
-  // 推定eTP
-  const estimatedEtp = pb1500 ? estimateEtpFrom1500(pb1500) : null;
+  // 推定eTP（複数PBがある場合は加重平均）
+  const estimatedEtp = (() => {
+    if (pb1500 && pb800) {
+      // 800m + 1500mの加重平均
+      const etp800 = Math.round(pb800 / 1.64);
+      const etp1500 = estimateEtpFrom1500(pb1500);
+      return Math.round((etp1500 * 0.5 + etp800 * 0.3) / 0.8);
+    }
+    if (pb1500) return estimateEtpFrom1500(pb1500);
+    if (pb800) return Math.round(pb800 / 1.64);
+    return null;
+  })();
 
   const handleStart = () => {
     setStep('setup');
@@ -73,8 +84,11 @@ export default function OnboardingMain() {
     updateAttributes({ ageCategory, experience });
 
     // PBがあれば保存
-    if (pb1500) {
-      updatePBs({ m1500: pb1500 } as PBs);
+    const pbs: Partial<PBs> = {};
+    if (pb800) pbs.m800 = pb800;
+    if (pb1500) pbs.m1500 = pb1500;
+    if (Object.keys(pbs).length > 0) {
+      updatePBs(pbs as PBs);
     }
 
     // 結果画面へ
@@ -200,22 +214,44 @@ export default function OnboardingMain() {
           </View>
         </SlideIn>
 
-        {/* 1500m PB（オプション） */}
+        {/* 自己ベスト（オプション） */}
         <SlideIn delay={300} direction="up">
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>1500m PB（任意）</Text>
-            <Pressable style={styles.pbInput} onPress={() => setShowTimePicker(true)}>
-              {pb1500 ? (
-                <View style={styles.pbValueRow}>
-                  <Text style={styles.pbValue}>{formatTime(pb1500)}</Text>
-                  <Pressable onPress={() => setPb1500(null)}>
-                    <Ionicons name="close-circle" size={20} color={COLORS.text.muted} />
-                  </Pressable>
-                </View>
-              ) : (
-                <Text style={styles.pbPlaceholder}>タップして入力（スキップ可）</Text>
-              )}
-            </Pressable>
+            <Text style={styles.sectionLabel}>自己ベスト（任意）</Text>
+
+            {/* 1500m PB */}
+            <View style={styles.pbField}>
+              <Text style={styles.pbFieldLabel}>1500m</Text>
+              <Pressable style={styles.pbInput} onPress={() => setActiveTimePicker('1500')}>
+                {pb1500 ? (
+                  <View style={styles.pbValueRow}>
+                    <Text style={styles.pbValue}>{formatTime(pb1500)}</Text>
+                    <Pressable onPress={() => setPb1500(null)}>
+                      <Ionicons name="close-circle" size={20} color={COLORS.text.muted} />
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Text style={styles.pbPlaceholder}>タップして入力</Text>
+                )}
+              </Pressable>
+            </View>
+
+            {/* 800m PB */}
+            <View style={styles.pbField}>
+              <Text style={styles.pbFieldLabel}>800m</Text>
+              <Pressable style={styles.pbInput} onPress={() => setActiveTimePicker('800')}>
+                {pb800 ? (
+                  <View style={styles.pbValueRow}>
+                    <Text style={styles.pbValue}>{formatTime(pb800)}</Text>
+                    <Pressable onPress={() => setPb800(null)}>
+                      <Ionicons name="close-circle" size={20} color={COLORS.text.muted} />
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Text style={styles.pbPlaceholder}>タップして入力</Text>
+                )}
+              </Pressable>
+            </View>
 
             {estimatedEtp && (
               <View style={styles.etpPreview}>
@@ -225,6 +261,10 @@ export default function OnboardingMain() {
                 </Text>
               </View>
             )}
+
+            <Text style={styles.pbHint}>
+              残りの距離は設定画面から追加できます
+            </Text>
           </View>
         </SlideIn>
       </ScrollView>
@@ -238,13 +278,20 @@ export default function OnboardingMain() {
       </SlideIn>
 
       <TimePickerModal
-        visible={showTimePicker}
-        onClose={() => setShowTimePicker(false)}
-        onSelect={(seconds) => setPb1500(seconds)}
-        value={pb1500 || undefined}
-        title="1500mのベストタイム"
-        minMinutes={3}
-        maxMinutes={10}
+        visible={activeTimePicker !== null}
+        onClose={() => setActiveTimePicker(null)}
+        onSelect={(seconds) => {
+          if (activeTimePicker === '1500') setPb1500(seconds);
+          else if (activeTimePicker === '800') setPb800(seconds);
+        }}
+        value={
+          activeTimePicker === '1500' ? (pb1500 || undefined)
+          : activeTimePicker === '800' ? (pb800 || undefined)
+          : undefined
+        }
+        title={activeTimePicker === '1500' ? '1500mのベストタイム' : '800mのベストタイム'}
+        minMinutes={activeTimePicker === '800' ? 1 : 3}
+        maxMinutes={activeTimePicker === '800' ? 5 : 10}
       />
     </SafeAreaView>
   );
@@ -436,10 +483,19 @@ const styles = StyleSheet.create({
   },
 
   // PB入力
+  pbField: {
+    marginBottom: 12,
+  },
+  pbFieldLabel: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    fontWeight: '500',
+    marginBottom: 6,
+  },
   pbInput: {
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 14,
-    padding: 18,
+    padding: 16,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
@@ -449,7 +505,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pbValue: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
     color: COLORS.primary,
   },
@@ -472,6 +528,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.primary,
     fontWeight: '500',
+  },
+  pbHint: {
+    fontSize: 11,
+    color: COLORS.text.muted,
+    marginTop: 8,
+    textAlign: 'center',
   },
 
   // ボタン

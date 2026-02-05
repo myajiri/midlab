@@ -305,14 +305,22 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* レース予測タイム */}
+        {/* レース予測タイム & PB */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>レース予測タイム</Text>
+          <Text style={styles.sectionTitle}>レース予測 & PB</Text>
           <View style={styles.predictionsGrid}>
             {(() => {
               const predictions = calculateRacePredictions(etp, limiter);
               return Object.entries(predictions).map(([key, prediction]) => {
                 const pb = profile?.pbs?.[key as keyof typeof profile.pbs];
+                // PBが予測範囲と比較してどうか判定
+                const avgPrediction = (prediction.min + prediction.max) / 2;
+                const hasPb = pb != null && pb > 0;
+                const pbDiff = hasPb ? pb - avgPrediction : 0;
+                // 負 = PBが予測より速い、正 = PBが予測より遅い
+                const pbStatus = hasPb
+                  ? (pb <= prediction.min ? 'faster' : pb >= prediction.max ? 'slower' : 'within')
+                  : null;
                 return (
                   <View key={key} style={styles.predictionItem}>
                     <Text style={styles.predictionDistance}>
@@ -321,8 +329,22 @@ export default function HomeScreen() {
                     <Text style={styles.predictionTime}>
                       {formatTime(prediction.min)}-{formatTime(prediction.max)}
                     </Text>
-                    {pb && (
-                      <Text style={styles.predictionPb}>PB: {formatTime(pb)}</Text>
+                    {hasPb && (
+                      <View style={styles.pbRow}>
+                        <Text style={[
+                          styles.predictionPb,
+                          pbStatus === 'faster' && styles.pbFaster,
+                          pbStatus === 'slower' && styles.pbSlower,
+                        ]}>
+                          PB: {formatTime(pb)}
+                        </Text>
+                        {pbStatus === 'faster' && (
+                          <Ionicons name="trending-up" size={12} color={COLORS.success} />
+                        )}
+                        {pbStatus === 'slower' && (
+                          <Ionicons name="trending-down" size={12} color={COLORS.text.muted} />
+                        )}
+                      </View>
                     )}
                   </View>
                 );
@@ -699,10 +721,22 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text.primary,
   },
+  pbRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
   predictionPb: {
     fontSize: 11,
+    color: COLORS.text.secondary,
+  },
+  pbFaster: {
+    color: COLORS.success,
+    fontWeight: '600',
+  },
+  pbSlower: {
     color: COLORS.text.muted,
-    marginTop: 4,
   },
 
   // Zones Table

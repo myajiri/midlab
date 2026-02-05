@@ -22,11 +22,11 @@ import {
   useSettingsStore,
   useEffectiveValues,
 } from '../../src/stores/useAppStore';
-import { formatTime, formatKmPace, parseTime, estimateEtpFromPb } from '../../src/utils';
+import { formatTime, formatKmPace, parseTime, estimateEtpFromPb, calculateSpeedIndex, estimateLimiterFromSpeedIndex, calculateEtp } from '../../src/utils';
 import { TimePickerModal } from '../../src/components/ui';
 import { FadeIn, SlideIn } from '../../src/components/ui/Animated';
-import { COLORS } from '../../src/constants';
-import { AgeCategory, Experience, LimiterType } from '../../src/types';
+import { COLORS, PB_COEFFICIENTS } from '../../src/constants';
+import { AgeCategory, Experience, LimiterType, PBs } from '../../src/types';
 import { useRouter } from 'expo-router';
 import { useIsPremium, useSubscriptionStore } from '../../store/useSubscriptionStore';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
@@ -56,6 +56,14 @@ const LIMITER_OPTIONS: { key: LimiterType; icon: string; label: string }[] = [
   { key: 'cardio', icon: 'fitness', label: '心肺' },
   { key: 'balanced', icon: 'scale', label: 'バランス' },
   { key: 'muscular', icon: 'barbell', label: '筋持久力' },
+];
+
+// PB距離設定
+const PB_DISTANCES: { key: keyof PBs; label: string; minMinutes: number; maxMinutes: number; title: string }[] = [
+  { key: 'm800', label: '800m PB', minMinutes: 1, maxMinutes: 5, title: '800mベストタイム' },
+  { key: 'm1500', label: '1500m PB', minMinutes: 3, maxMinutes: 8, title: '1500mベストタイム' },
+  { key: 'm3000', label: '3000m PB', minMinutes: 7, maxMinutes: 18, title: '3000mベストタイム' },
+  { key: 'm5000', label: '5000m PB', minMinutes: 12, maxMinutes: 30, title: '5000mベストタイム' },
 ];
 
 // 用語ヘルプ定義
@@ -118,15 +126,30 @@ export default function SettingsScreen() {
   const { etp, limiter, source } = useEffectiveValues();
 
   // 編集状態
-  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [activePickerDistance, setActivePickerDistance] = useState<keyof PBs | null>(null);
   const [expandedHelp, setExpandedHelp] = useState<number | null>(null);
-  const pb1500 = profile.pbs.m1500 || null;
 
-  // 推定eTP
+  // アクティブなピッカーの設定を取得
+  const activePickerConfig = useMemo(() => {
+    if (!activePickerDistance) return null;
+    return PB_DISTANCES.find(d => d.key === activePickerDistance) || null;
+  }, [activePickerDistance]);
+
+  // 複数PBからの推定eTP
   const estimatedEtp = useMemo(() => {
-    if (!pb1500) return null;
-    return estimateEtpFromPb(pb1500, 1500);
-  }, [pb1500]);
+    const etpResult = calculateEtp(profile.pbs, profile.ageCategory, profile.experience);
+    return etpResult?.adjustedEtp || null;
+  }, [profile.pbs, profile.ageCategory, profile.experience]);
+
+  // スピード指標（800m + 1500m PBが両方ある場合）
+  const speedIndex = useMemo(() => {
+    return calculateSpeedIndex(profile.pbs);
+  }, [profile.pbs]);
+
+  // スピード指標からのリミッター推定
+  const limiterFromPbs = useMemo(() => {
+    return estimateLimiterFromSpeedIndex(speedIndex);
+  }, [speedIndex]);
 
   // 年齢変更
   const handleAgeChange = useCallback((age: AgeCategory) => {
@@ -147,14 +170,25 @@ export default function SettingsScreen() {
     }
   }, [profile.current, estimatedEtp, setCurrent, setEstimated]);
 
-  // PB変更
+  // PB変更（汎用）
   const handlePbChange = useCallback((seconds: number) => {
-    updatePBs({ m1500: seconds });
-    const newEtp = estimateEtpFromPb(seconds, 1500);
-    if (newEtp && !profile.current) {
-      setEstimated(newEtp, limiter);
+    if (!activePickerDistance) return;
+    const newPbs = { ...profile.pbs, [activePickerDistance]: seconds };
+    updatePBs({ [activePickerDistance]: seconds } as PBs);
+
+    // テスト結果がない場合、推定eTPを更新
+    if (!profile.current) {
+      const etpResult = calculateEtp(newPbs, profile.ageCategory, profile.experience);
+      if (etpResult) {
+        setEstimated(etpResult.adjustedEtp, limiter);
+      }
     }
-  }, [updatePBs, profile.current, limiter, setEstimated]);
+  }, [activePickerDistance, profile.pbs, profile.current, profile.ageCategory, profile.experience, updatePBs, limiter, setEstimated]);
+
+  // PBクリア
+  const handlePbClear = useCallback((key: keyof PBs) => {
+    updatePBs({ [key]: undefined } as any);
+  }, [updatePBs]);
 
   // リセット処理
   const handleResetAll = useCallback(() => {
@@ -259,26 +293,48 @@ export default function SettingsScreen() {
               </View>
             </View>
 
-            {/* 1500m PB */}
+            {/* 自己ベスト（PB） */}
             <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>1500m PB</Text>
-              <Pressable style={styles.pbBtn} onPress={() => setShowTimePicker(true)}>
-                <Text style={[styles.pbValue, !pb1500 && styles.pbPlaceholder]}>
-                  {pb1500 ? formatTime(pb1500) : '未設定'}
-                </Text>
-                {pb1500 && (
-                  <Pressable
-                    style={styles.pbClear}
-                    onPress={() => updatePBs({ m1500: undefined as any })}
-                  >
-                    <Ionicons name="close-circle" size={18} color={COLORS.text.muted} />
-                  </Pressable>
-                )}
-              </Pressable>
+              <Text style={styles.fieldLabel}>自己ベスト（PB）</Text>
+              <View style={styles.pbGrid}>
+                {PB_DISTANCES.map((dist) => {
+                  const pbValue = profile.pbs[dist.key];
+                  return (
+                    <View key={dist.key} style={styles.pbGridItem}>
+                      <Text style={styles.pbDistanceLabel}>{PB_COEFFICIENTS[dist.key].label}</Text>
+                      <Pressable
+                        style={styles.pbBtn}
+                        onPress={() => setActivePickerDistance(dist.key)}
+                      >
+                        <Text style={[styles.pbValue, !pbValue && styles.pbPlaceholder]}>
+                          {pbValue ? formatTime(pbValue) : '未設定'}
+                        </Text>
+                        {pbValue ? (
+                          <Pressable
+                            style={styles.pbClear}
+                            onPress={() => handlePbClear(dist.key)}
+                          >
+                            <Ionicons name="close-circle" size={16} color={COLORS.text.muted} />
+                          </Pressable>
+                        ) : null}
+                      </Pressable>
+                    </View>
+                  );
+                })}
+              </View>
               {estimatedEtp && !profile.current && (
                 <Text style={styles.etpHint}>
-                  推定ETP: {formatKmPace(estimatedEtp)}
+                  推定ETP: {formatKmPace(estimatedEtp)} ({estimatedEtp}秒/400m)
                 </Text>
+              )}
+              {/* スピード指標（800m + 1500m PBがある場合） */}
+              {speedIndex && limiterFromPbs && (
+                <View style={styles.speedIndexRow}>
+                  <Ionicons name="analytics" size={14} color={COLORS.secondary} />
+                  <Text style={styles.speedIndexText}>
+                    スピード指標: {speedIndex.value.toFixed(2)} → {limiterFromPbs.reason}
+                  </Text>
+                </View>
               )}
             </View>
 
@@ -396,13 +452,13 @@ export default function SettingsScreen() {
       </ScrollView>
 
       <TimePickerModal
-        visible={showTimePicker}
-        onClose={() => setShowTimePicker(false)}
+        visible={activePickerDistance !== null}
+        onClose={() => setActivePickerDistance(null)}
         onSelect={handlePbChange}
-        value={pb1500 || undefined}
-        title="1500mベストタイム"
-        minMinutes={3}
-        maxMinutes={8}
+        value={activePickerDistance ? (profile.pbs[activePickerDistance] || undefined) : undefined}
+        title={activePickerConfig?.title || 'ベストタイム'}
+        minMinutes={activePickerConfig?.minMinutes || 1}
+        maxMinutes={activePickerConfig?.maxMinutes || 30}
       />
     </SafeAreaView>
   );
@@ -489,22 +545,37 @@ const styles = StyleSheet.create({
   },
 
   // PB入力
+  pbGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  pbGridItem: {
+    width: '48%' as any,
+  },
+  pbDistanceLabel: {
+    fontSize: 11,
+    color: COLORS.text.muted,
+    marginBottom: 4,
+    fontWeight: '500',
+  },
   pbBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 8,
-    padding: 12,
+    padding: 10,
   },
   pbValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: COLORS.text.primary,
   },
   pbPlaceholder: {
     color: COLORS.text.muted,
     fontWeight: '400',
+    fontSize: 13,
   },
   pbClear: {
     padding: 4,
@@ -512,7 +583,22 @@ const styles = StyleSheet.create({
   etpHint: {
     fontSize: 12,
     color: COLORS.success,
+    marginTop: 8,
+  },
+  speedIndexRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     marginTop: 6,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderRadius: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  speedIndexText: {
+    fontSize: 12,
+    color: COLORS.secondary,
+    fontWeight: '500',
   },
 
   // リミッター
