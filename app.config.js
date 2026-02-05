@@ -52,9 +52,11 @@ export default {
       revenueCatApiKeyAndroid: process.env.EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID || "",
       // 課金機能有効化フラグ
       enablePurchases: process.env.EXPO_PUBLIC_ENABLE_PURCHASES === "true",
+      // テスト用: プレミアム強制フラグ（外部テスター向け）
+      forcePremium: process.env.EXPO_PUBLIC_FORCE_PREMIUM === "true",
       // EAS設定
       eas: {
-        projectId: process.env.EAS_PROJECT_ID || "",
+        projectId: process.env.EAS_PROJECT_ID || "c5b71a66-9e44-41a0-a528-6844faff2f36",
       },
     },
     owner: process.env.EXPO_OWNER || "myajiri",

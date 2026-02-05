@@ -44,8 +44,8 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 // リミッター設定
 const LIMITER_CONFIG: Record<LimiterType, { icon: string; label: string }> = {
-  cardio: { icon: 'fitness', label: '心肺型' },
-  muscular: { icon: 'barbell', label: '筋型' },
+  cardio: { icon: 'fitness', label: '心肺リミッター型' },
+  muscular: { icon: 'barbell', label: '筋持久力リミッター型' },
   balanced: { icon: 'scale', label: 'バランス型' },
 };
 

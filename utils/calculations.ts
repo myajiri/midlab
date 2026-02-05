@@ -506,9 +506,9 @@ const generateWeeklySchedule = (
                 focusCategory: getFocusLabel(focusKey)
             });
         } else if (d === longRunDay && !isRampTestWeek) {
-            schedule.push({ dayOfWeek: d, type: 'long', label: 'Long Run', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' });
+            schedule.push({ dayOfWeek: d, type: 'long', label: 'ロング', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' });
         } else {
-            schedule.push({ dayOfWeek: d, type: 'easy', label: 'Easy Run', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' });
+            schedule.push({ dayOfWeek: d, type: 'easy', label: 'イージー', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' });
         }
     }
 

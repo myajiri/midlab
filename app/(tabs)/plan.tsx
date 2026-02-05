@@ -77,6 +77,7 @@ export default function PlanScreen() {
   const [raceDate, setRaceDate] = useState<Date | null>(null);
   const [distance, setDistance] = useState<RaceDistance>(1500);
   const [targetTime, setTargetTime] = useState<number | null>(null);
+  const [restDay, setRestDay] = useState<number>(6); // 休養日: デフォルト日曜（6）
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
 
@@ -122,6 +123,7 @@ export default function PlanScreen() {
     const plan = generatePlan({
       race: { name: raceName, date: raceDate.toISOString(), distance, targetTime },
       baseline: { etp, limiterType: limiter },
+      restDay,
     });
     setPlan(plan);
     setView('overview');
@@ -188,6 +190,24 @@ export default function PlanScreen() {
                       >
                         <Text style={[styles.distanceOptionText, distance === d && styles.distanceOptionTextActive]}>
                           {d}m
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+
+                {/* 休養日 */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>休養日</Text>
+                  <View style={styles.restDaySelector}>
+                    {(['月', '火', '水', '木', '金', '土', '日']).map((name, i) => (
+                      <Pressable
+                        key={i}
+                        style={[styles.restDayOption, restDay === i && styles.restDayOptionActive]}
+                        onPress={() => setRestDay(i)}
+                      >
+                        <Text style={[styles.restDayOptionText, restDay === i && styles.restDayOptionTextActive]}>
+                          {name}
                         </Text>
                       </Pressable>
                     ))}
@@ -271,7 +291,7 @@ export default function PlanScreen() {
   const totalWeeks = activePlan.weeklyPlans?.length || 0;
   const firstWeekStart = activePlan.weeklyPlans?.[0]?.startDate ? new Date(activePlan.weeklyPlans[0].startDate) : new Date();
   const currentWeekNumber = totalWeeks > 0
-    ? Math.min(Math.max(1, Math.ceil((new Date().getTime() - firstWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1), totalWeeks)
+    ? Math.min(Math.max(1, Math.floor((new Date().getTime() - firstWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1), totalWeeks)
     : 1;
   const currentWeekPlan = activePlan.weeklyPlans?.[currentWeekNumber - 1];
 
@@ -563,16 +583,10 @@ export default function PlanScreen() {
 
         {/* 管理ボタン */}
         <SlideIn delay={400} direction="up">
-          <View style={styles.actions}>
-            <Pressable style={styles.actionButton} onPress={() => setView('create')}>
-              <Ionicons name="refresh" size={18} color={COLORS.text.secondary} />
-              <Text style={styles.actionButtonText}>新規作成</Text>
-            </Pressable>
-            <Pressable style={styles.actionButton} onPress={handleDeletePlan}>
-              <Ionicons name="trash-outline" size={18} color="#EF4444" />
-              <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>削除</Text>
-            </Pressable>
-          </View>
+          <Pressable style={styles.actionButton} onPress={handleDeletePlan}>
+            <Ionicons name="trash-outline" size={18} color="#EF4444" />
+            <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>削除</Text>
+          </Pressable>
         </SlideIn>
       </ScrollView>
     </SafeAreaView>
@@ -597,9 +611,10 @@ function getWorkoutIconInfo(type: string): { name: string; color: string } {
 interface GeneratePlanParams {
   race: { name: string; date: string; distance: RaceDistance; targetTime: number };
   baseline: { etp: number; limiterType: LimiterType };
+  restDay?: number; // 0=月〜6=日、デフォルト6（日曜）
 }
 
-function generatePlan({ race, baseline }: GeneratePlanParams): RacePlan {
+function generatePlan({ race, baseline, restDay = 6 }: GeneratePlanParams): RacePlan {
   const today = new Date();
   const raceDate = new Date(race.date);
   const weeksUntilRace = Math.floor((raceDate.getTime() - today.getTime()) / (7 * 24 * 60 * 60 * 1000));
@@ -667,7 +682,7 @@ function generatePlan({ race, baseline }: GeneratePlanParams): RacePlan {
     const phaseFocusKeys = KEY_WORKOUTS_BY_PHASE[phaseType]?.focusKeys || ['aerobic'];
     const isRampTestWeek = rampTestWeeks.includes(weekNumber);
 
-    const days = generateWeeklySchedule(phaseType, phaseFocusKeys, isRecoveryWeek, isRampTestWeek, baseline.limiterType, weekNumber);
+    const days = generateWeeklySchedule(phaseType, phaseFocusKeys, isRecoveryWeek, isRampTestWeek, baseline.limiterType, weekNumber, restDay);
 
     weeklyPlans.push({
       weekNumber,
@@ -725,47 +740,74 @@ function generateWeeklySchedule(
   isRecoveryWeek: boolean,
   isRampTestWeek: boolean,
   limiterType: LimiterType,
-  weekNumber: number
+  weekNumber: number,
+  restDay: number = 6
 ): (ScheduledWorkout | null)[] {
+  // 休養日の決定
+  const restDays: number[] = [restDay];
+  if (isRecoveryWeek || isRampTestWeek) {
+    const secondaryRest = (restDay + 3) % 7;
+    restDays.push(secondaryRest);
+  }
+  if (isRampTestWeek) {
+    const tertiaryRest = (restDay + 5) % 7;
+    if (!restDays.includes(tertiaryRest)) {
+      restDays.push(tertiaryRest);
+    }
+  }
+
+  // 練習日を取得
+  const workoutDays: number[] = [];
+  for (let d = 0; d < 7; d++) {
+    if (!restDays.includes(d)) workoutDays.push(d);
+  }
+
+  // キーワークアウト・ロング走・テスト日の配置
+  let keyWorkoutDays: number[] = [];
+  let longRunDay: number | null = null;
+  let testDay: number | null = null;
+
+  if (workoutDays.length >= 4) {
+    const mid = Math.floor(workoutDays.length / 2);
+    keyWorkoutDays = [workoutDays[Math.floor(mid / 2)], workoutDays[mid + Math.floor((workoutDays.length - mid) / 2)]];
+    longRunDay = workoutDays[workoutDays.length - 1];
+    testDay = workoutDays[Math.floor(mid / 2)];
+  } else if (workoutDays.length === 3) {
+    keyWorkoutDays = [workoutDays[0], workoutDays[1]];
+    longRunDay = workoutDays[2];
+    testDay = workoutDays[1];
+  } else if (workoutDays.length === 2) {
+    keyWorkoutDays = [workoutDays[0]];
+    longRunDay = workoutDays[1];
+    testDay = workoutDays[0];
+  } else if (workoutDays.length === 1) {
+    longRunDay = workoutDays[0];
+    testDay = workoutDays[0];
+  }
+
+  // フォーカス情報
+  const primaryFocus = focusKeys[0] || 'aerobic';
+  const secondaryFocus = focusKeys[1] || focusKeys[0] || 'threshold';
+  const primary = PHYSIOLOGICAL_FOCUS_CATEGORIES[primaryFocus];
+  const secondary = PHYSIOLOGICAL_FOCUS_CATEGORIES[secondaryFocus];
+
+  // 各曜日のスケジュール生成
   const days: (ScheduledWorkout | null)[] = [];
-
-  if (isRecoveryWeek) {
-    const focus = PHYSIOLOGICAL_FOCUS_CATEGORIES[focusKeys[0]];
-    days.push(
-      { id: `w${weekNumber}-d0`, dayOfWeek: 0, type: 'easy', label: 'Easy走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-      { id: `w${weekNumber}-d1`, dayOfWeek: 1, type: 'easy', label: 'Easy走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-      { id: `w${weekNumber}-d2`, dayOfWeek: 2, type: 'rest', label: '休養', isKey: false, completed: false },
-      { id: `w${weekNumber}-d3`, dayOfWeek: 3, type: 'workout', label: focus?.name || '軽めの刺激', isKey: true, completed: false, focusKey: focusKeys[0], focusCategory: focus?.menuCategory },
-      { id: `w${weekNumber}-d4`, dayOfWeek: 4, type: 'easy', label: 'Easy走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-      { id: `w${weekNumber}-d5`, dayOfWeek: 5, type: 'long', label: 'Long走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-      { id: `w${weekNumber}-d6`, dayOfWeek: 6, type: 'rest', label: '休養', isKey: false, completed: false },
-    );
-  } else if (isRampTestWeek) {
-    const focus = PHYSIOLOGICAL_FOCUS_CATEGORIES[focusKeys[0]];
-    days.push(
-      { id: `w${weekNumber}-d0`, dayOfWeek: 0, type: 'easy', label: 'Easy走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-      { id: `w${weekNumber}-d1`, dayOfWeek: 1, type: 'easy', label: 'Easy走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-      { id: `w${weekNumber}-d2`, dayOfWeek: 2, type: 'rest', label: '休養', isKey: false, completed: false },
-      { id: `w${weekNumber}-d3`, dayOfWeek: 3, type: 'test', label: 'ETPテスト', isKey: true, completed: false, focusKey: 'test' },
-      { id: `w${weekNumber}-d4`, dayOfWeek: 4, type: 'rest', label: '休養', isKey: false, completed: false },
-      { id: `w${weekNumber}-d5`, dayOfWeek: 5, type: 'workout', label: focus?.name || '軽めの刺激', isKey: true, completed: false, focusKey: focusKeys[0], focusCategory: focus?.menuCategory },
-      { id: `w${weekNumber}-d6`, dayOfWeek: 6, type: 'rest', label: '休養', isKey: false, completed: false },
-    );
-  } else {
-    const primaryFocus = focusKeys[0] || 'aerobic';
-    const secondaryFocus = focusKeys[1] || focusKeys[0] || 'threshold';
-    const primary = PHYSIOLOGICAL_FOCUS_CATEGORIES[primaryFocus];
-    const secondary = PHYSIOLOGICAL_FOCUS_CATEGORIES[secondaryFocus];
-
-    days.push(
-      { id: `w${weekNumber}-d0`, dayOfWeek: 0, type: 'easy', label: 'Easy走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-      { id: `w${weekNumber}-d1`, dayOfWeek: 1, type: 'workout', label: primary?.name || 'ポイント練習', isKey: true, completed: false, focusKey: primaryFocus, focusCategory: primary?.menuCategory },
-      { id: `w${weekNumber}-d2`, dayOfWeek: 2, type: 'easy', label: 'Easy走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-      { id: `w${weekNumber}-d3`, dayOfWeek: 3, type: 'workout', label: secondary?.name || 'ポイント練習', isKey: true, completed: false, focusKey: secondaryFocus, focusCategory: secondary?.menuCategory },
-      { id: `w${weekNumber}-d4`, dayOfWeek: 4, type: 'easy', label: 'Easy走', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-      { id: `w${weekNumber}-d5`, dayOfWeek: 5, type: 'long', label: 'Long走', isKey: true, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' },
-      { id: `w${weekNumber}-d6`, dayOfWeek: 6, type: 'rest', label: '休養', isKey: false, completed: false },
-    );
+  for (let d = 0; d < 7; d++) {
+    if (restDays.includes(d)) {
+      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'rest', label: '休養', isKey: false, completed: false });
+    } else if (isRampTestWeek && d === testDay) {
+      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'test', label: 'ETPテスト', isKey: true, completed: false, focusKey: 'test' });
+    } else if (keyWorkoutDays.includes(d) && !isRecoveryWeek) {
+      const idx = keyWorkoutDays.indexOf(d);
+      const focus = idx === 0 ? primary : secondary;
+      const focusKey = idx === 0 ? primaryFocus : secondaryFocus;
+      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'workout', label: focus?.name || 'ポイント練習', isKey: true, completed: false, focusKey, focusCategory: focus?.menuCategory });
+    } else if (d === longRunDay && !isRampTestWeek) {
+      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'long', label: 'ロング', isKey: !isRecoveryWeek, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' });
+    } else {
+      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'easy', label: 'イージー', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' });
+    }
   }
 
   return days;
@@ -895,6 +937,31 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
   },
   distanceOptionTextActive: {
+    color: '#fff',
+  },
+
+  // 休養日セレクター
+  restDaySelector: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 4,
+  },
+  restDayOption: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  restDayOptionActive: {
+    backgroundColor: COLORS.primary,
+  },
+  restDayOptionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  restDayOptionTextActive: {
     color: '#fff',
   },
 

@@ -60,7 +60,7 @@ export default function OnboardingResult() {
         )}
 
         {/* 次のステップ */}
-        <SlideIn delay={700} direction="up">
+        <SlideIn delay={700} direction="up" style={{ width: '100%' }}>
           <View style={styles.nextSteps}>
             <Text style={styles.nextStepsTitle}>次のステップ</Text>
             {[
