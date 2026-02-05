@@ -210,20 +210,55 @@ describe('estimateLimiterFromPBs', () => {
     expect(estimateLimiterFromPBs({ m800: 130, m1500: 240 })).toBe('muscular');
   });
 
-  it('3000mや5000mのみの場合はbalanced', () => {
+  it('3000mと5000mのペアでバランス型を検出', () => {
+    // etp_3000 = 520/7.20 = 72.22
+    // etp_5000 = 900/12.5 = 72.00
+    // ratio = 72.22/72.00 = 1.003 → balanced
     expect(estimateLimiterFromPBs({ m3000: 520, m5000: 900 })).toBe('balanced');
   });
 
+  it('1500mと5000mのペアで心肺型を検出', () => {
+    // 1500mが相対的に速い選手（短距離型）
+    // etp_1500 = 230/3.30 = 69.70
+    // etp_5000 = 950/12.5 = 76.00
+    // ratio = 69.70/76.00 = 0.917 → < 0.94 → cardio
+    expect(estimateLimiterFromPBs({ m1500: 230, m5000: 950 })).toBe('cardio');
+  });
+
+  it('1500mと3000mのペアで筋持久力型を検出', () => {
+    // 3000mが相対的に速い選手（持久力型）
+    // etp_1500 = 260/3.30 = 78.79
+    // etp_3000 = 520/7.20 = 72.22
+    // ratio = 78.79/72.22 = 1.091 → > 1.06 → muscular
+    expect(estimateLimiterFromPBs({ m1500: 260, m3000: 520 })).toBe('muscular');
+  });
+
+  it('3距離以上で加重平均が機能する', () => {
+    // 800m=130s, 1500m=240s, 3000m=520s
+    // etp_800=79.27, etp_1500=72.73, etp_3000=72.22
+    // 800/1500: ratio=1.090, weight=ln(1.875)=0.628
+    // 800/3000: ratio=1.098, weight=ln(3.75)=1.322
+    // 1500/3000: ratio=1.007, weight=ln(2)=0.693
+    // avgRatio ≈ 1.07 → muscular
+    expect(estimateLimiterFromPBs({ m800: 130, m1500: 240, m3000: 520 })).toBe('muscular');
+  });
+
+  it('4距離全てで推定可能', () => {
+    // バランスの取れた選手（全eTPが近い値）
+    // etp_800=73.17, etp_1500=72.73, etp_3000=72.22, etp_5000=72.80
+    const result = estimateLimiterFromPBs({ m800: 120, m1500: 240, m3000: 520, m5000: 910 });
+    expect(result).toBe('balanced');
+  });
+
   it('境界値テスト: ratio ≈ 0.94', () => {
-    // ratio = 0.94 ちょうどはbalanced（< 0.94がcardio）
-    // speedIndex800 / speedIndex1500 = 0.94
-    // (m800/1.64) / (m1500/3.30) = 0.94
-    // m800/1.64 = 0.94 * m1500/3.30
-    // m800 = 0.94 * 1.64 * m1500 / 3.30
-    // m1500=330の場合: m800 = 0.94 * 1.64 * 330 / 3.30 = 0.94 * 1.64 * 100 = 154.16
-    // ratio = (154.16/1.64) / (330/3.30) = 94.0 / 100 = 0.94 → balanced
+    // 単一ペア: (155/1.64)/(330/3.30) = 94.51/100 = 0.945 → balanced
     const result = estimateLimiterFromPBs({ m800: 155, m1500: 330 });
     expect(result).toBe('balanced');
+  });
+
+  it('単一PBのみではbalanced', () => {
+    expect(estimateLimiterFromPBs({ m3000: 520 })).toBe('balanced');
+    expect(estimateLimiterFromPBs({ m5000: 900 })).toBe('balanced');
   });
 });
 
