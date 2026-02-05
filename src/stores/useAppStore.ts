@@ -20,7 +20,7 @@ import {
 } from '../types';
 
 import { STORAGE_KEYS } from '../constants';
-import { calculateEtp, calculateZonesV3, getEffectiveValues, getUserStage } from '../utils';
+import { calculateEtp, calculateZonesV3, getEffectiveValues, getUserStage, estimateLimiterFromPBs } from '../utils';
 
 // ============================================
 // Profile Store
@@ -64,6 +64,12 @@ export const useProfileStore = create<ProfileState>()(
         const newPbs = { ...current.pbs, ...pbs };
         const etpResult = calculateEtp(newPbs, current.ageCategory, current.experience);
 
+        // 複数PBからリミッタータイプを自動推定（テスト測定値がない場合）
+        const autoLimiter = estimateLimiterFromPBs(newPbs);
+        const limiterType = !current.current
+          ? autoLimiter
+          : (current.estimated?.limiterType || 'balanced');
+
         set({
           profile: {
             ...current,
@@ -72,7 +78,7 @@ export const useProfileStore = create<ProfileState>()(
               etp: etpResult.adjustedEtp,
               confidence: etpResult.confidence,
               adjustments: etpResult.adjustments,
-              limiterType: current.estimated?.limiterType || 'balanced',
+              limiterType,
             } : current.estimated,
           },
         });

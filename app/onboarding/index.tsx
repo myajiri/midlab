@@ -14,11 +14,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useProfileStore, useSettingsStore } from '../../src/stores/useAppStore';
-import { formatTime, formatKmPace } from '../../src/utils';
+import { formatTime, formatKmPace, calculateEtp, estimateLimiterFromPBs } from '../../src/utils';
 import { AgeCategory, Experience, PBs } from '../../src/types';
 import { TimePickerModal, ProgressBar } from '../../src/components/ui';
 import { FadeIn, SlideIn } from '../../src/components/ui/Animated';
-import { COLORS } from '../../src/constants';
+import { COLORS, PB_COEFFICIENTS } from '../../src/constants';
 
 // 年齢カテゴリ（7分割：年齢に応じた回復サイクル・ETP補正に使用）
 const AGE_CATEGORIES: { key: AgeCategory; label: string; icon: string }[] = [
@@ -38,10 +38,13 @@ const EXPERIENCE_LEVELS: { key: Experience; label: string; desc: string }[] = [
   { key: 'advanced', label: '上級者', desc: '3年以上' },
 ];
 
-// ETP推定（1500m PBから）
-const estimateEtpFrom1500 = (pb1500: number): number => {
-  return Math.round(pb1500 / 3.30);
-};
+// PB距離設定
+const PB_DISTANCES: { key: keyof PBs; label: string; minMinutes: number; maxMinutes: number; title: string }[] = [
+  { key: 'm800', label: '800m', minMinutes: 1, maxMinutes: 5, title: '800mベストタイム' },
+  { key: 'm1500', label: '1500m', minMinutes: 3, maxMinutes: 8, title: '1500mベストタイム' },
+  { key: 'm3000', label: '3000m', minMinutes: 7, maxMinutes: 18, title: '3000mベストタイム' },
+  { key: 'm5000', label: '5000m', minMinutes: 12, maxMinutes: 30, title: '5000mベストタイム' },
+];
 
 export default function OnboardingMain() {
   const router = useRouter();
@@ -53,21 +56,21 @@ export default function OnboardingMain() {
   const [step, setStep] = useState<'welcome' | 'setup'>('welcome');
   const [ageCategory, setAgeCategory] = useState<AgeCategory>(profile.ageCategory || 'senior');
   const [experience, setExperience] = useState<Experience>(profile.experience || 'intermediate');
-  const [pb800, setPb800] = useState<number | null>(null);
-  const [pb1500, setPb1500] = useState<number | null>(null);
-  const [activeTimePicker, setActiveTimePicker] = useState<'800' | '1500' | null>(null);
+  const [pbs, setPbs] = useState<Partial<PBs>>({});
+  const [activePickerDistance, setActivePickerDistance] = useState<keyof PBs | null>(null);
 
-  // 推定eTP（複数PBがある場合は加重平均）
+  // アクティブなピッカーの設定を取得
+  const activePickerConfig = activePickerDistance
+    ? PB_DISTANCES.find(d => d.key === activePickerDistance) || null
+    : null;
+
+  // 入力されたPB数
+  const pbCount = Object.values(pbs).filter(v => v != null && v > 0).length;
+
+  // 推定eTP（calculateEtpで加重平均）
   const estimatedEtp = (() => {
-    if (pb1500 && pb800) {
-      // 800m + 1500mの加重平均
-      const etp800 = Math.round(pb800 / 1.64);
-      const etp1500 = estimateEtpFrom1500(pb1500);
-      return Math.round((etp1500 * 0.5 + etp800 * 0.3) / 0.8);
-    }
-    if (pb1500) return estimateEtpFrom1500(pb1500);
-    if (pb800) return Math.round(pb800 / 1.64);
-    return null;
+    const etpResult = calculateEtp(pbs as PBs, ageCategory, experience);
+    return etpResult?.adjustedEtp || null;
   })();
 
   const handleStart = () => {
@@ -83,11 +86,8 @@ export default function OnboardingMain() {
     // 属性を保存
     updateAttributes({ ageCategory, experience });
 
-    // PBがあれば保存
-    const pbs: Partial<PBs> = {};
-    if (pb800) pbs.m800 = pb800;
-    if (pb1500) pbs.m1500 = pb1500;
-    if (Object.keys(pbs).length > 0) {
+    // PBがあれば保存（リミッターも自動推定）
+    if (pbCount > 0) {
       updatePBs(pbs as PBs);
     }
 
@@ -218,39 +218,34 @@ export default function OnboardingMain() {
         <SlideIn delay={300} direction="up">
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>自己ベスト（任意）</Text>
-
-            {/* 1500m PB */}
-            <View style={styles.pbField}>
-              <Text style={styles.pbFieldLabel}>1500m</Text>
-              <Pressable style={styles.pbInput} onPress={() => setActiveTimePicker('1500')}>
-                {pb1500 ? (
-                  <View style={styles.pbValueRow}>
-                    <Text style={styles.pbValue}>{formatTime(pb1500)}</Text>
-                    <Pressable onPress={() => setPb1500(null)}>
-                      <Ionicons name="close-circle" size={20} color={COLORS.text.muted} />
+            <View style={styles.pbGrid}>
+              {PB_DISTANCES.map((dist) => {
+                const pbValue = pbs[dist.key];
+                return (
+                  <View key={dist.key} style={styles.pbGridItem}>
+                    <Text style={styles.pbFieldLabel}>{dist.label}</Text>
+                    <Pressable
+                      style={styles.pbInput}
+                      onPress={() => setActivePickerDistance(dist.key)}
+                    >
+                      {pbValue ? (
+                        <View style={styles.pbValueRow}>
+                          <Text style={styles.pbValue}>{formatTime(pbValue)}</Text>
+                          <Pressable onPress={() => {
+                            const next = { ...pbs };
+                            delete next[dist.key];
+                            setPbs(next);
+                          }}>
+                            <Ionicons name="close-circle" size={18} color={COLORS.text.muted} />
+                          </Pressable>
+                        </View>
+                      ) : (
+                        <Text style={styles.pbPlaceholder}>未設定</Text>
+                      )}
                     </Pressable>
                   </View>
-                ) : (
-                  <Text style={styles.pbPlaceholder}>タップして入力</Text>
-                )}
-              </Pressable>
-            </View>
-
-            {/* 800m PB */}
-            <View style={styles.pbField}>
-              <Text style={styles.pbFieldLabel}>800m</Text>
-              <Pressable style={styles.pbInput} onPress={() => setActiveTimePicker('800')}>
-                {pb800 ? (
-                  <View style={styles.pbValueRow}>
-                    <Text style={styles.pbValue}>{formatTime(pb800)}</Text>
-                    <Pressable onPress={() => setPb800(null)}>
-                      <Ionicons name="close-circle" size={20} color={COLORS.text.muted} />
-                    </Pressable>
-                  </View>
-                ) : (
-                  <Text style={styles.pbPlaceholder}>タップして入力</Text>
-                )}
-              </Pressable>
+                );
+              })}
             </View>
 
             {estimatedEtp && (
@@ -261,10 +256,6 @@ export default function OnboardingMain() {
                 </Text>
               </View>
             )}
-
-            <Text style={styles.pbHint}>
-              残りの距離は設定画面から追加できます
-            </Text>
           </View>
         </SlideIn>
       </ScrollView>
@@ -278,20 +269,17 @@ export default function OnboardingMain() {
       </SlideIn>
 
       <TimePickerModal
-        visible={activeTimePicker !== null}
-        onClose={() => setActiveTimePicker(null)}
+        visible={activePickerDistance !== null}
+        onClose={() => setActivePickerDistance(null)}
         onSelect={(seconds) => {
-          if (activeTimePicker === '1500') setPb1500(seconds);
-          else if (activeTimePicker === '800') setPb800(seconds);
+          if (activePickerDistance) {
+            setPbs(prev => ({ ...prev, [activePickerDistance]: seconds }));
+          }
         }}
-        value={
-          activeTimePicker === '1500' ? (pb1500 || undefined)
-          : activeTimePicker === '800' ? (pb800 || undefined)
-          : undefined
-        }
-        title={activeTimePicker === '1500' ? '1500mのベストタイム' : '800mのベストタイム'}
-        minMinutes={activeTimePicker === '800' ? 1 : 3}
-        maxMinutes={activeTimePicker === '800' ? 5 : 10}
+        value={activePickerDistance ? (pbs[activePickerDistance] || undefined) : undefined}
+        title={activePickerConfig?.title || 'ベストタイム'}
+        minMinutes={activePickerConfig?.minMinutes || 1}
+        maxMinutes={activePickerConfig?.maxMinutes || 30}
       />
     </SafeAreaView>
   );
@@ -483,8 +471,13 @@ const styles = StyleSheet.create({
   },
 
   // PB入力
-  pbField: {
-    marginBottom: 12,
+  pbGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  pbGridItem: {
+    width: '47%' as any,
   },
   pbFieldLabel: {
     fontSize: 12,
@@ -494,8 +487,8 @@ const styles = StyleSheet.create({
   },
   pbInput: {
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
-    borderRadius: 14,
-    padding: 16,
+    borderRadius: 12,
+    padding: 12,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
   },
@@ -505,12 +498,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pbValue: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '700',
     color: COLORS.primary,
   },
   pbPlaceholder: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.text.muted,
     textAlign: 'center',
   },
@@ -528,12 +521,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.primary,
     fontWeight: '500',
-  },
-  pbHint: {
-    fontSize: 11,
-    color: COLORS.text.muted,
-    marginTop: 8,
-    textAlign: 'center',
   },
 
   // ボタン
