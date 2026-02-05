@@ -54,7 +54,7 @@ export const LIMITER_ADJUSTMENTS = {
 // recoveryCycle: 回復週の挿入サイクル（週数）。若年・高齢者は短いサイクルで回復週を設ける
 export const AGE_CATEGORY_CONFIG: Record<AgeCategory, { label: string; desc: string; etpAdj: number; levelAdj: number; recoveryCycle: number }> = {
   junior_high: { label: '中学生', desc: '12〜15歳', etpAdj: 0, levelAdj: -1, recoveryCycle: 2 },
-  high_school: { label: '高校生', desc: '15〜18歳', etpAdj: 0, levelAdj: 0, recoveryCycle: 3 },
+  high_school: { label: '高校生', desc: '15〜18歳', etpAdj: 0, levelAdj: 0, recoveryCycle: 2 },
   collegiate: { label: '大学生', desc: '18〜22歳', etpAdj: 0, levelAdj: 0, recoveryCycle: 3 },
   senior: { label: '一般', desc: '22〜39歳', etpAdj: 0, levelAdj: 0, recoveryCycle: 3 },
   masters_40: { label: 'マスターズ40代', desc: '40〜49歳', etpAdj: 2, levelAdj: 0, recoveryCycle: 3 },
