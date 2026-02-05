@@ -182,8 +182,41 @@ export default function SettingsScreen() {
           <Text style={styles.title}>設定</Text>
         </FadeIn>
 
-        {/* プロフィール */}
+        {/* サブスクリプション */}
         <SlideIn delay={100} direction="up">
+          <Pressable style={styles.card} onPress={() => router.push('/upgrade')}>
+            <View style={styles.subRow}>
+              <View style={styles.subInfo}>
+                <Ionicons
+                  name={isPremium ? 'trophy' : 'diamond-outline'}
+                  size={20}
+                  color={isPremium ? '#F59E0B' : COLORS.text.muted}
+                />
+                <Text style={styles.subLabel}>
+                  {isPremium ? 'プレミアム会員' : '無料プラン'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
+            </View>
+            {!isPremium && (
+              <Pressable
+                style={styles.restoreBtn}
+                onPress={async () => {
+                  const restored = await restore();
+                  Alert.alert(
+                    restored ? '復元完了' : '復元結果',
+                    restored ? '購入が復元されました' : '復元可能な購入がありません'
+                  );
+                }}
+              >
+                <Text style={styles.restoreText}>購入を復元</Text>
+              </Pressable>
+            )}
+          </Pressable>
+        </SlideIn>
+
+        {/* プロフィール */}
+        <SlideIn delay={200} direction="up">
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>プロフィール</Text>
 
@@ -276,39 +309,6 @@ export default function SettingsScreen() {
               </View>
             </View>
           </View>
-        </SlideIn>
-
-        {/* サブスクリプション */}
-        <SlideIn delay={200} direction="up">
-          <Pressable style={styles.card} onPress={() => router.push('/upgrade')}>
-            <View style={styles.subRow}>
-              <View style={styles.subInfo}>
-                <Ionicons
-                  name={isPremium ? 'trophy' : 'diamond-outline'}
-                  size={20}
-                  color={isPremium ? '#F59E0B' : COLORS.text.muted}
-                />
-                <Text style={styles.subLabel}>
-                  {isPremium ? 'プレミアム会員' : '無料プラン'}
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
-            </View>
-            {!isPremium && (
-              <Pressable
-                style={styles.restoreBtn}
-                onPress={async () => {
-                  const restored = await restore();
-                  Alert.alert(
-                    restored ? '復元完了' : '復元結果',
-                    restored ? '購入が復元されました' : '復元可能な購入がありません'
-                  );
-                }}
-              >
-                <Text style={styles.restoreText}>購入を復元</Text>
-              </Pressable>
-            )}
-          </Pressable>
         </SlideIn>
 
         {/* 用語ヘルプ */}
