@@ -50,9 +50,9 @@ const EXPERIENCE_OPTIONS: { key: Experience; label: string }[] = [
 ];
 
 const LIMITER_OPTIONS: { key: LimiterType; icon: string; label: string }[] = [
-  { key: 'cardio', icon: 'fitness', label: '心肺リミッター型' },
-  { key: 'balanced', icon: 'scale', label: 'バランス型' },
-  { key: 'muscular', icon: 'barbell', label: '筋持久力リミッター型' },
+  { key: 'cardio', icon: 'fitness', label: '心肺' },
+  { key: 'balanced', icon: 'scale', label: 'バランス' },
+  { key: 'muscular', icon: 'barbell', label: '筋持久力' },
 ];
 
 // 用語ヘルプ定義
@@ -536,12 +536,11 @@ const styles = StyleSheet.create({
   },
   limiterBtn: {
     flex: 1,
-    flexDirection: 'column',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingVertical: 12,
-    paddingHorizontal: 4,
+    gap: 6,
+    paddingVertical: 10,
     borderRadius: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderWidth: 1,
@@ -552,9 +551,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(59, 130, 246, 0.1)',
   },
   limiterText: {
-    fontSize: 11,
+    fontSize: 12,
     color: COLORS.text.secondary,
-    textAlign: 'center',
   },
   limiterTextActive: {
     color: COLORS.primary,
