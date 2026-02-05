@@ -88,7 +88,17 @@ export default function TestScreen() {
     }
   }, [view, isFocused, setSubScreenOpen]);
 
+  // プロフィール/テスト結果が変わった時の推奨レベルを計算
+  const recommendedLevel = useMemo(() => getRecommendedLevel(), [results, profile?.current?.etp, profile?.estimated?.etp]);
+
   const [level, setLevel] = useState<LevelName>(() => getRecommendedLevel());
+
+  // フォーカス復帰時やeTP変更時に推奨レベルを同期
+  useEffect(() => {
+    if (isFocused && view === 'main') {
+      setLevel(recommendedLevel);
+    }
+  }, [recommendedLevel, isFocused]);
   const [completedLaps, setCompletedLaps] = useState(5);
   const [terminationReason, setTerminationReason] = useState<TerminationReason>('both');
   const [breathRecovery, setBreathRecovery] = useState<RecoveryTime>('30-60');
