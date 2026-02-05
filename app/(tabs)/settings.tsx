@@ -50,9 +50,9 @@ const EXPERIENCE_OPTIONS: { key: Experience; label: string }[] = [
 ];
 
 const LIMITER_OPTIONS: { key: LimiterType; icon: string; label: string }[] = [
-  { key: 'cardio', icon: 'fitness', label: '心肺型' },
-  { key: 'balanced', icon: 'scale', label: 'バランス' },
-  { key: 'muscular', icon: 'barbell', label: '筋型' },
+  { key: 'cardio', icon: 'fitness', label: '心肺リミッター型' },
+  { key: 'balanced', icon: 'scale', label: 'バランス型' },
+  { key: 'muscular', icon: 'barbell', label: '筋持久力リミッター型' },
 ];
 
 // 用語ヘルプ定義
@@ -63,7 +63,7 @@ const HELP_ITEMS: { term: string; description: string }[] = [
   },
   {
     term: 'リミッタータイプ',
-    description: '持久力の制限要因を3タイプに分類したもの。心肺型（呼吸が先に限界）、筋持久力型（脚が先に限界）、バランス型（均等）の3種類があり、タイプに応じてトレーニングの重点が変わります。',
+    description: '持久力の制限要因を3タイプに分類したもの。心肺リミッター型（呼吸が先に限界）、筋持久力リミッター型（脚が先に限界）、バランス型（均等）の3種類があり、タイプに応じてトレーニングの重点が変わります。',
   },
   {
     term: 'トレーニングゾーン',
