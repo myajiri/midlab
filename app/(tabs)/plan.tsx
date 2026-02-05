@@ -563,16 +563,10 @@ export default function PlanScreen() {
 
         {/* 管理ボタン */}
         <SlideIn delay={400} direction="up">
-          <View style={styles.actions}>
-            <Pressable style={styles.actionButton} onPress={() => setView('create')}>
-              <Ionicons name="refresh" size={18} color={COLORS.text.secondary} />
-              <Text style={styles.actionButtonText}>新規作成</Text>
-            </Pressable>
-            <Pressable style={styles.actionButton} onPress={handleDeletePlan}>
-              <Ionicons name="trash-outline" size={18} color="#EF4444" />
-              <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>削除</Text>
-            </Pressable>
-          </View>
+          <Pressable style={styles.actionButton} onPress={handleDeletePlan}>
+            <Ionicons name="trash-outline" size={18} color="#EF4444" />
+            <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>削除</Text>
+          </Pressable>
         </SlideIn>
       </ScrollView>
     </SafeAreaView>
