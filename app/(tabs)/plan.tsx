@@ -20,8 +20,7 @@ import {
   useProfileStore,
   useEffectiveValues,
 } from '../../src/stores/useAppStore';
-import { formatTime, formatKmPace } from '../../src/utils';
-import { Card, Button, DatePickerModal, TimePickerModal } from '../../src/components/ui';
+import { Card, Button, DatePickerModal } from '../../src/components/ui';
 import { FadeIn, SlideIn, AnimatedPressable } from '../../src/components/ui/Animated';
 import { PremiumGate } from '../../components/PremiumGate';
 import { useIsPremium } from '../../store/useSubscriptionStore';
@@ -82,10 +81,8 @@ export default function PlanScreen() {
   const [raceName, setRaceName] = useState('');
   const [raceDate, setRaceDate] = useState<Date | null>(null);
   const [distance, setDistance] = useState<RaceDistance>(1500);
-  const [targetTime, setTargetTime] = useState<number | null>(null);
   const [restDay, setRestDay] = useState<number>(6); // 休養日: デフォルト日曜（6）
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
 
   // プレミアム機能チェック
   if (!isPremium) {
@@ -122,12 +119,12 @@ export default function PlanScreen() {
   };
 
   const handleCreatePlan = () => {
-    if (!raceName || !dateValidation.valid || !raceDate || !targetTime) {
+    if (!raceName || !dateValidation.valid || !raceDate) {
       Alert.alert('エラー', '全ての項目を入力してください');
       return;
     }
     const plan = generatePlan({
-      race: { name: raceName, date: raceDate.toISOString(), distance, targetTime },
+      race: { name: raceName, date: raceDate.toISOString(), distance },
       baseline: { etp, limiterType: limiter },
       restDay,
       ageCategory: profile.ageCategory,
@@ -222,24 +219,14 @@ export default function PlanScreen() {
                   </View>
                 </View>
 
-                {/* 目標タイム */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>目標タイム</Text>
-                  <Pressable style={styles.inputButton} onPress={() => setShowTimePicker(true)}>
-                    <Text style={[styles.inputButtonText, !targetTime && styles.inputPlaceholder]}>
-                      {targetTime ? formatTime(targetTime) : 'タイムを選択'}
-                    </Text>
-                    <Ionicons name="time-outline" size={20} color={COLORS.text.muted} />
-                  </Pressable>
-                </View>
               </View>
             </SlideIn>
 
             <SlideIn delay={200} direction="up">
               <Pressable
-                style={[styles.createButton, (!raceName || !dateValidation.valid || !targetTime) && styles.createButtonDisabled]}
+                style={[styles.createButton, (!raceName || !dateValidation.valid) && styles.createButtonDisabled]}
                 onPress={handleCreatePlan}
-                disabled={!raceName || !dateValidation.valid || !targetTime}
+                disabled={!raceName || !dateValidation.valid}
               >
                 <Text style={styles.createButtonText}>計画を生成</Text>
               </Pressable>
@@ -258,15 +245,6 @@ export default function PlanScreen() {
               value={raceDate || undefined}
               minDate={minDateForPicker}
               title="レース日を選択"
-            />
-            <TimePickerModal
-              visible={showTimePicker}
-              onClose={() => setShowTimePicker(false)}
-              onSelect={(seconds) => setTargetTime(seconds)}
-              value={targetTime || undefined}
-              title="目標タイムを選択"
-              minMinutes={1}
-              maxMinutes={30}
             />
           </ScrollView>
         </PremiumGate>
@@ -481,8 +459,6 @@ export default function PlanScreen() {
             <Text style={styles.raceCountdown}>あと {daysUntilRace} 日</Text>
             <View style={styles.raceDetails}>
               <Text style={styles.raceDetailText}>{activePlan.race.distance}m</Text>
-              <Text style={styles.raceDetailDivider}>|</Text>
-              <Text style={styles.raceDetailText}>目標 {formatTime(activePlan.race.targetTime)}</Text>
             </View>
           </View>
         </FadeIn>
@@ -617,7 +593,7 @@ function getWorkoutIconInfo(type: string): { name: string; color: string } {
 }
 
 interface GeneratePlanParams {
-  race: { name: string; date: string; distance: RaceDistance; targetTime: number };
+  race: { name: string; date: string; distance: RaceDistance };
   baseline: { etp: number; limiterType: LimiterType };
   restDay?: number; // 0=月〜6=日、デフォルト6（日曜）
   ageCategory?: AgeCategory;
@@ -740,7 +716,7 @@ function generatePlan({ race, baseline, restDay = 6, ageCategory = 'senior', exp
   return {
     id: Date.now().toString(),
     createdAt: new Date().toISOString(),
-    race: { name: race.name, date: race.date, distance: race.distance, targetTime: race.targetTime },
+    race: { name: race.name, date: race.date, distance: race.distance },
     baseline: { etp: baseline.etp, limiterType: baseline.limiterType },
     phases: phasesForPlan,
     weeklyPlans,
