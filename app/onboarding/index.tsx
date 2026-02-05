@@ -20,12 +20,15 @@ import { TimePickerModal, ProgressBar } from '../../src/components/ui';
 import { FadeIn, SlideIn } from '../../src/components/ui/Animated';
 import { COLORS } from '../../src/constants';
 
-// 簡略化した年齢カテゴリ
+// 年齢カテゴリ（7分割：年齢に応じた回復サイクル・ETP補正に使用）
 const AGE_CATEGORIES: { key: AgeCategory; label: string; icon: string }[] = [
-  { key: 'junior_high', label: '中高生', icon: 'school' },
+  { key: 'junior_high', label: '中学生', icon: 'school' },
+  { key: 'high_school', label: '高校生', icon: 'school' },
   { key: 'collegiate', label: '大学生', icon: 'library' },
   { key: 'senior', label: '一般', icon: 'person' },
-  { key: 'masters_40', label: 'マスターズ', icon: 'star' },
+  { key: 'masters_40', label: '40代', icon: 'star' },
+  { key: 'masters_50', label: '50代', icon: 'star' },
+  { key: 'masters_60', label: '60歳〜', icon: 'star' },
 ];
 
 // 簡略化した経験レベル
@@ -374,17 +377,18 @@ const styles = StyleSheet.create({
   // 年齢グリッド
   ageGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
   },
   ageOption: {
-    flex: 1,
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 14,
     borderWidth: 2,
     borderColor: 'transparent',
-    gap: 8,
+    gap: 6,
   },
   ageOptionActive: {
     borderColor: COLORS.primary,

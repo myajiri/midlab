@@ -37,10 +37,13 @@ import { useIsFocused } from '@react-navigation/native';
 // ============================================
 
 const AGE_OPTIONS: { key: AgeCategory; label: string }[] = [
-  { key: 'junior_high', label: '中高生' },
+  { key: 'junior_high', label: '中学生' },
+  { key: 'high_school', label: '高校生' },
   { key: 'collegiate', label: '大学生' },
   { key: 'senior', label: '一般' },
-  { key: 'masters_40', label: 'マスターズ' },
+  { key: 'masters_40', label: '40代' },
+  { key: 'masters_50', label: '50代' },
+  { key: 'masters_60', label: '60歳〜' },
 ];
 
 const EXPERIENCE_OPTIONS: { key: Experience; label: string }[] = [
