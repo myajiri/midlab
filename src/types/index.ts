@@ -117,7 +117,6 @@ export interface RaceInfo {
   name: string;
   date: string;
   distance: RaceDistance;
-  targetTime: number;
 }
 
 // 週間ワークアウト
