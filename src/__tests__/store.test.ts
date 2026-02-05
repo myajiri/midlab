@@ -94,12 +94,22 @@ describe('useProfileStore', () => {
       expect(profile.estimated!.limiterType).toBe('cardio');
     });
 
-    it('800mと1500mの両方がないとbalancedになる', () => {
+    it('単一PBのみではbalancedになる', () => {
       const { updatePBs } = useProfileStore.getState();
       updatePBs({ m1500: 240 });
 
       const { profile } = useProfileStore.getState();
       expect(profile.estimated!.limiterType).toBe('balanced');
+    });
+
+    it('3000mと5000mのペアからリミッターが推定される', () => {
+      const { updatePBs } = useProfileStore.getState();
+      // 1500mが速い選手 → cardio推定
+      updatePBs({ m1500: 230, m5000: 950 });
+
+      const { profile } = useProfileStore.getState();
+      expect(profile.estimated).not.toBeNull();
+      expect(profile.estimated!.limiterType).toBe('cardio');
     });
 
     it('4距離全てのPBを設定できる', () => {
