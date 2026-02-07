@@ -1,0 +1,6 @@
+MidLab initial release!
+
+- ETP test for fitness measurement
+- Auto-generated training plans
+- Workout recording & management
+- Premium plan (¥980/month or ¥9,800/year, 1-week free trial)
