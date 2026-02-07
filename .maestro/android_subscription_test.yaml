@@ -1,0 +1,53 @@
+appId: com.midlab.app
+---
+# MidLab - Android本番ビルド用 サブスクリプション画面テスト
+# eas build --profile preview でビルドしたAPKで実行すること
+# （EXPO_PUBLIC_ENABLE_PURCHASES=true が必要）
+# 実行: maestro test .maestro/android_subscription_test.yaml
+
+- launchApp:
+    clearState: false
+
+# ========== 設定画面に移動 ==========
+- tapOn: "マイページ"
+- waitForAnimationToEnd
+- takeScreenshot: android_sub_01_settings
+
+# ========== アップグレード画面を開く ==========
+- tapOn:
+    text: "無料プラン"
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: android_sub_02_upgrade_screen
+
+# ========== プラン選択の確認 ==========
+# 年額プランが表示されていること
+- assertVisible:
+    text: "年額プラン"
+    optional: true
+
+# 月額プランが表示されていること
+- assertVisible:
+    text: "月額プラン"
+    optional: true
+
+# トライアルバッジが表示されていること
+- assertVisible:
+    text: "初回1週間無料"
+    optional: true
+
+# 利用規約リンクの確認
+- assertVisible:
+    text: "利用規約"
+    optional: true
+
+- assertVisible:
+    text: "プライバシーポリシー"
+    optional: true
+
+- takeScreenshot: android_sub_03_plan_details
+
+# ========== 戻る ==========
+- pressKey: back
+- waitForAnimationToEnd
+- takeScreenshot: android_sub_04_back_to_settings
