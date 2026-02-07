@@ -1,0 +1,30 @@
+MidLab is a training management app specialized for 800m-1500m middle-distance running.
+
+■ Measure Your Fitness with ETP Tests
+Our unique ETP (Endurance Training Pace) test scientifically measures your current fitness level. Based on the results, optimal training paces are automatically calculated.
+
+■ Auto-Generated Training Plans
+Based on your ETP test results, weekly training plans tailored to your fitness level are automatically generated. Interval runs, tempo runs, pace runs — all the training varieties essential for middle-distance running.
+
+■ Record & Manage Workouts
+Easily record your daily training. Review your workout history to track your training progress.
+
+■ Your Data Stays on Your Device
+All training data is stored locally on your device. No account registration required. Start training right away.
+
+[Premium Plan]
+- Monthly: ¥980/month
+- Yearly: ¥9,800/year (¥817/month, save 2 months)
+- 1-week free trial for first-time subscribers
+
+Premium unlocks detailed training plans and advanced analytics.
+
+[About Subscriptions]
+- Payment is charged to your Google Play account
+- After the free trial ends, billing begins automatically
+- Subscriptions auto-renew unless canceled
+- Cancel via device Settings > Manage Subscriptions
+- Auto-renewal occurs unless canceled at least 24 hours before the current period ends
+
+Privacy Policy: https://myajiri.github.io/midlab/privacy.html
+Terms of Service: https://myajiri.github.io/midlab/terms.html
