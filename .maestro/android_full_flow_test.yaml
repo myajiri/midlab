@@ -1,0 +1,43 @@
+appId: com.midlab.app
+---
+# MidLab - Android本番ビルド用 全フローテスト
+# eas build --profile testing でビルドしたAPKで実行すること
+# 実行: maestro test .maestro/android_full_flow_test.yaml
+
+- launchApp:
+    clearState: false
+
+# ========== ホーム画面 ==========
+- assertVisible: "ホーム"
+- takeScreenshot: android_01_home_screen
+
+# ========== 計画画面 ==========
+- tapOn: "計画"
+- waitForAnimationToEnd
+- takeScreenshot: android_02_plan_screen
+
+# ========== メニュー画面 ==========
+- tapOn: "メニュー"
+- waitForAnimationToEnd
+- takeScreenshot: android_03_workout_menu
+
+# ========== マイページ画面 ==========
+- tapOn: "マイページ"
+- waitForAnimationToEnd
+- takeScreenshot: android_04_profile_screen
+
+# ========== タブスワイプテスト ==========
+# ホームに戻る
+- tapOn: "ホーム"
+- waitForAnimationToEnd
+
+# 右にスワイプして計画へ
+- swipe:
+    direction: LEFT
+    duration: 300
+- waitForAnimationToEnd
+- takeScreenshot: android_05_after_swipe_to_plan
+
+# テスト完了
+- tapOn: "ホーム"
+- takeScreenshot: android_06_test_complete

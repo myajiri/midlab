@@ -28,6 +28,7 @@ import { FadeIn, SlideIn } from '../../src/components/ui/Animated';
 import { COLORS, PB_COEFFICIENTS } from '../../src/constants';
 import { AgeCategory, Experience, LimiterType, PBs } from '../../src/types';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { useIsPremium, useSubscriptionStore } from '../../store/useSubscriptionStore';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { useIsFocused } from '@react-navigation/native';
@@ -437,7 +438,7 @@ export default function SettingsScreen() {
         {/* バージョン */}
         <SlideIn delay={600} direction="up">
           <View style={styles.version}>
-            <Text style={styles.versionText}>MidLab v1.0.0</Text>
+            <Text style={styles.versionText}>MidLab v{Constants.expoConfig?.version || '1.0.0'}</Text>
           </View>
         </SlideIn>
       </ScrollView>

@@ -39,9 +39,13 @@ yarn-error.*
 .env*.local
 .env
 
+# Google Play Service Account（機密情報）
+google-play-service-account.json
+
 # typescript
 *.tsbuildinfo
 
 # generated native folders
 /ios
 /android
+gen-lang-client-0610259770-a74012d4e130.json
