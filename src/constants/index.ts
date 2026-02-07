@@ -4,6 +4,9 @@
 
 import { LevelName, ZoneName, LimiterType, PhaseType, AgeCategory, Gender, Experience } from '../types';
 
+// 型の再エクスポート（store/useAppStore.ts, utils/calculations.ts 等で利用）
+export type { LevelName, ZoneName, LimiterType, PhaseType, AgeCategory, Gender, Experience };
+
 // テストレベル設定
 // eTP閾値はLEVELSの1500mタイム定義と一致（PB秒 ÷ 3.375）
 export const LEVELS: Record<LevelName, { name: string; description: string; startPace: number; maxLaps: number; etpRange: { min: number; max: number } }> = {

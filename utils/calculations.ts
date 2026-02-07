@@ -6,14 +6,19 @@ import {
     ZONE_COEFFICIENTS,
     LIMITER_ZONE_ADJUSTMENTS,
     RACE_COEFFICIENTS,
-    LIMITER_RACE_ADJUSTMENTS,
+    LIMITER_ADJUSTMENTS,
     ETP_COEFFICIENT,
     LEVELS,
     PACE_INCREMENT,
     type LimiterType,
-    type ZoneKey,
-    type LevelKey,
+    type ZoneName,
+    type LevelName,
 } from '../constants';
+
+// 後方互換性のためのエイリアス
+const LIMITER_RACE_ADJUSTMENTS = LIMITER_ADJUSTMENTS;
+type ZoneKey = ZoneName;
+type LevelKey = LevelName;
 
 // ============================================
 // フォーマット関数
@@ -321,7 +326,8 @@ export const calculatePredictions = (
 
     (Object.entries(RACE_COEFFICIENTS) as [string, { coefficient: number; min: number; max: number; laps: number; label: string }][]).forEach(
         ([key, config]) => {
-            const limiterAdj = LIMITER_RACE_ADJUSTMENTS[key as keyof typeof LIMITER_RACE_ADJUSTMENTS]?.[limiterType] || 0;
+            const raceAdj = LIMITER_RACE_ADJUSTMENTS[key as keyof typeof LIMITER_RACE_ADJUSTMENTS];
+            const limiterAdj = raceAdj ? (raceAdj as Record<string, number>)[limiterType] || 0 : 0;
             const basePaceMin = etp * config.min;
             const basePaceMax = etp * config.max;
 
@@ -340,7 +346,7 @@ export const calculatePredictions = (
  */
 export const predict5kTime = (etp: number, limiterType: LimiterType): number => {
     const baseCoef = 1.00;
-    const limiterAdj = LIMITER_RACE_ADJUSTMENTS.m5000[limiterType];
+    const limiterAdj = (LIMITER_RACE_ADJUSTMENTS.m5000 as Record<string, number>)[limiterType] || 0;
     const pace400m = etp * baseCoef;
     const baseTime = pace400m * 12.5;
     return Math.round(baseTime + limiterAdj);
