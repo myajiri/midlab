@@ -3,26 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MidLab</title>
+    <title>MidLab - 中距離走専用トレーニング管理アプリ</title>
+    <meta name="description" content="ETPテストで最適な中距離トレーニングプランを自動生成。800m〜1500m走の記録向上をサポートします。">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.8; color: #333; background: #0a0a0f; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
-        .container { text-align: center; }
+        .container { text-align: center; max-width: 480px; }
         h1 { font-size: 36px; color: #fff; margin-bottom: 8px; }
-        .tagline { font-size: 16px; color: #a1a1aa; margin-bottom: 40px; }
+        .tagline { font-size: 16px; color: #a1a1aa; margin-bottom: 16px; }
+        .description { font-size: 14px; color: #71717a; margin-bottom: 32px; line-height: 1.7; }
+        .store-badges { display: flex; justify-content: center; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; }
+        .store-badge { display: inline-block; height: 48px; border-radius: 8px; overflow: hidden; }
+        .store-badge img { height: 48px; }
+        .features { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 32px; }
+        .feature-tag { background: rgba(45, 159, 45, 0.15); color: #2d9f2d; font-size: 13px; padding: 6px 12px; border-radius: 16px; }
         .links { display: flex; flex-direction: column; gap: 12px; }
         .links a { color: #2d9f2d; font-size: 15px; text-decoration: none; }
         .links a:hover { text-decoration: underline; }
+        .contact { margin-top: 32px; font-size: 13px; color: #71717a; }
+        .contact a { color: #a1a1aa; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>MidLab</h1>
         <p class="tagline">中距離走専用トレーニング管理アプリ</p>
+        <p class="description">
+            ETPテストであなたの走力を科学的に測定し、<br>
+            800m〜1500m中距離走に最適なトレーニングプランを自動生成。
+        </p>
+
+        <div class="features">
+            <span class="feature-tag">ETPテスト</span>
+            <span class="feature-tag">トレーニング計画</span>
+            <span class="feature-tag">ワークアウト記録</span>
+            <span class="feature-tag">レース予測</span>
+        </div>
+
+        <!-- ストアリンク（公開後にURLを設定） -->
+        <!--
+        <div class="store-badges">
+            <a href="https://play.google.com/store/apps/details?id=com.midlab.app" class="store-badge">
+                <img src="https://play.google.com/intl/en_us/badges/static/images/badges/ja_badge_web_generic.png" alt="Google Play で手に入れよう" height="48">
+            </a>
+        </div>
+        -->
+
         <div class="links">
             <a href="privacy.html">プライバシーポリシー / Privacy Policy</a>
             <a href="terms.html">利用規約 / Terms of Service</a>
         </div>
+
+        <p class="contact">
+            お問い合わせ: <a href="mailto:myajiri@gmail.com">myajiri@gmail.com</a>
+        </p>
     </div>
 </body>
 </html>
