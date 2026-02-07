@@ -32,11 +32,13 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 - 法的文書の連絡先メールアドレスを `myajiri@gmail.com` に統一済み
 
 ### 未完了 ❌
-- App Store Connect / Google Play Console のアカウント・アプリ登録
+- App Store Connect のアカウント・アプリ登録
+- ~~Google Play Console のアカウント登録~~ → ✅ 完了
+- Google Play Console でのアプリ作成・Service Account 設定
 - ストア提出用クレデンシャルの実値設定（`eas.json` の `submit` セクション）
 - RevenueCat アカウント作成・API キーの本番設定（EAS Secrets）
 - アプリアイコンの改善（nanobanana で再生成）
-- ストアメタデータ（説明文・スクリーンショット等）の準備
+- ストアメタデータ（~~説明文~~ → ✅ Fastlane 形式で作成済み・スクリーンショット等）の準備
 - 本番環境テスト
 
 ---
@@ -53,11 +55,12 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 - [ ] Apple ID（メールアドレス）を `eas.json` に設定
 
 ### 1-2. Google Play Console
-- [ ] Google Play Developer アカウントを作成（$25 一回払い）
+- [x] Google Play Developer アカウントを作成（$25 一回払い）
 - [ ] Google Play Console でアプリを作成
   - Package Name: `com.midlab.app`
 - [ ] Google Play Service Account を作成
-- [ ] Service Account JSON キーを取得し `eas.json` の `serviceAccountKeyPath` に設定
+- [ ] Service Account JSON キーを取得し `./google-play-service-account.json` として保存
+  - `eas.json` の `submit.production.android` に設定済み（track: internal, releaseStatus: draft）
 
 ---
 
@@ -73,9 +76,11 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 
 ### 2-2. Google Play Console 課金設定
 - [ ] Google Play Console で定期購入を作成
-  - Product ID: `midlab_premium_monthly`
-  - 価格: ¥980/月・¥9,800/年・初回1週間無料
+  - Product ID（月額）: `midlab_premium_monthly`（¥980/月）
+  - Product ID（年額）: `midlab_premium_yearly`（¥9,800/年）
+  - 初回1週間無料トライアルを設定
 - [ ] 基本プランと特典の設定
+- [ ] テスト用ライセンスアカウントの追加（Google Play Console > 設定 > ライセンステスト）
 
 ### 2-3. RevenueCat 設定
 - [ ] RevenueCat アカウントを作成（https://www.revenuecat.com/ で登録）
@@ -135,23 +140,31 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 > - アカウント削除機能の実装義務なし（アカウントが存在しないため）
 
 ### 3-4. Google 固有の要件
-- [ ] データセーフティセクションの回答準備
-  - データはデバイス上にのみ保存される旨を記載
-  - 購入データのみ第三者（RevenueCat）と共有
+- [ ] データセーフティセクションの回答
+  - 回答ガイドは `STORE_METADATA.md` の「Google Play データセーフティ回答ガイド」を参照
+  - データ収集: 購入履歴のみ（RevenueCat 経由）
+  - 個人情報: 収集しない（アカウント登録なし）
+  - 位置情報: 収集しない
+  - データ暗号化: HTTPS
+  - 削除リクエスト: アプリのアンインストールでローカルデータ全削除
 - [ ] コンテンツレーティング質問への回答
+  - IARC レーティング質問票に回答（暴力・性的コンテンツなし → 全年齢対象見込み）
 - [ ] ターゲットユーザー層と対象年齢の設定
+  - 対象年齢: 全年齢（ただし13歳未満は対象外を推奨 → COPPA 対応不要）
 
 ---
 
 ## フェーズ 4: ストアメタデータ準備
 
 ### 4-1. 共通メタデータ
-- [ ] アプリ説明文（短い説明 + 詳細説明）を作成
-  - 短い説明（80文字以内）: 「ETPテストで最適な中距離トレーニングプランを自動生成」等
-  - 詳細説明: 主要機能・特徴・ターゲットユーザーの説明
-- [ ] キーワード選定（800m, 1500m, 中距離, トレーニング, ランニング 等）
-- [ ] カテゴリ選定: Health & Fitness
-- [ ] サポート URL の準備
+- [x] アプリ説明文（短い説明 + 詳細説明）を作成
+  - `STORE_METADATA.md` に日英で作成済み
+  - Fastlane 形式メタデータを `fastlane/metadata/android/` に配置済み
+    - `ja-JP/`: title, short_description, full_description, changelogs
+    - `en-US/`: title, short_description, full_description, changelogs
+- [x] キーワード選定（800m, 1500m, 中距離, トレーニング, ランニング 等）
+- [x] カテゴリ選定: Health & Fitness
+- [x] サポート URL の準備（https://myajiri.github.io/midlab/）
 
 ### 4-2. スクリーンショット
 - [ ] iOS スクリーンショット作成
@@ -295,6 +308,24 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 
 ### `eas.json` に設定が必要な項目
 
+**Android（設定済み）:**
+```json
+{
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
+    }
+  }
+}
+```
+> `track: "internal"` で内部テストトラックに公開。準備完了後に `"production"` に変更。
+> `releaseStatus: "draft"` で下書き状態でアップロード。
+
+**iOS（未設定 — Apple Developer 登録後に追加）:**
 ```json
 {
   "submit": {
@@ -303,10 +334,6 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
         "appleId": "your-apple-id@example.com",
         "ascAppId": "1234567890",
         "appleTeamId": "ABCDE12345"
-      },
-      "android": {
-        "serviceAccountKeyPath": "./google-play-service-account.json",
-        "track": "internal"
       }
     }
   }
@@ -357,3 +384,50 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 - サブスクリプションの Sandbox テストは必ず実施すること
 - iPad 対応（`supportsTablet: true`）のため、iPad のスクリーンショットとレイアウト確認が必要
 - アカウント機能がないため、Supabase 関連の設定は初期リリースでは一切不要
+
+---
+
+## Android リリース クイックリファレンス
+
+Google Play アカウント登録済みの状態から、Android 版リリースまでの手順をまとめたクイックリファレンス。
+
+### ステップ 1: Google Play Console でアプリ作成
+1. Google Play Console にログイン
+2. 「アプリを作成」→ アプリ名: `MidLab`、デフォルト言語: 日本語、アプリ/ゲーム: アプリ、無料/有料: 無料
+3. ストアの掲載情報を入力（`fastlane/metadata/android/` に準備済み）
+4. コンテンツレーティングの質問票に回答
+5. データセーフティセクションに回答（`STORE_METADATA.md` の回答ガイドを参照）
+
+### ステップ 2: Service Account 設定
+1. Google Cloud Console でサービスアカウントを作成
+2. Google Play Console > 設定 > API アクセス でサービスアカウントを招待
+3. 権限: 「リリース管理」を付与
+4. JSON キーをダウンロードし `./google-play-service-account.json` として保存
+5. `.gitignore` に `google-play-service-account.json` が含まれていることを確認
+
+### ステップ 3: RevenueCat 設定（Android）
+1. RevenueCat でプロジェクト作成
+2. Google Play Service Account を RevenueCat に登録
+3. プロダクト `midlab_premium_monthly` / `midlab_premium_yearly` を紐付け
+4. エンタイトルメント `MidLab Pro` を作成・紐付け
+5. Android API キーを EAS Secrets に登録:
+   ```bash
+   eas secret:create --name EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID --value "goog_xxx"
+   ```
+
+### ステップ 4: ビルド・テスト・提出
+```bash
+# 1. テスト用ビルド（プレミアム機能アンロック済み）
+eas build --profile testing --platform android
+
+# 2. 本番ビルド（AAB 形式）
+eas build --platform android --profile production
+
+# 3. 内部テストトラックに提出
+eas submit --platform android --profile production
+```
+
+### ステップ 5: Google Play Console で公開
+1. 内部テストトラックで動作確認
+2. サブスクリプション購入テスト（ライセンステストアカウント使用）
+3. クローズドテスト → オープンテスト → 製品版の順に段階公開
