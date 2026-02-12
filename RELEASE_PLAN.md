@@ -56,7 +56,7 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 
 ### 1-2. Google Play Console
 - [x] Google Play Developer アカウントを作成（$25 一回払い）
-- [ ] Google Play Console でアプリを作成
+- [x] Google Play Console でアプリを作成
   - Package Name: `com.midlab.app`
 - [ ] Google Play Service Account を作成
 - [ ] Service Account JSON キーを取得し `./google-play-service-account.json` として保存
