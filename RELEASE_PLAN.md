@@ -46,7 +46,7 @@ MidLab（中距離走専用トレーニング管理アプリ）を App Store お
 ## フェーズ 1: アカウント・コンソール準備
 
 ### 1-1. Apple Developer Program
-- [ ] Apple Developer Program に登録（年額 ¥12,980）
+- [x] Apple Developer Program に登録（年額 ¥12,980）
 - [ ] App Store Connect でアプリを作成
   - Bundle ID: `com.midlab.app`
   - アプリ名: MidLab
