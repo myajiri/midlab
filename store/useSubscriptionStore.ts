@@ -119,9 +119,13 @@ export const useSubscriptionStore = create<SubscriptionState>()(
                 set({ loading: true, error: null });
                 try {
                     const customerInfo = await purchasePackage(pkg);
+                    if (!customerInfo) {
+                        set({ loading: false, error: '購入情報を取得できませんでした' });
+                        return false;
+                    }
                     const isPremium = checkPremiumStatus(customerInfo);
                     set({ customerInfo, isPremium, loading: false });
-                    return true;
+                    return isPremium;
                 } catch (error: any) {
                     set({ loading: false, error: error.message });
                     return false;

@@ -13,6 +13,7 @@ import {
     Linking,
     Platform,
     BackHandler,
+    InteractionManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -108,14 +109,21 @@ export default function UpgradeScreen() {
         }
 
         // 購入完了フラグを立てて、isPremium変更による即時再レンダリングを防ぐ
-        // （Alert表示中にUIツリーが変わるとiOSでクラッシュする）
         setPurchaseCompleted(true);
         const success = await purchase(selectedPackage);
         if (success) {
             isNavigatingRef.current = true;
-            Alert.alert('購入完了', 'プレミアムプランへのアップグレードが完了しました！', [
-                { text: 'OK', onPress: () => router.replace('/(tabs)') }
-            ]);
+            // isPremium変更による同期的な再レンダリングが完了し、
+            // UIツリーが安定してからAlertを表示する。
+            // 直接Alert.alert()を呼ぶと、UIKitのレイアウト処理と競合して
+            // Hermes上でSIGSEGV（EXC_BAD_ACCESS）が発生する。
+            InteractionManager.runAfterInteractions(() => {
+                setTimeout(() => {
+                    Alert.alert('購入完了', 'プレミアムプランへのアップグレードが完了しました！', [
+                        { text: 'OK', onPress: () => router.replace('/(tabs)') }
+                    ]);
+                }, 100);
+            });
         } else {
             setPurchaseCompleted(false);
         }
@@ -130,9 +138,14 @@ export default function UpgradeScreen() {
 
         if (restored) {
             isNavigatingRef.current = true;
-            Alert.alert('復元完了', '購入が復元されました', [
-                { text: 'OK', onPress: () => router.replace('/(tabs)') }
-            ]);
+            // 購入処理と同様、UIツリーが安定してからAlertを表示
+            InteractionManager.runAfterInteractions(() => {
+                setTimeout(() => {
+                    Alert.alert('復元完了', '購入が復元されました', [
+                        { text: 'OK', onPress: () => router.replace('/(tabs)') }
+                    ]);
+                }, 100);
+            });
         } else {
             setPurchaseCompleted(false);
             Alert.alert('復元結果', '復元可能な購入が見つかりませんでした');
