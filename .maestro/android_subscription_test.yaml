@@ -33,7 +33,7 @@ appId: com.midlab.app
 
 # トライアルバッジが表示されていること
 - assertVisible:
-    text: "初回1週間無料"
+    text: "初回1ヶ月無料"
     optional: true
 
 # 利用規約リンクの確認
