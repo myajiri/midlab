@@ -9,11 +9,9 @@ import {
     StyleSheet,
     Pressable,
     ActivityIndicator,
-    Alert,
     Linking,
     Platform,
     BackHandler,
-    InteractionManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,6 +25,7 @@ import {
     usePackages,
 } from '../store/useSubscriptionStore';
 import { isPurchasesEnabled } from '../lib/purchases';
+import { useToast } from '../src/components/ui';
 
 // 定数
 const COLORS = {
@@ -54,6 +53,7 @@ export default function UpgradeScreen() {
     const loading = useSubscriptionLoading();
     const packages = usePackages();
     const { purchase, restore } = useSubscriptionStore();
+    const { showToast } = useToast();
     const [restoring, setRestoring] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
     const [purchaseCompleted, setPurchaseCompleted] = useState(false);
@@ -104,7 +104,7 @@ export default function UpgradeScreen() {
     // 購入処理
     const handlePurchase = useCallback(async () => {
         if (!selectedPackage) {
-            Alert.alert('エラー', '購入可能なプランが見つかりません');
+            showToast('購入可能なプランが見つかりません', 'error');
             return;
         }
 
@@ -113,21 +113,18 @@ export default function UpgradeScreen() {
         const success = await purchase(selectedPackage);
         if (success) {
             isNavigatingRef.current = true;
-            // isPremium変更による同期的な再レンダリングが完了し、
-            // UIツリーが安定してからAlertを表示する。
-            // 直接Alert.alert()を呼ぶと、UIKitのレイアウト処理と競合して
-            // Hermes上でSIGSEGV（EXC_BAD_ACCESS）が発生する。
-            InteractionManager.runAfterInteractions(() => {
-                setTimeout(() => {
-                    Alert.alert('購入完了', 'プレミアムプランへのアップグレードが完了しました！', [
-                        { text: 'OK', onPress: () => router.replace('/(tabs)') }
-                    ]);
-                }, 100);
-            });
+            // ネイティブAlert.alert()はisPremium状態変更による再レンダリングと
+            // ネイティブモーダル表示が競合し、iOS/AndroidでSIGSEGVを引き起こすため、
+            // 非ブロッキングのToastで通知し直接遷移する
+            showToast('プレミアムプランへのアップグレードが完了しました！', 'success');
+            setTimeout(() => {
+                router.replace('/(tabs)');
+            }, 300);
         } else {
             setPurchaseCompleted(false);
+            showToast('購入を完了できませんでした', 'error');
         }
-    }, [selectedPackage, purchase, router]);
+    }, [selectedPackage, purchase, router, showToast]);
 
     // 購入復元
     const handleRestore = useCallback(async () => {
@@ -138,19 +135,15 @@ export default function UpgradeScreen() {
 
         if (restored) {
             isNavigatingRef.current = true;
-            // 購入処理と同様、UIツリーが安定してからAlertを表示
-            InteractionManager.runAfterInteractions(() => {
-                setTimeout(() => {
-                    Alert.alert('復元完了', '購入が復元されました', [
-                        { text: 'OK', onPress: () => router.replace('/(tabs)') }
-                    ]);
-                }, 100);
-            });
+            showToast('購入が復元されました', 'success');
+            setTimeout(() => {
+                router.replace('/(tabs)');
+            }, 300);
         } else {
             setPurchaseCompleted(false);
-            Alert.alert('復元結果', '復元可能な購入が見つかりませんでした');
+            showToast('復元可能な購入が見つかりませんでした', 'warning');
         }
-    }, [restore, router]);
+    }, [restore, router, showToast]);
 
     // サブスクリプション管理を開く
     const handleManageSubscription = useCallback(() => {
