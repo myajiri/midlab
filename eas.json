@@ -4,6 +4,11 @@
   },
   "submit": {
     "production": {
+      "ios": {
+        "appleId": "myajiri@gmail.com",
+        "ascAppId": "6759110209",
+        "appleTeamId": "8L93Q84K2R"
+      },
       "android": {
         "serviceAccountKeyPath": "./google-play-service-account.json",
         "track": "internal",
