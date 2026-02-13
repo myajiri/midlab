@@ -33,7 +33,7 @@
 - [ ] Google Play Console で定期購入を作成
   - [ ] `midlab_premium_monthly`（¥980/月）
   - [ ] `midlab_premium_yearly`（¥9,800/年）
-  - [ ] 初回1週間無料トライアル
+  - [ ] 初月無料トライアル
 - [ ] RevenueCat でプロジェクト作成
 - [ ] RevenueCat に Google Play Service Account を登録
 - [ ] RevenueCat でプロダクト紐付け（monthly / yearly）
