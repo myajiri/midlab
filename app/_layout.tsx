@@ -10,6 +10,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ToastProvider } from '../src/components/ui';
 import { useSettingsStore } from '../src/stores/useAppStore';
+import { useSubscriptionStore } from '../store/useSubscriptionStore';
 import { COLORS } from '../src/constants';
 import { migrateStorageKeys } from '../src/utils';
 
@@ -17,6 +18,7 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
   const onboardingComplete = useSettingsStore((state) => state.onboardingComplete);
+  const initializeSubscription = useSubscriptionStore((state) => state.initialize);
 
   // ナビゲーションの準備状態を確認
   const navigationState = useRootNavigationState();
@@ -31,6 +33,12 @@ export default function RootLayout() {
     };
     runMigration();
   }, []);
+
+  // サブスクリプション（RevenueCat）の初期化
+  useEffect(() => {
+    if (!isMigrationComplete) return;
+    initializeSubscription();
+  }, [isMigrationComplete, initializeSubscription]);
 
   useEffect(() => {
     if (navigationState?.key) {
