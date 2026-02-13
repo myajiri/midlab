@@ -2,8 +2,8 @@
 // プレミアム機能ゲートコンポーネント
 // ============================================
 
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useIsPremium } from '../store/useSubscriptionStore';
@@ -16,28 +16,41 @@ interface PremiumGateProps {
 
 /**
  * プレミアム機能へのアクセスをゲートするコンポーネント
- * プレミアムユーザーはchildrenを表示、そうでなければアップグレード画面へリダイレクト
+ * プレミアムユーザーはchildrenを表示、そうでなければインラインでアップグレード案内を表示
+ * ※ router.pushによるリダイレクトは廃止（隣接タブのプリロードで誤発火するため）
  */
 export const PremiumGate: React.FC<PremiumGateProps> = ({ featureName, children }) => {
     const router = useRouter();
     const isPremium = useIsPremium();
 
-    useEffect(() => {
-        if (!isPremium) {
-            // アップグレード画面へ遷移（機能名をパラメータとして渡す）
-            router.push({
-                pathname: '/upgrade',
-                params: { feature: featureName },
-            });
-        }
-    }, [isPremium, router, featureName]);
-
     if (isPremium) {
         return <>{children}</>;
     }
 
-    // リダイレクト中は空のビューを表示
-    return <View style={styles.container} />;
+    // インラインでアップグレード案内を表示
+    return (
+        <View style={styles.container}>
+            <View style={styles.content}>
+                <View style={styles.iconCircle}>
+                    <Ionicons name="lock-closed" size={32} color={COLORS.primary} />
+                </View>
+                <Text style={styles.title}>プレミアム機能</Text>
+                <Text style={styles.description}>
+                    「{featureName}」はプレミアムプランで{'\n'}ご利用いただけます
+                </Text>
+                <Pressable
+                    style={styles.upgradeButton}
+                    onPress={() => router.push({
+                        pathname: '/upgrade',
+                        params: { feature: featureName },
+                    })}
+                >
+                    <Ionicons name="diamond" size={18} color="#fff" />
+                    <Text style={styles.upgradeButtonText}>プランを見る</Text>
+                </Pressable>
+            </View>
+        </View>
+    );
 };
 
 /**
@@ -70,6 +83,48 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: COLORS.background.dark,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    content: {
+        alignItems: 'center',
+        paddingHorizontal: 32,
+    },
+    iconCircle: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    title: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: COLORS.text.primary,
+        marginBottom: 8,
+    },
+    description: {
+        fontSize: 14,
+        color: COLORS.text.secondary,
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: 28,
+    },
+    upgradeButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: COLORS.primary,
+        paddingVertical: 14,
+        paddingHorizontal: 32,
+        borderRadius: 14,
+    },
+    upgradeButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#fff',
     },
     badge: {
         flexDirection: 'row',
