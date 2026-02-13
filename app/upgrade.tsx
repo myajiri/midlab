@@ -265,7 +265,7 @@ export default function UpgradeScreen() {
                 {/* トライアルバッジ */}
                 <View style={styles.trialBadge}>
                     <Ionicons name="gift-outline" size={14} color="#000" />
-                    <Text style={styles.trialBadgeText}>初回1週間無料</Text>
+                    <Text style={styles.trialBadgeText}>初月無料</Text>
                 </View>
 
                 {/* 購入ボタン */}
