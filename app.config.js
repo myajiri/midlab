@@ -21,7 +21,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.midlab.app",
-      buildNumber: "2"
+      buildNumber: "3"
     },
     android: {
       adaptiveIcon: {
