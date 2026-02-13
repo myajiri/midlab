@@ -308,8 +308,8 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
                       <Text style={styles.segmentZone}>{zoneConfig?.label || seg.zone}</Text>
                     </View>
                     <View style={styles.segmentRight}>
-                      <Text style={styles.segmentPace400}>{Math.round(pace)}秒/400m</Text>
                       <Text style={styles.segmentPaceKm}>{formatKmPace(pace)}</Text>
+                      <Text style={styles.segmentPace400}>{Math.round(pace)}秒/400m</Text>
                     </View>
                   </View>
                   {reps && reps > 1 && recovery && (
@@ -753,12 +753,12 @@ const styles = StyleSheet.create({
     color: COLORS.text.muted,
     marginTop: 2,
   },
-  segmentPace400: {
+  segmentPaceKm: {
     fontSize: 16,
     fontWeight: '700',
     color: COLORS.text.primary,
   },
-  segmentPaceKm: {
+  segmentPace400: {
     fontSize: 12,
     color: COLORS.text.muted,
     marginTop: 2,

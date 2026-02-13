@@ -64,7 +64,7 @@ ETPテストの結果に基づいて、あなたの走力レベルに合った�
 【プレミアムプラン】
 ・月額プラン: ¥980/月
 ・年額プラン: ¥9,800/年（月あたり¥817、2ヶ月分おトク）
-・初回1週間無料トライアル
+・初回1ヶ月無料トライアル
 
 プレミアムプランでは、詳細なトレーニングプランの生成、高度な分析機能をご利用いただけます。
 
@@ -99,7 +99,7 @@ All training data is stored locally on your device. No account registration requ
 [Premium Plan]
 - Monthly: ¥980/month
 - Yearly: ¥9,800/year (¥817/month, save 2 months)
-- 1-week free trial for first-time subscribers
+- 1-month free trial for first-time subscribers
 
 Premium unlocks detailed training plans and advanced analytics.
 
@@ -134,12 +134,12 @@ middle-distance,800m,1500m,training,running,interval,track,pace,endurance,workou
 
 ### 日本語
 ```
-ETPテストであなたの走力を科学的に測定し、800m〜1500m中距離走に最適なトレーニングプランを自動生成。記録向上を目指すランナーのための専門アプリです。初回1週間無料。
+ETPテストであなたの走力を科学的に測定し、800m〜1500m中距離走に最適なトレーニングプランを自動生成。記録向上を目指すランナーのための専門アプリです。初回1ヶ月無料。
 ```
 
 ### 英語
 ```
-Scientifically measure your fitness with ETP tests and auto-generate optimal training plans for 800m-1500m middle-distance running. The specialist app for runners aiming for personal bests. 1-week free trial.
+Scientifically measure your fitness with ETP tests and auto-generate optimal training plans for 800m-1500m middle-distance running. The specialist app for runners aiming for personal bests. 1-month free trial.
 ```
 
 ---
@@ -153,7 +153,7 @@ MidLab（ミドラボ）初回リリース！
 ・ETPテストによる走力測定
 ・自動トレーニングプラン生成
 ・ワークアウト記録・管理
-・プレミアムプラン（月額¥980 / 年額¥9,800、初回1週間無料）
+・プレミアムプラン（月額¥980 / 年額¥9,800、初回1ヶ月無料）
 ```
 
 ### v1.0.0 英語
@@ -163,7 +163,7 @@ MidLab initial release!
 - ETP test for fitness measurement
 - Auto-generated training plans
 - Workout recording & management
-- Premium plan (¥980/month or ¥9,800/year, 1-week free trial)
+- Premium plan (¥980/month or ¥9,800/year, 1-month free trial)
 ```
 
 ---
