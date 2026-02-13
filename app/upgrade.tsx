@@ -55,6 +55,7 @@ export default function UpgradeScreen() {
     const { purchase, restore } = useSubscriptionStore();
     const [restoring, setRestoring] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
+    const [purchaseCompleted, setPurchaseCompleted] = useState(false);
     const isNavigatingRef = useRef(false);
 
     // PremiumGateから来た場合、スワイプバック・ハードウェアバックを
@@ -106,25 +107,34 @@ export default function UpgradeScreen() {
             return;
         }
 
+        // 購入完了フラグを立てて、isPremium変更による即時再レンダリングを防ぐ
+        // （Alert表示中にUIツリーが変わるとiOSでクラッシュする）
+        setPurchaseCompleted(true);
         const success = await purchase(selectedPackage);
         if (success) {
+            isNavigatingRef.current = true;
             Alert.alert('購入完了', 'プレミアムプランへのアップグレードが完了しました！', [
-                { text: 'OK', onPress: () => router.back() }
+                { text: 'OK', onPress: () => router.replace('/(tabs)') }
             ]);
+        } else {
+            setPurchaseCompleted(false);
         }
     }, [selectedPackage, purchase, router]);
 
     // 購入復元
     const handleRestore = useCallback(async () => {
         setRestoring(true);
+        setPurchaseCompleted(true);
         const restored = await restore();
         setRestoring(false);
 
         if (restored) {
+            isNavigatingRef.current = true;
             Alert.alert('復元完了', '購入が復元されました', [
-                { text: 'OK', onPress: () => router.back() }
+                { text: 'OK', onPress: () => router.replace('/(tabs)') }
             ]);
         } else {
+            setPurchaseCompleted(false);
             Alert.alert('復元結果', '復元可能な購入が見つかりませんでした');
         }
     }, [restore, router]);
@@ -138,8 +148,8 @@ export default function UpgradeScreen() {
         }
     }, []);
 
-    // 既にプレミアムの場合
-    if (isPremium) {
+    // 既にプレミアムの場合（購入直後はAlert表示のため切り替えない）
+    if (isPremium && !purchaseCompleted) {
         return (
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
