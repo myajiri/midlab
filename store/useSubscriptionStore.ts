@@ -79,11 +79,26 @@ export const useSubscriptionStore = create<SubscriptionState>()(
                 try {
                     await initializePurchases(userId);
 
-                    // パッケージ取得
-                    const packages = await getOfferings();
+                    // configure後にネイティブ側の初期化が安定するまで待機
+                    // TurboModuleのvoid例外がログ落ちした場合でもSDKが安定してから呼び出す
+                    await new Promise(resolve => setTimeout(resolve, 100));
 
-                    // 顧客情報取得
-                    const customerInfo = await getCustomerInfo();
+                    // パッケージ取得（configure失敗時は空配列で継続）
+                    let packages: PurchasesPackage[] = [];
+                    try {
+                        packages = await getOfferings();
+                    } catch (e) {
+                        if (__DEV__) console.warn('getOfferings failed:', e);
+                    }
+
+                    // 顧客情報取得（失敗時はnullで継続）
+                    let customerInfo: CustomerInfo | null = null;
+                    try {
+                        customerInfo = await getCustomerInfo();
+                    } catch (e) {
+                        if (__DEV__) console.warn('getCustomerInfo failed:', e);
+                    }
+
                     const isPremium = checkPremiumStatus(customerInfo);
 
                     set({
