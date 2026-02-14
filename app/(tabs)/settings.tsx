@@ -11,6 +11,7 @@ import {
   Pressable,
   Alert,
   Linking,
+  InteractionManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -102,7 +103,7 @@ const HELP_ITEMS: { term: string; description: string }[] = [
 export default function SettingsScreen() {
   const router = useRouter();
   const isPremium = useIsPremium();
-  const { restore } = useSubscriptionStore();
+  const { restore, applyPremiumStatus } = useSubscriptionStore();
   const setSubScreenOpen = useSetSubScreenOpen();
   const isFocused = useIsFocused();
 
@@ -232,6 +233,11 @@ export default function SettingsScreen() {
                 style={styles.restoreBtn}
                 onPress={async () => {
                   const restored = await restore();
+                  if (restored) {
+                    InteractionManager.runAfterInteractions(() => {
+                      applyPremiumStatus();
+                    });
+                  }
                   Alert.alert(
                     restored ? '復元完了' : '復元結果',
                     restored ? '購入が復元されました' : '復元可能な購入がありません'

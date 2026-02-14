@@ -12,7 +12,7 @@ export default {
     icon: "./assets/images/icon.png",
     scheme: "midlab",
     userInterfaceStyle: "dark",
-    newArchEnabled: false,
+    newArchEnabled: true,
     splash: {
       image: "./assets/images/splash-icon.png",
       resizeMode: "contain",
@@ -21,7 +21,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.midlab.app",
-      buildNumber: "9"
+      buildNumber: "10"
     },
     android: {
       adaptiveIcon: {
@@ -29,7 +29,7 @@ export default {
         backgroundColor: "#0a0a0f"
       },
       package: "com.midlab.app",
-      versionCode: 8
+      versionCode: 9
     },
     web: {
       bundler: "metro",
