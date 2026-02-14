@@ -1,20 +1,18 @@
 diff --git a/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm b/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm
-index 2a67797..21fae25 100644
+index 2a67797..f8b3c10 100644
 --- a/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm
 +++ b/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm
-@@ -435,7 +435,14 @@ void ObjCTurboModule::performVoidMethodInvocation(
+@@ -435,7 +435,12 @@ void ObjCTurboModule::performVoidMethodInvocation(
      @try {
        [inv invokeWithTarget:strongModule];
      } @catch (NSException *exception) {
 -      throw convertNSExceptionToJSError(runtime, exception, std::string{moduleName}, methodNameStr);
-+      if (shouldVoidMethodsExecuteSync_) {
-+        throw convertNSExceptionToJSError(runtime, exception, std::string{moduleName}, methodNameStr);
-+      } else {
-+        // async voidメソッドではバックグラウンドスレッドからHermesランタイムに
-+        // アクセスするconvertNSExceptionToJSErrorを呼ばない。
-+        // See https://github.com/reactwg/react-native-new-architecture/discussions/276
-+        NSLog(@"[TurboModule] Exception in async void method %s.%s: %@", moduleName, methodName, exception);
-+      }
++      // convertNSExceptionToJSErrorはHermesランタイムに再入し、GCScopeの破損を
++      // 引き起こす（sync/async両方で発生）。voidメソッドでは例外をログに記録し、
++      // Hermesへの再入を完全に回避する。
++      // See https://github.com/reactwg/react-native-new-architecture/discussions/276
++      NSLog(@"[TurboModule] Exception in void method %s.%s: %@ - reason: %@",
++            moduleName, methodName, exception.name, exception.reason);
      } @finally {
        [retainedObjectsForInvocation removeAllObjects];
      }
