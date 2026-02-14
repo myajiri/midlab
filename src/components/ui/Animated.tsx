@@ -1,28 +1,18 @@
 // ============================================
 // アニメーションコンポーネント
-// react-native-reanimatedを活用した滑らかなUI
+// React Native標準Animated APIによる実装
 // ============================================
 
-import React, { useEffect } from 'react';
-import { View, ViewStyle, Pressable, StyleSheet, Text } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withSpring,
-  withDelay,
-  withSequence,
-  interpolate,
-  Extrapolation,
-  FadeIn as ReanimatedFadeIn,
-  FadeInDown,
-  FadeInUp,
-  SlideInRight,
-  SlideInLeft,
-  ZoomIn,
-  BounceIn,
-  runOnJS,
-} from 'react-native-reanimated';
+import React, { useEffect, useRef } from 'react';
+import {
+  View,
+  ViewStyle,
+  Pressable,
+  StyleSheet,
+  Text,
+  Animated,
+  Easing,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
 
@@ -43,18 +33,19 @@ export const FadeIn: React.FC<FadeInProps> = ({
   duration = 400,
   style,
 }) => {
-  const opacity = useSharedValue(0);
+  const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    opacity.value = withDelay(delay, withTiming(1, { duration }));
+    Animated.timing(opacity, {
+      toValue: 1,
+      duration,
+      delay,
+      useNativeDriver: true,
+    }).start();
   }, []);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: opacity.value,
-  }));
-
   return (
-    <Animated.View style={[animatedStyle, style]}>
+    <Animated.View style={[{ opacity }, style]}>
       {children}
     </Animated.View>
   );
@@ -81,35 +72,44 @@ export const SlideIn: React.FC<SlideInProps> = ({
   distance = 30,
   style,
 }) => {
-  const progress = useSharedValue(0);
+  const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    progress.value = withDelay(delay, withTiming(1, { duration }));
+    Animated.timing(progress, {
+      toValue: 1,
+      duration,
+      delay,
+      useNativeDriver: true,
+    }).start();
   }, []);
 
-  const animatedStyle = useAnimatedStyle(() => {
-    const translateX =
-      direction === 'left'
-        ? interpolate(progress.value, [0, 1], [-distance, 0])
-        : direction === 'right'
-        ? interpolate(progress.value, [0, 1], [distance, 0])
-        : 0;
+  const translateX =
+    direction === 'left'
+      ? progress.interpolate({ inputRange: [0, 1], outputRange: [-distance, 0] })
+      : direction === 'right'
+      ? progress.interpolate({ inputRange: [0, 1], outputRange: [distance, 0] })
+      : 0;
 
-    const translateY =
-      direction === 'up'
-        ? interpolate(progress.value, [0, 1], [distance, 0])
-        : direction === 'down'
-        ? interpolate(progress.value, [0, 1], [-distance, 0])
-        : 0;
-
-    return {
-      opacity: progress.value,
-      transform: [{ translateX }, { translateY }],
-    };
-  });
+  const translateY =
+    direction === 'up'
+      ? progress.interpolate({ inputRange: [0, 1], outputRange: [distance, 0] })
+      : direction === 'down'
+      ? progress.interpolate({ inputRange: [0, 1], outputRange: [-distance, 0] })
+      : 0;
 
   return (
-    <Animated.View style={[animatedStyle, style]}>
+    <Animated.View
+      style={[
+        {
+          opacity: progress,
+          transform: [
+            { translateX: translateX as any },
+            { translateY: translateY as any },
+          ],
+        },
+        style,
+      ]}
+    >
       {children}
     </Animated.View>
   );
@@ -130,32 +130,36 @@ interface ScaleInProps {
 export const ScaleIn: React.FC<ScaleInProps> = ({
   children,
   delay = 0,
-  duration = 300,
   initialScale = 0.8,
   style,
 }) => {
-  const progress = useSharedValue(0);
+  const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    progress.value = withDelay(delay, withSpring(1, { damping: 12 }));
+    Animated.spring(progress, {
+      toValue: 1,
+      damping: 12,
+      delay,
+      useNativeDriver: true,
+    }).start();
   }, []);
 
-  const animatedStyle = useAnimatedStyle(() => {
-    const scale = interpolate(
-      progress.value,
-      [0, 1],
-      [initialScale, 1],
-      Extrapolation.CLAMP
-    );
-
-    return {
-      opacity: progress.value,
-      transform: [{ scale }],
-    };
+  const scale = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [initialScale, 1],
+    extrapolate: 'clamp',
   });
 
   return (
-    <Animated.View style={[animatedStyle, style]}>
+    <Animated.View
+      style={[
+        {
+          opacity: progress,
+          transform: [{ scale }],
+        },
+        style,
+      ]}
+    >
       {children}
     </Animated.View>
   );
@@ -180,19 +184,23 @@ export const AnimatedPressable: React.FC<AnimatedPressableProps> = ({
   scaleOnPress = 0.96,
   disabled = false,
 }) => {
-  const scale = useSharedValue(1);
+  const scale = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
-    scale.value = withSpring(scaleOnPress, { damping: 15 });
+    Animated.spring(scale, {
+      toValue: scaleOnPress,
+      damping: 15,
+      useNativeDriver: true,
+    }).start();
   };
 
   const handlePressOut = () => {
-    scale.value = withSpring(1, { damping: 15 });
+    Animated.spring(scale, {
+      toValue: 1,
+      damping: 15,
+      useNativeDriver: true,
+    }).start();
   };
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
 
   return (
     <Pressable
@@ -201,7 +209,7 @@ export const AnimatedPressable: React.FC<AnimatedPressableProps> = ({
       onPressOut={handlePressOut}
       disabled={disabled}
     >
-      <Animated.View style={[animatedStyle, style]}>
+      <Animated.View style={[{ transform: [{ scale }] }, style]}>
         {children}
       </Animated.View>
     </Pressable>
@@ -269,33 +277,36 @@ export const PulseView: React.FC<PulseViewProps> = ({
   active = true,
   style,
 }) => {
-  const scale = useSharedValue(1);
+  const scale = useRef(new Animated.Value(1)).current;
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
     if (active) {
-      scale.value = withSequence(
-        withTiming(1.05, { duration: 500 }),
-        withTiming(1, { duration: 500 })
+      animationRef.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(scale, {
+            toValue: 1.05,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(scale, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.delay(1000),
+        ])
       );
+      animationRef.current.start();
 
-      // 繰り返し
-      const interval = setInterval(() => {
-        scale.value = withSequence(
-          withTiming(1.05, { duration: 500 }),
-          withTiming(1, { duration: 500 })
-        );
-      }, 2000);
-
-      return () => clearInterval(interval);
+      return () => {
+        animationRef.current?.stop();
+      };
     }
   }, [active]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
   return (
-    <Animated.View style={[animatedStyle, style]}>
+    <Animated.View style={[{ transform: [{ scale }] }, style]}>
       {children}
     </Animated.View>
   );
@@ -316,24 +327,41 @@ export const SuccessCheckmark: React.FC<SuccessCheckmarkProps> = ({
   color = '#22C55E',
   delay = 0,
 }) => {
-  const scale = useSharedValue(0);
-  const rotation = useSharedValue(-45);
+  const scale = useRef(new Animated.Value(0)).current;
+  const rotation = useRef(new Animated.Value(-45)).current;
 
   useEffect(() => {
-    scale.value = withDelay(delay, withSpring(1, { damping: 8 }));
-    rotation.value = withDelay(delay, withSpring(0, { damping: 10 }));
+    Animated.parallel([
+      Animated.spring(scale, {
+        toValue: 1,
+        damping: 8,
+        delay,
+        useNativeDriver: true,
+      }),
+      Animated.spring(rotation, {
+        toValue: 0,
+        damping: 10,
+        delay,
+        useNativeDriver: true,
+      }),
+    ]).start();
   }, []);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { scale: scale.value },
-      { rotate: `${rotation.value}deg` },
-    ],
-    opacity: scale.value,
-  }));
+  const rotate = rotation.interpolate({
+    inputRange: [-45, 0],
+    outputRange: ['-45deg', '0deg'],
+  });
 
   return (
-    <Animated.View style={[styles.checkmarkContainer, animatedStyle]}>
+    <Animated.View
+      style={[
+        styles.checkmarkContainer,
+        {
+          transform: [{ scale }, { rotate }],
+          opacity: scale,
+        },
+      ]}
+    >
       <View
         style={[
           styles.checkmarkCircle,
@@ -371,27 +399,24 @@ export const CountUp: React.FC<CountUpProps> = ({
   suffix = '',
   prefix = '',
 }) => {
-  const animatedValue = useSharedValue(0);
+  const animatedValue = useRef(new Animated.Value(0)).current;
   const [displayValue, setDisplayValue] = React.useState(0);
 
   useEffect(() => {
-    animatedValue.value = withTiming(value, { duration }, (finished) => {
-      if (finished) {
-        runOnJS(setDisplayValue)(value);
-      }
+    const listener = animatedValue.addListener(({ value: v }) => {
+      setDisplayValue(Math.round(v));
     });
 
-    // 中間値の更新
-    const interval = setInterval(() => {
-      setDisplayValue(Math.round(animatedValue.value));
-    }, 50);
+    Animated.timing(animatedValue, {
+      toValue: value,
+      duration,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
 
-    setTimeout(() => {
-      clearInterval(interval);
-      setDisplayValue(value);
-    }, duration + 100);
-
-    return () => clearInterval(interval);
+    return () => {
+      animatedValue.removeListener(listener);
+    };
   }, [value]);
 
   return (
@@ -430,20 +455,6 @@ export const StaggeredList: React.FC<StaggeredListProps> = ({
       ))}
     </>
   );
-};
-
-// ============================================
-// 再エクスポート（Reanimated組み込みアニメーション）
-// ============================================
-
-export {
-  ReanimatedFadeIn,
-  FadeInDown,
-  FadeInUp,
-  SlideInRight,
-  SlideInLeft,
-  ZoomIn,
-  BounceIn,
 };
 
 // ============================================
