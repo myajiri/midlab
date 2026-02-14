@@ -43,6 +43,7 @@ interface SubscriptionState {
     refreshStatus: () => Promise<void>;
     purchase: (pkg: PurchasesPackage) => Promise<boolean>;
     restore: () => Promise<boolean>;
+    applyPremiumStatus: () => void;
     onUserLogin: (userId: string) => Promise<void>;
     onUserLogout: () => Promise<void>;
     // 開発用
@@ -124,7 +125,10 @@ export const useSubscriptionStore = create<SubscriptionState>()(
                         return false;
                     }
                     const isPremium = checkPremiumStatus(customerInfo);
-                    set({ customerInfo, isPremium, loading: false });
+                    // isPremiumは即座に更新しない。購入完了時の同期的な再レンダリングが
+                    // reanimated workletとTurboModule操作の競合によるSIGSEGVを引き起こすため、
+                    // customerInfoのみ保存し、isPremiumの更新はapplyPremiumStatus()に委譲する
+                    set({ customerInfo, loading: false });
                     return isPremium;
                 } catch (error: any) {
                     set({ loading: false, error: error.message });
@@ -137,12 +141,21 @@ export const useSubscriptionStore = create<SubscriptionState>()(
                 try {
                     const customerInfo = await restorePurchases();
                     const isPremium = checkPremiumStatus(customerInfo);
-                    set({ customerInfo, isPremium, loading: false });
+                    // purchase()と同様、isPremiumは即座に更新しない
+                    set({ customerInfo, loading: false });
                     return isPremium;
                 } catch (error: any) {
                     set({ loading: false, error: error.message });
                     return false;
                 }
+            },
+
+            // 購入/復元後にisPremium状態を安全に更新する
+            // 画面遷移完了後に呼び出すことで、再レンダリングとネイティブ操作の競合を回避
+            applyPremiumStatus: () => {
+                const { customerInfo } = get();
+                const isPremium = checkPremiumStatus(customerInfo);
+                set({ isPremium });
             },
 
             onUserLogin: async (userId) => {
