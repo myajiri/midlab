@@ -2,7 +2,7 @@
 // Root Layout - MidLab
 // ============================================
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet } from 'react-native';
@@ -18,12 +18,12 @@ export default function RootLayout() {
   const router = useRouter();
   const segments = useSegments();
   const onboardingComplete = useSettingsStore((state) => state.onboardingComplete);
-  const initializeSubscription = useSubscriptionStore((state) => state.initialize);
 
   // ナビゲーションの準備状態を確認
   const navigationState = useRootNavigationState();
   const [isNavigationReady, setIsNavigationReady] = useState(false);
   const [isMigrationComplete, setIsMigrationComplete] = useState(false);
+  const hasRedirected = useRef(false);
 
   // 起動時にストレージキーの移行を実行
   useEffect(() => {
@@ -35,10 +35,11 @@ export default function RootLayout() {
   }, []);
 
   // サブスクリプション（RevenueCat）の初期化
+  // ストアのアクション関数は安定した参照なので、getState()経由で直接呼び出す
   useEffect(() => {
     if (!isMigrationComplete) return;
-    initializeSubscription();
-  }, [isMigrationComplete, initializeSubscription]);
+    useSubscriptionStore.getState().initialize();
+  }, [isMigrationComplete]);
 
   useEffect(() => {
     if (navigationState?.key) {
@@ -55,7 +56,12 @@ export default function RootLayout() {
     const inOnboarding = segments[0] === 'onboarding';
 
     if (!onboardingComplete && !inOnboarding) {
+      // 重複遷移を防止
+      if (hasRedirected.current) return;
+      hasRedirected.current = true;
       router.replace('/onboarding');
+    } else {
+      hasRedirected.current = false;
     }
   }, [onboardingComplete, segments, isNavigationReady, isMigrationComplete]);
 
