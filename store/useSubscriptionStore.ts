@@ -80,7 +80,6 @@ export const useSubscriptionStore = create<SubscriptionState>()(
                     await initializePurchases(userId);
 
                     // configure後にネイティブ側の初期化が安定するまで待機
-                    // TurboModuleのvoid例外がログ落ちした場合でもSDKが安定してから呼び出す
                     await new Promise(resolve => setTimeout(resolve, 100));
 
                     // パッケージ取得（configure失敗時は空配列で継続）
@@ -141,8 +140,8 @@ export const useSubscriptionStore = create<SubscriptionState>()(
                     }
                     const isPremium = checkPremiumStatus(customerInfo);
                     // isPremiumは即座に更新しない。購入完了時の同期的な再レンダリングが
-                    // reanimated workletとTurboModule操作の競合によるSIGSEGVを引き起こすため、
-                    // customerInfoのみ保存し、isPremiumの更新はapplyPremiumStatus()に委譲する
+                    // 画面遷移アニメーションと競合するため、customerInfoのみ保存し、
+                    // isPremiumの更新はapplyPremiumStatus()に委譲する
                     set({ customerInfo, loading: false });
                     return isPremium;
                 } catch (error: any) {
