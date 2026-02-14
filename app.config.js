@@ -21,7 +21,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.midlab.app",
-      buildNumber: "13"
+      buildNumber: "14"
     },
     android: {
       adaptiveIcon: {
@@ -29,7 +29,7 @@ export default {
         backgroundColor: "#0a0a0f"
       },
       package: "com.midlab.app",
-      versionCode: 12
+      versionCode: 13
     },
     web: {
       bundler: "metro",
@@ -38,7 +38,8 @@ export default {
     },
     plugins: [
       "expo-router",
-      "expo-web-browser"
+      "expo-web-browser",
+      "./plugins/withTurboModulePatch"
     ],
     experiments: {
       typedRoutes: true
