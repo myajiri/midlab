@@ -12,7 +12,7 @@ export default {
     icon: "./assets/images/icon.png",
     scheme: "midlab",
     userInterfaceStyle: "dark",
-    newArchEnabled: true,
+    newArchEnabled: false,
     splash: {
       image: "./assets/images/splash-icon.png",
       resizeMode: "contain",
@@ -21,7 +21,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.midlab.app",
-      buildNumber: "14"
+      buildNumber: "15"
     },
     android: {
       adaptiveIcon: {
@@ -29,7 +29,7 @@ export default {
         backgroundColor: "#0a0a0f"
       },
       package: "com.midlab.app",
-      versionCode: 13
+      versionCode: 14
     },
     web: {
       bundler: "metro",
@@ -38,8 +38,7 @@ export default {
     },
     plugins: [
       "expo-router",
-      "expo-web-browser",
-      "./plugins/withTurboModulePatch"
+      "expo-web-browser"
     ],
     experiments: {
       typedRoutes: true
