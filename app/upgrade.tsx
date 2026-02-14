@@ -52,11 +52,10 @@ export default function UpgradeScreen() {
     const isPremium = useIsPremium();
     const loading = useSubscriptionLoading();
     const packages = usePackages();
-    const { purchase, restore } = useSubscriptionStore();
+    const { purchase, restore, applyPremiumStatus } = useSubscriptionStore();
     const { showToast } = useToast();
     const [restoring, setRestoring] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
-    const [purchaseCompleted, setPurchaseCompleted] = useState(false);
     const isNavigatingRef = useRef(false);
 
     // PremiumGateから来た場合、スワイプバック・ハードウェアバックを
@@ -108,42 +107,41 @@ export default function UpgradeScreen() {
             return;
         }
 
-        // 購入完了フラグを立てて、isPremium変更による即時再レンダリングを防ぐ
-        setPurchaseCompleted(true);
         const success = await purchase(selectedPackage);
         if (success) {
             isNavigatingRef.current = true;
-            // ネイティブAlert.alert()はisPremium状態変更による再レンダリングと
-            // ネイティブモーダル表示が競合し、iOS/AndroidでSIGSEGVを引き起こすため、
-            // 非ブロッキングのToastで通知し直接遷移する
             showToast('プレミアムプランへのアップグレードが完了しました！', 'success');
+            // 先に遷移してからisPremiumを更新する。
+            // purchase()はisPremiumを即座に更新しない（customerInfoのみ保存）。
+            // isPremiumの同期的な更新がreanimatedのworkletスレッドと
+            // TurboModule操作のスレッド間でHermes GCの競合を引き起こしSIGSEGVになるため、
+            // 遷移完了後に安全にisPremiumを反映する。
+            router.replace('/(tabs)');
             setTimeout(() => {
-                router.replace('/(tabs)');
-            }, 300);
+                applyPremiumStatus();
+            }, 500);
         } else {
-            setPurchaseCompleted(false);
             showToast('購入を完了できませんでした', 'error');
         }
-    }, [selectedPackage, purchase, router, showToast]);
+    }, [selectedPackage, purchase, router, showToast, applyPremiumStatus]);
 
     // 購入復元
     const handleRestore = useCallback(async () => {
         setRestoring(true);
-        setPurchaseCompleted(true);
         const restored = await restore();
         setRestoring(false);
 
         if (restored) {
             isNavigatingRef.current = true;
             showToast('購入が復元されました', 'success');
+            router.replace('/(tabs)');
             setTimeout(() => {
-                router.replace('/(tabs)');
-            }, 300);
+                applyPremiumStatus();
+            }, 500);
         } else {
-            setPurchaseCompleted(false);
             showToast('復元可能な購入が見つかりませんでした', 'warning');
         }
-    }, [restore, router, showToast]);
+    }, [restore, router, showToast, applyPremiumStatus]);
 
     // サブスクリプション管理を開く
     const handleManageSubscription = useCallback(() => {
@@ -154,8 +152,8 @@ export default function UpgradeScreen() {
         }
     }, []);
 
-    // 既にプレミアムの場合（購入直後はAlert表示のため切り替えない）
-    if (isPremium && !purchaseCompleted) {
+    // 既にプレミアムの場合
+    if (isPremium) {
         return (
             <SafeAreaView style={styles.container} edges={['top']}>
                 <View style={styles.header}>
