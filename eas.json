@@ -30,7 +30,7 @@
     "preview": {
       "distribution": "internal",
       "cache": {
-        "key": "old-arch-v1"
+        "key": "no-reanimated-v1"
       },
       "ios": {
         "simulator": false
@@ -58,7 +58,7 @@
     "production": {
       "distribution": "store",
       "cache": {
-        "key": "old-arch-v1"
+        "key": "no-reanimated-v1"
       },
       "ios": {
         "resourceClass": "m-medium"

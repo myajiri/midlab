@@ -21,7 +21,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.midlab.app",
-      buildNumber: "15"
+      buildNumber: "17"
     },
     android: {
       adaptiveIcon: {
@@ -29,7 +29,7 @@ export default {
         backgroundColor: "#0a0a0f"
       },
       package: "com.midlab.app",
-      versionCode: 14
+      versionCode: 16
     },
     web: {
       bundler: "metro",
