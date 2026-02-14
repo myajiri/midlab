@@ -30,7 +30,7 @@
     "preview": {
       "distribution": "internal",
       "cache": {
-        "key": "turbomodule-patch-v2"
+        "key": "old-arch-v1"
       },
       "ios": {
         "simulator": false
@@ -58,7 +58,7 @@
     "production": {
       "distribution": "store",
       "cache": {
-        "key": "turbomodule-patch-v2"
+        "key": "old-arch-v1"
       },
       "ios": {
         "resourceClass": "m-medium"
