@@ -84,16 +84,8 @@ export default function PlanScreen() {
   const [restDay, setRestDay] = useState<number>(6); // 休養日: デフォルト日曜（6）
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // プレミアム機能チェック
-  if (!isPremium) {
-    return (
-      <PremiumGate featureName="トレーニング計画">
-        <View />
-      </PremiumGate>
-    );
-  }
-
   // 日付バリデーション
+  // ※ Hooks（useMemo）は条件分岐の前に配置する必要がある（Rules of Hooks）
   const validateDate = (date: Date | null): { valid: boolean; error?: string } => {
     if (!date) return { valid: false };
     const today = new Date();
@@ -112,6 +104,15 @@ export default function PlanScreen() {
     min.setDate(min.getDate() + 28);
     return min;
   }, []);
+
+  // プレミアム機能チェック
+  if (!isPremium) {
+    return (
+      <PremiumGate featureName="トレーニング計画">
+        <View />
+      </PremiumGate>
+    );
+  }
 
   const formatDateDisplay = (date: Date | null): string => {
     if (!date) return '';
