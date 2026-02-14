@@ -78,15 +78,8 @@ export default function WorkoutScreen() {
     }
   }, [params.category]);
 
-  if (!isPremium) {
-    return (
-      <PremiumGate featureName="トレーニング">
-        <View />
-      </PremiumGate>
-    );
-  }
-
   // カテゴリ一覧
+  // ※ Hooks（useMemo）は条件分岐の前に配置する必要がある（Rules of Hooks）
   const categories = useMemo(() => {
     const cats = new Set(WORKOUTS.map((w) => w.category));
     return ['all', ...cats] as string[];
@@ -96,6 +89,14 @@ export default function WorkoutScreen() {
     if (selectedCategory === 'all') return WORKOUTS;
     return WORKOUTS.filter((w) => w.category === selectedCategory);
   }, [selectedCategory]);
+
+  if (!isPremium) {
+    return (
+      <PremiumGate featureName="トレーニング">
+        <View />
+      </PremiumGate>
+    );
+  }
 
   // 詳細画面
   if (selectedWorkout) {

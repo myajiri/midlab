@@ -108,37 +108,46 @@ export default function UpgradeScreen() {
             return;
         }
 
-        const success = await purchase(selectedPackage);
-        if (success) {
-            isNavigatingRef.current = true;
-            showToast('プレミアムプランへのアップグレードが完了しました！', 'success');
-            // 先に遷移してからisPremiumを更新する。
-            // purchase()はisPremiumを即座に更新しない（customerInfoのみ保存）。
-            // 画面遷移アニメーション完了後にisPremiumを安全に反映する。
-            router.replace('/(tabs)');
-            InteractionManager.runAfterInteractions(() => {
-                applyPremiumStatus();
-            });
-        } else {
-            showToast('購入を完了できませんでした', 'error');
+        try {
+            const success = await purchase(selectedPackage);
+            if (success) {
+                isNavigatingRef.current = true;
+                showToast('プレミアムプランへのアップグレードが完了しました！', 'success');
+                // 先に遷移してからisPremiumを更新する。
+                // purchase()はisPremiumを即座に更新しない（customerInfoのみ保存）。
+                // 画面遷移完了後にisPremiumを安全に反映する。
+                router.replace('/(tabs)');
+                setTimeout(() => {
+                    applyPremiumStatus();
+                }, 500);
+            } else {
+                showToast('購入を完了できませんでした', 'error');
+            }
+        } catch (error) {
+            showToast('購入処理中にエラーが発生しました', 'error');
         }
     }, [selectedPackage, purchase, router, showToast, applyPremiumStatus]);
 
     // 購入復元
     const handleRestore = useCallback(async () => {
         setRestoring(true);
-        const restored = await restore();
-        setRestoring(false);
+        try {
+            const restored = await restore();
+            setRestoring(false);
 
-        if (restored) {
-            isNavigatingRef.current = true;
-            showToast('購入が復元されました', 'success');
-            router.replace('/(tabs)');
-            InteractionManager.runAfterInteractions(() => {
-                applyPremiumStatus();
-            });
-        } else {
-            showToast('復元可能な購入が見つかりませんでした', 'warning');
+            if (restored) {
+                isNavigatingRef.current = true;
+                showToast('購入が復元されました', 'success');
+                router.replace('/(tabs)');
+                setTimeout(() => {
+                    applyPremiumStatus();
+                }, 500);
+            } else {
+                showToast('復元可能な購入が見つかりませんでした', 'warning');
+            }
+        } catch (error) {
+            setRestoring(false);
+            showToast('復元処理中にエラーが発生しました', 'error');
         }
     }, [restore, router, showToast, applyPremiumStatus]);
 
