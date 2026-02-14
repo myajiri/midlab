@@ -12,6 +12,7 @@ import {
     Linking,
     Platform,
     BackHandler,
+    InteractionManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -113,13 +114,11 @@ export default function UpgradeScreen() {
             showToast('プレミアムプランへのアップグレードが完了しました！', 'success');
             // 先に遷移してからisPremiumを更新する。
             // purchase()はisPremiumを即座に更新しない（customerInfoのみ保存）。
-            // isPremiumの同期的な更新がreanimatedのworkletスレッドと
-            // TurboModule操作のスレッド間でHermes GCの競合を引き起こしSIGSEGVになるため、
-            // 遷移完了後に安全にisPremiumを反映する。
+            // 画面遷移アニメーション完了後にisPremiumを安全に反映する。
             router.replace('/(tabs)');
-            setTimeout(() => {
+            InteractionManager.runAfterInteractions(() => {
                 applyPremiumStatus();
-            }, 500);
+            });
         } else {
             showToast('購入を完了できませんでした', 'error');
         }
@@ -135,9 +134,9 @@ export default function UpgradeScreen() {
             isNavigatingRef.current = true;
             showToast('購入が復元されました', 'success');
             router.replace('/(tabs)');
-            setTimeout(() => {
+            InteractionManager.runAfterInteractions(() => {
                 applyPremiumStatus();
-            }, 500);
+            });
         } else {
             showToast('復元可能な購入が見つかりませんでした', 'warning');
         }
