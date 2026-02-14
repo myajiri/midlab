@@ -1,8 +1,8 @@
-diff --git a/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm b/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm
-index 1234567..abcdefg 100644
---- a/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm
-+++ b/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm
-@@ -435,7 +435,16 @@
+diff --git a/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm b/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm
+index 2a67797..21fae25 100644
+--- a/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm
++++ b/node_modules/react-native/ReactCommon/react/nativemodule/core/platform/ios/ReactCommon/RCTTurboModule.mm
+@@ -435,7 +435,14 @@ void ObjCTurboModule::performVoidMethodInvocation(
      @try {
        [inv invokeWithTarget:strongModule];
      } @catch (NSException *exception) {
@@ -10,10 +10,8 @@ index 1234567..abcdefg 100644
 +      if (shouldVoidMethodsExecuteSync_) {
 +        throw convertNSExceptionToJSError(runtime, exception, std::string{moduleName}, methodNameStr);
 +      } else {
-+        // async voidメソッドではconvertNSExceptionToJSErrorを呼ばない。
-+        // バックグラウンドスレッドからHermesランタイムにアクセスすると
-+        // HadesGC::writeBarrierSlowのスレッド競合でSIGSEGVが発生するため。
-+        // performMethodInvocationでは修正済みだが、performVoidMethodInvocationは未修正。
++        // async voidメソッドではバックグラウンドスレッドからHermesランタイムに
++        // アクセスするconvertNSExceptionToJSErrorを呼ばない。
 +        // See https://github.com/reactwg/react-native-new-architecture/discussions/276
 +        NSLog(@"[TurboModule] Exception in async void method %s.%s: %@", moduleName, methodName, exception);
 +      }
