@@ -107,7 +107,7 @@ export default function OnboardingMain() {
               <View style={styles.logoIcon}>
                 <Ionicons name="flash" size={40} color={COLORS.primary} />
               </View>
-              <Text style={styles.appName}>MidLab</Text>
+              <Text style={styles.appName}>ミドラボ</Text>
               <Text style={styles.tagline}>中距離ランナーのための{'\n'}トレーニングアプリ</Text>
             </View>
           </FadeIn>

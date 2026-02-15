@@ -97,7 +97,7 @@ export default function HomeScreen() {
             <View style={styles.welcomeIconContainer}>
               <Ionicons name="flash" size={40} color={COLORS.primary} />
             </View>
-            <Text style={styles.welcomeTitle}>MidLabへようこそ</Text>
+            <Text style={styles.welcomeTitle}>ミドラボへようこそ</Text>
             <Text style={styles.welcomeSubtitle}>
               ETPテストであなたに最適なトレーニングを見つけましょう
             </Text>
