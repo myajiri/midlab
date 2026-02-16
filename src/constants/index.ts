@@ -21,19 +21,26 @@ export const PACE_INCREMENT = 4;
 export const ETP_COEFFICIENT = 1.12;
 
 // 6ゾーン係数
-export const ZONE_COEFFICIENTS_V3: Record<ZoneName, { coef: number; name: string; label: string; color: string; description: string; note?: string }> = {
-  jog: { coef: 1.40, name: 'リカバリー', label: 'リカバリー', color: '#9CA3AF', description: '回復ペース', note: '目安' },
-  easy: { coef: 1.275, name: 'イージー', label: 'イージー', color: '#3B82F6', description: '有酸素ベース' },
-  marathon: { coef: 1.125, name: 'マラソン', label: 'マラソン', color: '#22C55E', description: 'マラソンペース' },
-  threshold: { coef: 1.025, name: '閾値', label: '閾値', color: '#EAB308', description: '乳酸閾値' },
-  interval: { coef: 0.945, name: 'インターバル', label: 'インターバル', color: '#F97316', description: 'VO2max' },
-  repetition: { coef: 0.875, name: 'レペティション', label: 'レペティション', color: '#EF4444', description: 'スピード' },
+// coef: eTP=60時のベース係数
+// slope: eTPが1上がるごとの追加係数（上限eTP=100で打ち止め）
+// 運動生理学的根拠: 走力が低い選手ほどVT1（第1換気閾値）がVO2maxに対して低い位置にあるため、
+// 低強度ゾーン（jog/easy）はeTPに応じてより遅くする必要がある（Seiler, 2010; Daniels VDOT）
+// 実効係数 = coef + slope × clamp(eTP - 60, 0, 40)
+export const ZONE_COEFFICIENTS_V3: Record<ZoneName, { coef: number; slope: number; name: string; label: string; color: string; description: string; note?: string }> = {
+  jog: { coef: 1.45, slope: 0.004, name: 'リカバリー', label: 'リカバリー', color: '#9CA3AF', description: '回復ペース', note: '目安' },
+  easy: { coef: 1.32, slope: 0.004, name: 'イージー', label: 'イージー', color: '#3B82F6', description: 'VT1以下・有酸素ベース' },
+  marathon: { coef: 1.15, slope: 0, name: 'マラソン', label: 'マラソン', color: '#22C55E', description: 'マラソンペース' },
+  threshold: { coef: 1.06, slope: 0, name: '閾値', label: '閾値', color: '#EAB308', description: '乳酸閾値' },
+  interval: { coef: 0.97, slope: 0, name: 'インターバル', label: 'インターバル', color: '#F97316', description: 'VO2max' },
+  repetition: { coef: 0.90, slope: 0, name: 'レペティション', label: 'レペティション', color: '#EF4444', description: 'スピード' },
 };
 
 // リミッター別ゾーン調整
+// cardio: VT1が低い（~72% VO2max）→ 低強度ゾーンをより遅くする必要がある
+// muscular: VT1が高い（~78% VO2max）→ 中強度の持続走で筋疲労を保護
 export const LIMITER_ZONE_ADJUSTMENTS: Record<LimiterType, Record<ZoneName, number>> = {
-  cardio: { jog: 0, easy: +0.05, marathon: +0.03, threshold: +0.02, interval: +0.03, repetition: +0.03 },
-  muscular: { jog: +0.05, easy: +0.08, marathon: +0.06, threshold: +0.04, interval: +0.03, repetition: -0.02 },
+  cardio: { jog: +0.05, easy: +0.08, marathon: +0.03, threshold: +0.02, interval: +0.02, repetition: +0.02 },
+  muscular: { jog: +0.02, easy: +0.03, marathon: +0.04, threshold: +0.03, interval: +0.02, repetition: -0.02 },
   balanced: { jog: 0, easy: 0, marathon: 0, threshold: 0, interval: 0, repetition: 0 },
 };
 

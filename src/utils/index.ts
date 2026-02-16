@@ -141,16 +141,28 @@ export const calculateEtpFromTest = (lastCompletedPace: number): number => {
 // ============================================
 
 /**
- * 6ゾーンを計算（リミッター調整込み）
+ * ゾーンの実効係数を計算（eTP依存の非線形補正）
+ * 低強度ゾーン（jog/easy）は走力が低いほど係数が大きくなる（よりゆっくり走る）
+ * 生理学的根拠: 走力が低い選手ほどVT1がVO2maxに対して低い位置にある
+ */
+export const getEffectiveZoneCoef = (zone: ZoneName, etp: number): number => {
+  const config = ZONE_COEFFICIENTS_V3[zone];
+  const etpFactor = Math.max(0, Math.min(etp, 100) - 60);
+  return config.coef + config.slope * etpFactor;
+};
+
+/**
+ * 6ゾーンを計算（eTP依存の非線形補正 + リミッター調整込み）
  */
 export const calculateZonesV3 = (etp: number, limiterType: LimiterType): TrainingZones => {
   const adjustments = LIMITER_ZONE_ADJUSTMENTS[limiterType];
   const zones: Partial<TrainingZones> = {};
 
-  for (const [zone, config] of Object.entries(ZONE_COEFFICIENTS_V3)) {
+  for (const [zone] of Object.entries(ZONE_COEFFICIENTS_V3)) {
     const zoneName = zone as ZoneName;
+    const effectiveCoef = getEffectiveZoneCoef(zoneName, etp);
     const adjustment = adjustments[zoneName] || 0;
-    zones[zoneName] = Math.round(etp * (config.coef + adjustment));
+    zones[zoneName] = Math.round(etp * (effectiveCoef + adjustment));
   }
 
   return zones as TrainingZones;
@@ -388,8 +400,9 @@ export const calculateWorkoutPace = (
   const zoneConfig = ZONE_COEFFICIENTS_V3[zone];
   if (!zoneConfig) return etp;
 
+  const effectiveCoef = getEffectiveZoneCoef(zone, etp);
   const adjustment = LIMITER_ZONE_ADJUSTMENTS[limiterType][zone] || 0;
-  let pace = Math.round(etp * (zoneConfig.coef + adjustment));
+  let pace = Math.round(etp * (effectiveCoef + adjustment));
 
   return pace;
 };
