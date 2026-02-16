@@ -5,7 +5,7 @@
 
 export default {
   expo: {
-    name: "MidLab",
+    name: "ミドラボ",
     slug: "midlab",
     version: "1.0.0",
     orientation: "portrait",
