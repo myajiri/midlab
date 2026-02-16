@@ -13,6 +13,7 @@ import {
   estimateLimiterFromSpeedIndex,
   calculateRacePredictions,
   calculateZonesV3,
+  getEffectiveZoneCoef,
   determineLimiterType,
   getLevelFromEtp,
   recommendTestLevel,
@@ -432,31 +433,67 @@ describe('calculateRacePredictions', () => {
 // calculateZonesV3
 // ============================================
 
+describe('getEffectiveZoneCoef', () => {
+  it('eTP=60ではベース係数がそのまま適用される', () => {
+    expect(getEffectiveZoneCoef('jog', 60)).toBe(1.45);
+    expect(getEffectiveZoneCoef('easy', 60)).toBe(1.32);
+  });
+
+  it('eTP=80では低強度ゾーンの係数が増加する', () => {
+    // etpFactor = 80 - 60 = 20, slope = 0.004
+    // jog: 1.45 + 0.004 * 20 = 1.53
+    expect(getEffectiveZoneCoef('jog', 80)).toBeCloseTo(1.53, 4);
+    // easy: 1.32 + 0.004 * 20 = 1.40
+    expect(getEffectiveZoneCoef('easy', 80)).toBeCloseTo(1.40, 4);
+  });
+
+  it('eTP=100で上限に達する（それ以上は変わらない）', () => {
+    const at100 = getEffectiveZoneCoef('easy', 100);
+    const at120 = getEffectiveZoneCoef('easy', 120);
+    expect(at100).toBe(at120);
+    // 1.32 + 0.004 * 40 = 1.48
+    expect(at100).toBeCloseTo(1.48, 4);
+  });
+
+  it('slope=0のゾーンはeTPに関係なく一定', () => {
+    expect(getEffectiveZoneCoef('threshold', 60)).toBeCloseTo(1.06, 4);
+    expect(getEffectiveZoneCoef('threshold', 80)).toBeCloseTo(1.06, 4);
+    expect(getEffectiveZoneCoef('threshold', 100)).toBeCloseTo(1.06, 4);
+  });
+});
+
 describe('calculateZonesV3', () => {
-  it('balanced型のゾーン計算（調整なし）', () => {
+  it('balanced型のゾーン計算（eTP=80、eTP依存の非線形補正適用）', () => {
     const etp = 80;
     const zones = calculateZonesV3(etp, 'balanced');
 
-    // ZONE_COEFFICIENTS_V3: jog=1.40, easy=1.275, marathon=1.125, threshold=1.025, interval=0.945, repetition=0.875
-    // balanced: 全調整0
-    expect(zones.jog).toBe(Math.round(80 * 1.40));
-    expect(zones.easy).toBe(Math.round(80 * 1.275));
-    expect(zones.marathon).toBe(Math.round(80 * 1.125));
-    expect(zones.threshold).toBe(Math.round(80 * 1.025));
-    expect(zones.interval).toBe(Math.round(80 * 0.945));
-    expect(zones.repetition).toBe(Math.round(80 * 0.875));
+    // eTP=80, etpFactor=20
+    // jog: 80 * (1.45 + 0.004*20) = 80 * 1.53 = 122.4 → 122
+    // easy: 80 * (1.32 + 0.004*20) = 80 * 1.40 = 112
+    // marathon: 80 * 1.15 = 92
+    // threshold: 80 * 1.06 = 84.8 → 85
+    // interval: 80 * 0.97 = 77.6 → 78
+    // repetition: 80 * 0.90 = 72
+    expect(zones.jog).toBe(122);
+    expect(zones.easy).toBe(112);
+    expect(zones.marathon).toBe(92);
+    expect(zones.threshold).toBe(85);
+    expect(zones.interval).toBe(78);
+    expect(zones.repetition).toBe(72);
   });
 
-  it('cardio型のゾーン調整', () => {
+  it('cardio型のゾーン調整（VT1が低い→低強度ゾーンをより遅く）', () => {
     const etp = 80;
     const balanced = calculateZonesV3(etp, 'balanced');
     const cardio = calculateZonesV3(etp, 'cardio');
 
-    // cardio: easy=+0.05, threshold=+0.02 → ペースが遅くなる
+    // cardio: jog=+0.05, easy=+0.08, threshold=+0.02 → ペースが遅くなる
+    expect(cardio.jog).toBeGreaterThan(balanced.jog);
     expect(cardio.easy).toBeGreaterThan(balanced.easy);
     expect(cardio.threshold).toBeGreaterThan(balanced.threshold);
-    // jogは調整0
-    expect(cardio.jog).toBe(balanced.jog);
+    // cardioはeasyの調整がmuscularより大きい（VT1が低いため）
+    const muscular = calculateZonesV3(etp, 'muscular');
+    expect(cardio.easy - balanced.easy).toBeGreaterThan(muscular.easy - balanced.easy);
   });
 
   it('muscular型のゾーン調整', () => {
@@ -464,11 +501,25 @@ describe('calculateZonesV3', () => {
     const balanced = calculateZonesV3(etp, 'balanced');
     const muscular = calculateZonesV3(etp, 'muscular');
 
-    // muscular: jog=+0.05, easy=+0.08 → よりゆっくり
+    // muscular: jog=+0.02, easy=+0.03 → よりゆっくり
     // repetition=-0.02 → より速く
     expect(muscular.jog).toBeGreaterThan(balanced.jog);
     expect(muscular.easy).toBeGreaterThan(balanced.easy);
     expect(muscular.repetition).toBeLessThan(balanced.repetition);
+  });
+
+  it('eTPが高い選手ほど低強度ゾーンの係数が大きくなる', () => {
+    // eTP=60（速い選手）vs eTP=90（遅い選手）
+    const zonesFast = calculateZonesV3(60, 'balanced');
+    const zonesSlow = calculateZonesV3(90, 'balanced');
+
+    // 遅い選手のeasy係数: 1.32 + 0.004*30 = 1.44
+    // 速い選手のeasy係数: 1.32 + 0.004*0 = 1.32
+    // easy/etp比が遅い選手ほど大きい
+    expect(zonesSlow.easy / 90).toBeGreaterThan(zonesFast.easy / 60);
+    expect(zonesSlow.jog / 90).toBeGreaterThan(zonesFast.jog / 60);
+    // thresholdはeTP非依存なので同比率
+    expect(zonesSlow.threshold / 90).toBeCloseTo(zonesFast.threshold / 60, 1);
   });
 
   it('全6ゾーンが返される', () => {
