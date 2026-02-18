@@ -42,6 +42,9 @@ yarn-error.*
 # Google Play Service Account（機密情報）
 google-play-service-account.json
 
+# Supabase CLI一時ファイル（接続情報・プロジェクト参照IDを含む）
+supabase/.temp/
+
 # typescript
 *.tsbuildinfo
 

@@ -56,9 +56,9 @@ export default {
       forcePremium: process.env.EXPO_PUBLIC_FORCE_PREMIUM === "true",
       // EAS設定
       eas: {
-        projectId: process.env.EAS_PROJECT_ID || "c5b71a66-9e44-41a0-a528-6844faff2f36",
+        projectId: process.env.EAS_PROJECT_ID || "",
       },
     },
-    owner: process.env.EXPO_OWNER || "myajiri",
+    owner: process.env.EXPO_OWNER || "",
   },
 };
