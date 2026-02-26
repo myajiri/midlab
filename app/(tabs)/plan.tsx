@@ -119,6 +119,7 @@ export default function PlanScreen() {
       keyWorkoutDays: keyDays,
       ageCategory: profile.ageCategory,
       experience: profile.experience,
+      gender: profile.gender,
     });
     setPlan(plan);
     setView('overview');

@@ -275,7 +275,7 @@ export default function HomeScreen() {
               style={styles.todayContent}
               onPress={() => router.push({
                 pathname: '/(tabs)/workout',
-                params: { category: todayWorkout.focusCategory || 'all' },
+                params: { category: todayWorkout.focusCategory || 'all', t: Date.now().toString() },
               })}
             >
               <Text style={styles.todayLabel}>{todayWorkout.label}</Text>

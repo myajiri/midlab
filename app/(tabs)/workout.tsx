@@ -58,7 +58,7 @@ interface ExpandedSegment {
 export default function WorkoutScreen() {
   const isPremium = useIsPremium();
   const { etp, limiter } = useEffectiveValues();
-  const params = useLocalSearchParams<{ category?: string }>();
+  const params = useLocalSearchParams<{ category?: string; t?: string }>();
   const [selectedCategory, setSelectedCategory] = useState<string>(params.category || 'all');
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutTemplate | null>(null);
   const setSubScreenOpen = useSetSubScreenOpen();
@@ -71,12 +71,12 @@ export default function WorkoutScreen() {
     }
   }, [selectedWorkout, isFocused, setSubScreenOpen]);
 
-  // 他画面からのカテゴリパラメータ変更に対応
+  // 他画面からのカテゴリパラメータ変更に対応（タイムスタンプで強制更新）
   useEffect(() => {
     if (params.category) {
       setSelectedCategory(params.category);
     }
-  }, [params.category]);
+  }, [params.category, params.t]);
 
   // カテゴリ一覧
   // ※ Hooks（useMemo）は条件分岐の前に配置する必要がある（Rules of Hooks）

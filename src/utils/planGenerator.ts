@@ -12,6 +12,7 @@ import {
   LimiterType,
   AgeCategory,
   Experience,
+  Gender,
 } from '../types';
 
 import {
@@ -25,6 +26,7 @@ import {
   PHYSIOLOGICAL_FOCUS_CATEGORIES,
   AGE_CATEGORY_CONFIG,
   EXPERIENCE_CONFIG,
+  GENDER_CONFIG,
 } from '../constants';
 import { selectWorkoutForCategory } from './workoutSelector';
 
@@ -35,13 +37,17 @@ export interface GeneratePlanParams {
   keyWorkoutDays?: number[]; // ユーザー選択のKey曜日（2日）
   ageCategory?: AgeCategory;
   experience?: Experience;
+  gender?: Gender;
 }
 
-export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageCategory = 'senior', experience = 'intermediate' }: GeneratePlanParams): RacePlan {
+export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageCategory = 'senior', experience = 'intermediate', gender = 'other' }: GeneratePlanParams): RacePlan {
   // 年齢×競技歴による回復週サイクルを算出（短い方を採用）
   // 個別ワークアウトの質・量は維持し、回復頻度で調整する
   const ageConfig = AGE_CATEGORY_CONFIG[ageCategory];
-  const recoveryCycle = Math.min(ageConfig.recoveryCycle, EXPERIENCE_CONFIG[experience].recoveryCycle);
+  const genderConfig = GENDER_CONFIG[gender];
+  // 性別による回復倍率を反映: recoveryMultiplier > 1 の場合、回復サイクルを短くする
+  const baseRecoveryCycle = Math.min(ageConfig.recoveryCycle, EXPERIENCE_CONFIG[experience].recoveryCycle);
+  const recoveryCycle = genderConfig.recoveryMultiplier > 1.0 ? Math.max(2, baseRecoveryCycle - 1) : baseRecoveryCycle;
   const today = new Date();
   const raceDate = new Date(race.date);
   const weeksUntilRace = Math.floor((raceDate.getTime() - today.getTime()) / (7 * 24 * 60 * 60 * 1000));
@@ -255,7 +261,8 @@ function generateWeeklySchedule(
     } else {
       const easyDist = EASY_DISTANCE_BY_EVENT[raceDistance]?.[phaseType] || 6000;
       const easyWorkoutId = easyDist >= 10000 ? 'easy-10000' : easyDist >= 8000 ? 'easy-8000' : 'easy-6000';
-      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'easy', label: 'イージー', isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース', workoutId: easyWorkoutId });
+      const easyLabel = `イージー ${easyDist >= 1000 ? `${easyDist / 1000}km` : `${easyDist}m`}`;
+      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'easy', label: easyLabel, isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース', workoutId: easyWorkoutId });
     }
   }
 
