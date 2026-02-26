@@ -67,6 +67,7 @@ export interface Profile {
   ageCategory: AgeCategory;
   gender: Gender;
   experience: Experience;
+  monthlyMileage?: number; // 月間走行距離（km）
   pbs: PBs;
   estimated: EstimatedValues | null;
   current: CurrentValues | null;
@@ -123,7 +124,7 @@ export interface RaceInfo {
 export interface ScheduledWorkout {
   id: string;
   dayOfWeek: number; // 0=月, 6=日
-  type: 'workout' | 'easy' | 'long' | 'rest' | 'test';
+  type: 'workout' | 'easy' | 'long' | 'rest' | 'test' | 'recovery';
   label: string;
   workoutId?: string;
   isKey?: boolean;
@@ -173,6 +174,7 @@ export interface RacePlan {
     etp: number;
     limiterType: LimiterType;
   };
+  keyWorkoutDays?: number[]; // 0=月〜6=日、ユーザー選択のKey曜日
   phases: Phase[];
   weeklyPlans: WeeklyPlan[];
   rampTestDates: string[];

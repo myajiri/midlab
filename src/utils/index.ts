@@ -292,15 +292,23 @@ export const getLevelFromEtp = (etp: number): LevelName | null => {
 
 /**
  * テストのラップスケジュールを生成
+ * @param level レベル名
+ * @param overrides オプション: startPace, maxLaps, paceIncrement を上書き可能（ライトモード用）
  */
-export const generateLapSchedule = (level: LevelName): Array<{ lap: number; pace: number }> => {
+export const generateLapSchedule = (
+  level: LevelName,
+  overrides?: { startPace?: number; maxLaps?: number; paceIncrement?: number },
+): Array<{ lap: number; pace: number }> => {
   const config = LEVELS[level];
+  const startPace = overrides?.startPace ?? config.startPace;
+  const maxLaps = overrides?.maxLaps ?? config.maxLaps;
+  const increment = overrides?.paceIncrement ?? PACE_INCREMENT;
   const schedule: Array<{ lap: number; pace: number }> = [];
 
-  for (let i = 0; i < config.maxLaps; i++) {
+  for (let i = 0; i < maxLaps; i++) {
     schedule.push({
       lap: i + 1,
-      pace: config.startPace - i * PACE_INCREMENT,
+      pace: startPace - i * increment,
     });
   }
 

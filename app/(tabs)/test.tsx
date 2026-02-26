@@ -9,7 +9,9 @@ import {
   ScrollView,
   StyleSheet,
   Pressable,
+  Switch,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -37,6 +39,7 @@ import {
 import {
   COLORS,
   LEVELS,
+  LEVELS_LITE,
   PACE_INCREMENT,
   ZONE_COEFFICIENTS_V3,
   RACE_COEFFICIENTS,
@@ -53,6 +56,7 @@ import { SwipeBackView } from '../../components/SwipeBackView';
 import { useIsFocused } from '@react-navigation/native';
 
 export default function TestScreen() {
+  const router = useRouter();
   const profile = useProfileStore((state) => state.profile);
   const results = useTestResultsStore((state) => state.results);
   const addResult = useTestResultsStore((state) => state.addResult);
@@ -104,13 +108,17 @@ export default function TestScreen() {
   const [breathRecovery, setBreathRecovery] = useState<RecoveryTime>('30-60');
   const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [isLiteMode, setIsLiteMode] = useState(false);
 
   const config = LEVELS[level];
-  const schedule = useMemo(() => generateLapSchedule(level), [level]);
-  const maxLaps = config.maxLaps;
+  const liteConfig = LEVELS_LITE[level];
+  const currentPaceIncrement = isLiteMode ? liteConfig.paceIncrement : PACE_INCREMENT;
+  const currentMaxLaps = isLiteMode ? liteConfig.maxLaps : config.maxLaps;
+  const schedule = useMemo(() => generateLapSchedule(level, isLiteMode ? liteConfig : undefined), [level, isLiteMode]);
+  const maxLaps = currentMaxLaps;
 
   // LCP計算
-  const lcp = config.startPace - (completedLaps - 1) * PACE_INCREMENT;
+  const lcp = config.startPace - (completedLaps - 1) * currentPaceIncrement;
 
   const handleSubmit = () => {
     const etp = calculateEtpFromTest(lcp);
@@ -375,8 +383,27 @@ export default function TestScreen() {
           <Text style={styles.pageSubtitle}>ETPを測定してトレーニングゾーンを算出</Text>
         </FadeIn>
 
+        {/* PB推定カード */}
+        {!profile?.current && (
+          <SlideIn delay={100} direction="up">
+            <Pressable
+              style={styles.pbEstimateCard}
+              onPress={() => router.push('/(tabs)/settings')}
+            >
+              <Ionicons name="calculator-outline" size={24} color="#22C55E" />
+              <View style={styles.pbEstimateContent}>
+                <Text style={styles.pbEstimateTitle}>PBからeTPを推定</Text>
+                <Text style={styles.pbEstimateDesc}>
+                  テストを実施しなくても、自己ベストからeTPを推定できます
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
+            </Pressable>
+          </SlideIn>
+        )}
+
         {/* クイックスタートカード */}
-        <SlideIn delay={100} direction="up">
+        <SlideIn delay={profile?.current ? 100 : 200} direction="up">
           <View style={styles.startCard}>
             <View style={styles.startCardHeader}>
               <Ionicons name="timer" size={28} color={COLORS.primary} />
@@ -384,6 +411,23 @@ export default function TestScreen() {
                 <Text style={styles.startCardTitle}>テストを実施</Text>
                 <Text style={styles.startCardHint}>400mトラックで実施</Text>
               </View>
+            </View>
+
+            {/* ライトモード切替 */}
+            <View style={styles.liteModeRow}>
+              <View style={styles.liteModeInfo}>
+                <Text style={styles.liteModeLabel}>ライトモード</Text>
+                <Text style={styles.liteModeDesc}>加速を緩やかに（負荷軽減）</Text>
+              </View>
+              <Switch
+                value={isLiteMode}
+                onValueChange={(v) => {
+                  setIsLiteMode(v);
+                  setCompletedLaps(Math.min(completedLaps, v ? liteConfig.maxLaps : config.maxLaps));
+                }}
+                trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(34,197,94,0.3)' }}
+                thumbColor={isLiteMode ? '#22C55E' : '#6B7280'}
+              />
             </View>
 
             {/* レベル選択 */}
@@ -411,11 +455,11 @@ export default function TestScreen() {
               </View>
               <View style={styles.scheduleRow}>
                 <Text style={styles.scheduleLabel}>最大周回</Text>
-                <Text style={styles.scheduleValue}>{config.maxLaps}周</Text>
+                <Text style={styles.scheduleValue}>{maxLaps}周</Text>
               </View>
               <View style={styles.scheduleRow}>
                 <Text style={styles.scheduleLabel}>加速</Text>
-                <Text style={styles.scheduleValue}>毎周 -4秒</Text>
+                <Text style={styles.scheduleValue}>毎周 -{currentPaceIncrement}秒</Text>
               </View>
             </View>
 
@@ -428,7 +472,7 @@ export default function TestScreen() {
         {/* 進行表（コンパクト） */}
         <SlideIn delay={200} direction="up">
           <Pressable style={styles.scheduleCard}>
-            <Text style={styles.cardTitle}>レベル{level} 進行表</Text>
+            <Text style={styles.cardTitle}>レベル{level} 進行表{isLiteMode ? '（ライト）' : ''}</Text>
             <View style={styles.scheduleTable}>
               <View style={styles.tableHeader}>
                 <Text style={[styles.tableCell, styles.tableHeaderCell, { width: 40 }]}>周</Text>
@@ -566,6 +610,58 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text.secondary,
     marginBottom: 24,
+  },
+
+  // PB推定カード
+  pbEstimateCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: 'rgba(34, 197, 94, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.2)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+  },
+  pbEstimateContent: {
+    flex: 1,
+  },
+  pbEstimateTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 2,
+  },
+  pbEstimateDesc: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    lineHeight: 16,
+  },
+
+  // ライトモード
+  liteModeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+  },
+  liteModeInfo: {
+    flex: 1,
+  },
+  liteModeLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+  },
+  liteModeDesc: {
+    fontSize: 11,
+    color: COLORS.text.muted,
+    marginTop: 2,
   },
 
   // スタートカード

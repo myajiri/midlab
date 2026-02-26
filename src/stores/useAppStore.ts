@@ -35,6 +35,7 @@ interface ProfileState {
     ageCategory?: AgeCategory;
     gender?: Profile['gender'];
     experience?: Experience;
+    monthlyMileage?: number;
   }) => void;
   setLimiterType: (limiterType: LimiterType) => void;
   setEstimated: (etp: number, limiterType: LimiterType) => void;

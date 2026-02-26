@@ -20,6 +20,16 @@ export const LEVELS: Record<LevelName, { name: string; description: string; star
 export const PACE_INCREMENT = 4;
 export const ETP_COEFFICIENT = 1.12;
 
+// ライトモード設定（ペース加速が緩やかなテスト）
+// 通常テストが厳しすぎる選手向け。ペースインクリメントを2-3秒に抑え、最大周回も削減。
+export const LEVELS_LITE: Record<LevelName, { startPace: number; maxLaps: number; paceIncrement: number }> = {
+  SS: { startPace: 76, maxLaps: 6, paceIncrement: 2 },
+  S:  { startPace: 88, maxLaps: 8, paceIncrement: 2 },
+  A:  { startPace: 96, maxLaps: 8, paceIncrement: 3 },
+  B:  { startPace: 108, maxLaps: 8, paceIncrement: 3 },
+  C:  { startPace: 120, maxLaps: 8, paceIncrement: 3 },
+};
+
 // 6ゾーン係数
 // coef: eTP=60時のベース係数
 // slope: eTPが1上がるごとの追加係数（上限eTP=100で打ち止め）
@@ -62,21 +72,24 @@ export const LIMITER_ADJUSTMENTS = {
 
 // 年齢カテゴリ設定
 // recoveryCycle: 回復週の挿入サイクル（週数）。若年・高齢者は短いサイクルで回復週を設ける
-export const AGE_CATEGORY_CONFIG: Record<AgeCategory, { label: string; desc: string; etpAdj: number; levelAdj: number; recoveryCycle: number }> = {
-  junior_high: { label: '中学生', desc: '12〜15歳', etpAdj: 0, levelAdj: -1, recoveryCycle: 2 },
-  high_school: { label: '高校生', desc: '15〜18歳', etpAdj: 0, levelAdj: 0, recoveryCycle: 3 },
-  collegiate: { label: '大学生', desc: '18〜22歳', etpAdj: 0, levelAdj: 0, recoveryCycle: 3 },
-  senior: { label: '一般', desc: '22〜39歳', etpAdj: 0, levelAdj: 0, recoveryCycle: 3 },
-  masters_40: { label: 'マスターズ40代', desc: '40〜49歳', etpAdj: 2, levelAdj: 0, recoveryCycle: 3 },
-  masters_50: { label: 'マスターズ50代', desc: '50〜59歳', etpAdj: 4, levelAdj: -1, recoveryCycle: 2 },
-  masters_60: { label: 'マスターズ60歳以上', desc: '60歳以上', etpAdj: 6, levelAdj: -1, recoveryCycle: 2 },
+export const AGE_CATEGORY_CONFIG: Record<AgeCategory, {
+  label: string; desc: string; etpAdj: number; levelAdj: number;
+  recoveryCycle: number; maxIntensityPercent: number; volumeMultiplier: number; recoveryDaysAfterKey: number;
+}> = {
+  junior_high: { label: '中学生', desc: '12〜15歳', etpAdj: 0, levelAdj: -1, recoveryCycle: 2, maxIntensityPercent: 90, volumeMultiplier: 0.75, recoveryDaysAfterKey: 1 },
+  high_school: { label: '高校生', desc: '15〜18歳', etpAdj: 0, levelAdj: 0, recoveryCycle: 3, maxIntensityPercent: 95, volumeMultiplier: 0.9, recoveryDaysAfterKey: 1 },
+  collegiate: { label: '大学生', desc: '18〜22歳', etpAdj: 0, levelAdj: 0, recoveryCycle: 3, maxIntensityPercent: 100, volumeMultiplier: 1.0, recoveryDaysAfterKey: 1 },
+  senior: { label: '一般', desc: '22〜39歳', etpAdj: 0, levelAdj: 0, recoveryCycle: 3, maxIntensityPercent: 100, volumeMultiplier: 1.0, recoveryDaysAfterKey: 1 },
+  masters_40: { label: 'マスターズ40代', desc: '40〜49歳', etpAdj: 2, levelAdj: 0, recoveryCycle: 3, maxIntensityPercent: 95, volumeMultiplier: 0.9, recoveryDaysAfterKey: 1 },
+  masters_50: { label: 'マスターズ50代', desc: '50〜59歳', etpAdj: 4, levelAdj: -1, recoveryCycle: 2, maxIntensityPercent: 90, volumeMultiplier: 0.85, recoveryDaysAfterKey: 2 },
+  masters_60: { label: 'マスターズ60歳以上', desc: '60歳以上', etpAdj: 6, levelAdj: -1, recoveryCycle: 2, maxIntensityPercent: 85, volumeMultiplier: 0.75, recoveryDaysAfterKey: 2 },
 };
 
 // 性別設定
-export const GENDER_CONFIG: Record<Gender, { label: string; etpAdj: number; note?: string }> = {
-  male: { label: '男性', etpAdj: 0 },
-  female: { label: '女性', etpAdj: 0, note: '生理周期を考慮してテスト日を選択' },
-  other: { label: '回答しない', etpAdj: 0 },
+export const GENDER_CONFIG: Record<Gender, { label: string; etpAdj: number; recoveryMultiplier: number; note?: string }> = {
+  male: { label: '男性', etpAdj: 0, recoveryMultiplier: 1.0 },
+  female: { label: '女性', etpAdj: 0, recoveryMultiplier: 1.1, note: '生理周期を考慮してテスト日を選択' },
+  other: { label: '回答しない', etpAdj: 0, recoveryMultiplier: 1.0 },
 };
 
 // 競技歴設定
@@ -218,7 +231,7 @@ export const WORKOUTS = [
     id: 'easy-6000',
     name: 'イージー6000m',
     category: '有酸素ベース',
-    description: '基礎的な有酸素能力を構築するイージーペースでの持続走。会話ができるペースで脂肪燃焼と毛細血管発達を促進。',
+    description: '基礎的な有酸素能力を構築するイージーペースでの持続走。会話ができるペースで脂肪燃焼と毛細血管発達を促進。ペースは上限目安で、余裕があればさらにゆっくり走ってもOK。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 800, label: 'W-up 2周' },
       { zone: 'easy' as ZoneName, distance: 4400, label: 'Easy 11周' },
@@ -228,6 +241,54 @@ export const WORKOUTS = [
       cardio: { note: 'ペースを10秒/km遅めに維持' },
       muscular: { note: '後半2周をMペースに上げてOK' },
       balanced: { note: '標準ペースで実施' },
+    },
+  },
+  {
+    id: 'easy-8000',
+    name: 'イージー8000m',
+    category: '有酸素ベース',
+    description: '有酸素能力を構築するイージーペースでの持続走。ペースは上限目安で、余裕があればさらにゆっくり走ってもOK。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 800, label: 'W-up 2周' },
+      { zone: 'easy' as ZoneName, distance: 6400, label: 'Easy 16周' },
+      { zone: 'jog' as ZoneName, distance: 800, label: 'C-down 2周' },
+    ],
+    limiterVariants: {
+      cardio: { note: 'ペースを10秒/km遅めに維持' },
+      muscular: { note: '後半4周をMペースに上げてOK' },
+      balanced: { note: '標準ペースで実施' },
+    },
+  },
+  {
+    id: 'easy-10000',
+    name: 'イージー10000m',
+    category: '有酸素ベース',
+    description: '長めのイージー走。有酸素キャパシティの拡大に効果的。ペースは上限目安で、余裕を持って走る。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'W-up 3周' },
+      { zone: 'easy' as ZoneName, distance: 7600, label: 'Easy 19周' },
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'C-down 3周' },
+    ],
+    limiterVariants: {
+      cardio: { note: 'ペースを10秒/km遅めに維持' },
+      muscular: { note: '後半4周をMペースに上げてOK' },
+      balanced: { note: '標準ペースで実施' },
+    },
+  },
+  {
+    id: 'recovery-4000',
+    name: 'リカバリー4000m',
+    category: '有酸素ベース',
+    description: 'キーワークアウト翌日の回復走。リカバリーペースで体の回復を促進。ゆっくり余裕を持って走る。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 800, label: 'W-up 2周' },
+      { zone: 'jog' as ZoneName, distance: 2400, label: 'Recovery 6周' },
+      { zone: 'jog' as ZoneName, distance: 800, label: 'C-down 2周' },
+    ],
+    limiterVariants: {
+      cardio: { note: '3200mに短縮可' },
+      muscular: { note: '標準で実施' },
+      balanced: { note: '標準で実施' },
     },
   },
   {
@@ -331,6 +392,103 @@ export const WORKOUTS = [
     },
   },
   {
+    id: 'vo2max-1200x4',
+    name: '1200m×4インターバル',
+    category: 'VO2max',
+    targetLimiter: 'cardio' as LimiterType,
+    description: '1200mインターバル。走力の高い選手向け。1000mよりVO2max刺激時間を確保できる。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
+      { zone: 'interval' as ZoneName, distance: 1200, label: 'I 1200m', reps: 4, recoveryDistance: 400 },
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'C-down 3周' },
+    ],
+    limiterVariants: {
+      cardio: { reps: 3, recoveryDistance: 600, note: '3本に減、回復600m' },
+      muscular: { reps: 5, recoveryDistance: 400, note: '5本に増量' },
+      balanced: { reps: 4, recoveryDistance: 400, note: '標準で実施' },
+    },
+  },
+  {
+    id: 'vo2max-600x8',
+    name: '600m×8インターバル',
+    category: 'VO2max',
+    description: '600mショートインターバル。高回転でVO2max刺激。スピード持久力の養成に。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
+      { zone: 'interval' as ZoneName, distance: 600, label: 'I 600m', reps: 8, recoveryDistance: 200 },
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'C-down 3周' },
+    ],
+    limiterVariants: {
+      cardio: { reps: 6, recoveryDistance: 400, note: '6本に減、回復400m' },
+      muscular: { reps: 10, recoveryDistance: 200, note: '10本に増量' },
+      balanced: { reps: 8, recoveryDistance: 200, note: '標準で実施' },
+    },
+  },
+  {
+    id: 'tempo-6000',
+    name: 'テンポ走6000m',
+    category: '乳酸閾値',
+    description: '長めの閾値ペース持続走。乳酸処理能力と精神的タフネスを同時に養成。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'W-up 3周' },
+      { zone: 'threshold' as ZoneName, distance: 6000, label: 'T 15周' },
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'C-down 3周' },
+    ],
+    limiterVariants: {
+      cardio: { note: '4800m(12周)に短縮、ペース+2秒' },
+      muscular: { note: '標準で実施、後半ペースアップ可' },
+      balanced: { note: '標準で実施' },
+    },
+  },
+  {
+    id: 'cruise-1200x4',
+    name: 'クルーズ1200m×4',
+    category: '乳酸閾値',
+    description: '1200mクルーズインターバル。テンポ走より短い回復で質の高い閾値刺激。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'W-up 3周' },
+      { zone: 'threshold' as ZoneName, distance: 1200, label: 'T 1200m', reps: 4, recoveryDistance: 400 },
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'C-down 3周' },
+    ],
+    limiterVariants: {
+      cardio: { reps: 3, recoveryDistance: 600, note: '3本に減、回復600m' },
+      muscular: { reps: 5, recoveryDistance: 400, note: '5本に増量' },
+      balanced: { reps: 4, recoveryDistance: 400, note: '標準で実施' },
+    },
+  },
+  {
+    id: 'reps-300x8',
+    name: '300m×8レペティション',
+    category: '神経筋系',
+    description: '300mレペティション。200mより長い距離でスピード持久力を養成。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
+      { zone: 'repetition' as ZoneName, distance: 300, label: 'R 300m', reps: 8, recoveryDistance: 300 },
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'C-down 3周' },
+    ],
+    limiterVariants: {
+      cardio: { reps: 6, recoveryDistance: 400, note: '6本に減、回復400m' },
+      muscular: { reps: 10, recoveryDistance: 200, note: '10本に増量' },
+      balanced: { reps: 8, recoveryDistance: 300, note: '標準で実施' },
+    },
+  },
+  {
+    id: 'reps-400x6',
+    name: '400m×6レペティション',
+    category: '神経筋系',
+    description: '400mレペティション。1周のスピード持久力とフォーム維持を養成。中距離選手に効果的。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
+      { zone: 'repetition' as ZoneName, distance: 400, label: 'R 400m', reps: 6, recoveryDistance: 400 },
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'C-down 3周' },
+    ],
+    limiterVariants: {
+      cardio: { reps: 5, recoveryDistance: 600, note: '5本に減、回復600m' },
+      muscular: { reps: 8, recoveryDistance: 400, note: '8本に増量' },
+      balanced: { reps: 6, recoveryDistance: 400, note: '標準で実施' },
+    },
+  },
+  {
     id: 'pyramid',
     name: 'ピラミッド',
     category: '総合',
@@ -355,6 +513,14 @@ export const WORKOUTS = [
     },
   },
 ];
+
+// イージー走距離目安（種目×フェーズ別）
+export const EASY_DISTANCE_BY_EVENT: Record<number, Record<PhaseType, number>> = {
+  800:  { base: 6000, build: 6000, peak: 6000, taper: 4000 },
+  1500: { base: 8000, build: 8000, peak: 6000, taper: 4000 },
+  3000: { base: 8000, build: 10000, peak: 8000, taper: 6000 },
+  5000: { base: 10000, build: 10000, peak: 8000, taper: 6000 },
+};
 
 // 週間距離目安（種目別）
 export const WEEKLY_DISTANCE_BY_EVENT = {
@@ -418,6 +584,24 @@ export const PHYSIOLOGICAL_FOCUS_CATEGORIES: Record<string, { name: string; menu
     color: '#EF4444',
     description: '神経筋協調性・ランニングエコノミー',
   },
+};
+
+// eTP別ワークアウト選択設定
+// eTP閾値以下の選手（速い選手）にはより長い距離のインターバルを推奨
+export const WORKOUT_SELECTION_BY_ETP: Record<string, Array<{ maxEtp: number; workoutId: string }>> = {
+  'VO2max': [
+    { maxEtp: 70, workoutId: 'vo2max-1200x4' },   // SS〜S: 速い選手 → 1200m
+    { maxEtp: 80, workoutId: 'vo2max-1000x5' },   // A: 中間 → 1000m
+    { maxEtp: 999, workoutId: 'vo2max-800x6' },    // B〜C: → 800m
+  ],
+  '乳酸閾値': [
+    { maxEtp: 75, workoutId: 'tempo-6000' },       // 速い選手 → 長めテンポ
+    { maxEtp: 999, workoutId: 'tempo-4000' },      // 標準 → 4000m
+  ],
+  '神経筋系': [
+    { maxEtp: 75, workoutId: 'reps-400x6' },       // 速い選手 → 長めレップ
+    { maxEtp: 999, workoutId: 'reps-200x10' },     // 標準 → 200m
+  ],
 };
 
 // カラー定義
