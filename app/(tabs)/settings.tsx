@@ -12,6 +12,7 @@ import {
   Alert,
   Linking,
   InteractionManager,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -368,6 +369,29 @@ export default function SettingsScreen() {
                 ))}
               </View>
             </View>
+
+            {/* 月間走行距離 */}
+            <View style={styles.fieldRow}>
+              <Text style={styles.fieldLabel}>月間走行距離（km）</Text>
+              <TextInput
+                style={styles.mileageInput}
+                value={profile.monthlyMileage ? String(profile.monthlyMileage) : ''}
+                onChangeText={(text) => {
+                  const num = parseInt(text, 10);
+                  if (!isNaN(num) && num > 0) {
+                    updateAttributes({ monthlyMileage: num });
+                  } else if (text === '') {
+                    updateAttributes({ monthlyMileage: undefined });
+                  }
+                }}
+                placeholder="例: 200"
+                placeholderTextColor={COLORS.text.muted}
+                keyboardType="numeric"
+              />
+              <Text style={styles.mileageHint}>
+                メニューのボリュームが自動調整されます
+              </Text>
+            </View>
           </View>
         </SlideIn>
 
@@ -681,6 +705,21 @@ const styles = StyleSheet.create({
   limiterTextActive: {
     color: COLORS.primary,
     fontWeight: '500',
+  },
+
+  // 月間走行距離入力
+  mileageInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    fontSize: 16,
+    color: COLORS.text.primary,
+  },
+  mileageHint: {
+    fontSize: 11,
+    color: COLORS.text.muted,
+    marginTop: 6,
   },
 
   // サブスクリプション

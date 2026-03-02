@@ -9,6 +9,7 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -60,6 +61,7 @@ export default function OnboardingMain() {
   const [experience, setExperience] = useState<Experience>(profile.experience || 'intermediate');
   const [pbs, setPbs] = useState<Partial<PBs>>({});
   const [activePickerDistance, setActivePickerDistance] = useState<keyof PBs | null>(null);
+  const [monthlyMileage, setMonthlyMileage] = useState<string>('');
 
   // アクティブなピッカーの設定を取得
   const activePickerConfig = activePickerDistance
@@ -85,8 +87,13 @@ export default function OnboardingMain() {
   };
 
   const handleComplete = () => {
-    // 属性を保存
-    updateAttributes({ ageCategory, experience });
+    // 属性を保存（月間走行距離も含む）
+    const mileageNum = parseInt(monthlyMileage, 10);
+    updateAttributes({
+      ageCategory,
+      experience,
+      monthlyMileage: (!isNaN(mileageNum) && mileageNum > 0) ? mileageNum : undefined,
+    });
 
     // PBがあれば保存（リミッターも自動推定）
     if (pbCount > 0) {
@@ -258,6 +265,24 @@ export default function OnboardingMain() {
                 </Text>
               </View>
             )}
+          </View>
+        </SlideIn>
+
+        {/* 月間走行距離（任意） */}
+        <SlideIn delay={400} direction="up">
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>月間走行距離（任意）</Text>
+            <TextInput
+              style={styles.mileageInput}
+              value={monthlyMileage}
+              onChangeText={setMonthlyMileage}
+              placeholder="例: 200"
+              placeholderTextColor={COLORS.text.muted}
+              keyboardType="numeric"
+            />
+            <Text style={styles.mileageHint}>
+              月間の目標走行距離（km）を入力すると、メニューのボリュームが自動調整されます
+            </Text>
           </View>
         </SlideIn>
       </ScrollView>
@@ -523,6 +548,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.primary,
     fontWeight: '500',
+  },
+
+  // 月間走行距離入力
+  mileageInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    color: COLORS.text.primary,
+  },
+  mileageHint: {
+    fontSize: 11,
+    color: COLORS.text.muted,
+    marginTop: 8,
+    lineHeight: 16,
   },
 
   // ボタン
