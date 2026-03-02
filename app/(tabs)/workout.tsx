@@ -80,8 +80,8 @@ export default function WorkoutScreen() {
       planId: activePlan?.id,
     };
     addTrainingLog(log);
-    // 計画タブに遷移
-    router.push({
+    // 計画タブに遷移（タブ間はnavigateを使用）
+    router.navigate({
       pathname: '/(tabs)/plan',
       params: { showLog: 'true' },
     });
