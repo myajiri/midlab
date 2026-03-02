@@ -63,7 +63,7 @@ export default function WorkoutScreen() {
   const { etp, limiter } = useEffectiveValues();
   const activePlan = usePlanStore((state) => state.activePlan);
   const addTrainingLog = useTrainingLogsStore((state) => state.addLog);
-  const params = useLocalSearchParams<{ category?: string; t?: string }>();
+  const params = useLocalSearchParams<{ category?: string; workoutId?: string; t?: string }>();
   const [selectedCategory, setSelectedCategory] = useState<string>(params.category || 'all');
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutTemplate | null>(null);
   const setSubScreenOpen = useSetSubScreenOpen();
@@ -97,6 +97,16 @@ export default function WorkoutScreen() {
       setSelectedCategory(params.category);
     }
   }, [params.category, params.t]);
+
+  // workoutIdパラメータが渡された場合、該当メニューの詳細画面を自動表示
+  useEffect(() => {
+    if (params.workoutId) {
+      const workout = WORKOUTS.find((w) => w.id === params.workoutId);
+      if (workout) {
+        setSelectedWorkout(workout as WorkoutTemplate);
+      }
+    }
+  }, [params.workoutId, params.t]);
 
   // カテゴリ一覧
   // ※ Hooks（useMemo）は条件分岐の前に配置する必要がある（Rules of Hooks）
