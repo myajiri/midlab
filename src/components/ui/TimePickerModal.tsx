@@ -55,14 +55,15 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
   // 秒の基本配列を生成（0-59）
   const secondsBase = Array.from({ length: 60 }, (_, i) => i);
 
-  // 循環用に配列を繰り返す
-  const minutesData = minutesBase.length > 1
+  // 循環用に配列を繰り返す（項目数がVISIBLE_ITEMS未満の場合は循環しない）
+  const minutesCycling = minutesBase.length >= VISIBLE_ITEMS;
+  const minutesData = minutesCycling
     ? [...minutesBase, ...minutesBase, ...minutesBase]
     : minutesBase;
   const secondsData = [...secondsBase, ...secondsBase, ...secondsBase];
 
-  // 中央のセットの開始インデックス
-  const minutesCenterOffset = minutesBase.length;
+  // 中央のセットの開始インデックス（循環しない場合は0）
+  const minutesCenterOffset = minutesCycling ? minutesBase.length : 0;
   const secondsCenterOffset = 60; // secondsBase.length
 
   // モーダルが開いたときに値をリセットしてスクロール
@@ -103,12 +104,13 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
     }
 
     // 実際の値を計算
-    const actualIndex = index % minutesBase.length;
+    const clampedIndex = Math.max(0, Math.min(index, minutesData.length - 1));
+    const actualIndex = clampedIndex % minutesBase.length;
     const actualValue = minutesBase[actualIndex];
     setSelectedMinutes(actualValue);
 
-    // 端に近い場合は中央にジャンプ
-    if (index < minutesBase.length || index >= minutesBase.length * 2) {
+    // 循環モードの場合のみ、端に近いときは中央にジャンプ
+    if (minutesCycling && (index < minutesBase.length || index >= minutesBase.length * 2)) {
       const centerIndex = minutesCenterOffset + actualIndex;
       setTimeout(() => {
         minutesListRef.current?.scrollToOffset({
@@ -117,7 +119,7 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
         });
       }, 50);
     }
-  }, [minutesBase, minutesCenterOffset]);
+  }, [minutesBase, minutesCenterOffset, minutesCycling, minutesData.length]);
 
   // 秒のスクロール終了時
   const handleSecondsMomentumEnd = useCallback((event: any) => {

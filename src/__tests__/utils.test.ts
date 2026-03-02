@@ -125,6 +125,27 @@ describe('calculateEtp', () => {
     expect(result!.adjustedEtp).toBeGreaterThan(0);
   });
 
+  it('200m PBのみでeTPを計算', () => {
+    // 200m PB = 24秒
+    // estimatedEtp = 24 / 0.38 = 63.16
+    // baseEtp = round(63.16 * 0.1 / 0.1) = 63
+    // senior + intermediate: etpAdj=0, expAdj=1
+    // adjustedEtp = 63 + 0 + 1 = 64
+    const result = calculateEtp({ m200: 24 }, 'senior', 'intermediate');
+    expect(result).not.toBeNull();
+    expect(result!.baseEtp).toBe(63);
+    expect(result!.adjustedEtp).toBe(64);
+  });
+
+  it('400m PBのみでeTPを計算', () => {
+    // 400m PB = 55秒
+    // estimatedEtp = 55 / 0.78 = 70.51
+    // baseEtp = round(70.51 * 0.2 / 0.2) = 71
+    const result = calculateEtp({ m400: 55 }, 'senior', 'intermediate');
+    expect(result).not.toBeNull();
+    expect(result!.baseEtp).toBe(71);
+  });
+
   it('空のPBsではnullを返す', () => {
     expect(calculateEtp({}, 'senior', 'intermediate')).toBeNull();
   });
@@ -260,6 +281,22 @@ describe('estimateLimiterFromPBs', () => {
   it('単一PBのみではbalanced', () => {
     expect(estimateLimiterFromPBs({ m3000: 520 })).toBe('balanced');
     expect(estimateLimiterFromPBs({ m5000: 900 })).toBe('balanced');
+  });
+
+  it('200mと1500mのペアからリミッターを推定', () => {
+    // 200mが速い選手 → cardio推定（短距離が相対的に速い）
+    // etp_200 = 22/0.38 = 57.89
+    // etp_1500 = 240/3.30 = 72.73
+    // ratio = 57.89/72.73 = 0.796 → < 0.94 → cardio
+    expect(estimateLimiterFromPBs({ m200: 22, m1500: 240 })).toBe('cardio');
+  });
+
+  it('400mと1500mのペアからリミッターを推定', () => {
+    // 400mが相対的に遅い選手 → muscular推定
+    // etp_400 = 62/0.78 = 79.49
+    // etp_1500 = 240/3.30 = 72.73
+    // ratio = 79.49/72.73 = 1.093 → > 1.06 → muscular
+    expect(estimateLimiterFromPBs({ m400: 62, m1500: 240 })).toBe('muscular');
   });
 });
 
@@ -668,6 +705,18 @@ describe('estimateEtpFromPb', () => {
     // 120s / (0.82 * 2) = 120 / 1.64 = 73.17 → 73
     const result = estimateEtpFromPb(120, 800);
     expect(result).toBe(73);
+  });
+
+  it('200m PBからeTPを推定', () => {
+    // 24s / (0.76 * 0.5) = 24 / 0.38 = 63.16 → 63
+    const result = estimateEtpFromPb(24, 200);
+    expect(result).toBe(63);
+  });
+
+  it('400m PBからeTPを推定', () => {
+    // 55s / (0.78 * 1) = 55 / 0.78 = 70.51 → 71
+    const result = estimateEtpFromPb(55, 400);
+    expect(result).toBe(71);
   });
 
   it('0秒や負の値はnull', () => {

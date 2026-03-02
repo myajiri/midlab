@@ -60,8 +60,10 @@ const LIMITER_OPTIONS: { key: LimiterType; icon: string; label: string }[] = [
   { key: 'muscular', icon: 'barbell', label: '筋持久力' },
 ];
 
-// PB距離設定
+// PB距離設定（200m〜5000m：初回プロファイリングでリミッター分類に使用）
 const PB_DISTANCES: { key: keyof PBs; label: string; minMinutes: number; maxMinutes: number; title: string }[] = [
+  { key: 'm200', label: '200m PB', minMinutes: 0, maxMinutes: 1, title: '200mベストタイム' },
+  { key: 'm400', label: '400m PB', minMinutes: 0, maxMinutes: 2, title: '400mベストタイム' },
   { key: 'm800', label: '800m PB', minMinutes: 1, maxMinutes: 5, title: '800mベストタイム' },
   { key: 'm1500', label: '1500m PB', minMinutes: 3, maxMinutes: 8, title: '1500mベストタイム' },
   { key: 'm3000', label: '3000m PB', minMinutes: 7, maxMinutes: 18, title: '3000mベストタイム' },
@@ -490,8 +492,8 @@ export default function SettingsScreen() {
         onSelect={handlePbChange}
         value={activePickerDistance ? (profile.pbs[activePickerDistance] || undefined) : undefined}
         title={activePickerConfig?.title || 'ベストタイム'}
-        minMinutes={activePickerConfig?.minMinutes || 1}
-        maxMinutes={activePickerConfig?.maxMinutes || 30}
+        minMinutes={activePickerConfig?.minMinutes ?? 1}
+        maxMinutes={activePickerConfig?.maxMinutes ?? 30}
       />
     </SafeAreaView>
   );

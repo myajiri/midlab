@@ -40,6 +40,8 @@ export type UserStage = 'new' | 'estimated' | 'measured' | 'planning' | 'trainin
 
 // PB（自己ベスト）
 export interface PBs {
+  m200?: number;
+  m400?: number;
   m800?: number;
   m1500?: number;
   m3000?: number;

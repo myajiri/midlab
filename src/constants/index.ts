@@ -102,7 +102,10 @@ export const EXPERIENCE_CONFIG: Record<Experience, { label: string; desc: string
 };
 
 // 複数PB係数
+// 200m/400mは初回プロファイリング向け（定期再評価にはeTPテストを推奨）
 export const PB_COEFFICIENTS = {
+  m200: { coef: 0.38, weight: 0.1, label: '200m' },
+  m400: { coef: 0.78, weight: 0.2, label: '400m' },
   m800: { coef: 1.64, weight: 0.3, label: '800m' },
   m1500: { coef: 3.30, weight: 0.5, label: '1500m' },
   m3000: { coef: 7.20, weight: 0.2, label: '3000m' },
