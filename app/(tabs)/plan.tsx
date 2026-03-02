@@ -588,7 +588,11 @@ export default function PlanScreen() {
                         if (!isRestDay && day.type !== 'test') {
                           router.push({
                             pathname: '/(tabs)/workout',
-                            params: { category: day.focusCategory || 'all' },
+                            params: {
+                              category: day.focusCategory || 'all',
+                              ...(day.workoutId ? { workoutId: day.type === 'recovery' ? 'recovery-4000' : day.workoutId } : {}),
+                              t: Date.now().toString(),
+                            },
                           });
                         }
                       }}

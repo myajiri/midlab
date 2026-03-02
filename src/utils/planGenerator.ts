@@ -387,6 +387,7 @@ function generateWeeklySchedule(
           ...currentWorkout,
           type: 'recovery',
           label: 'リカバリー',
+          workoutId: 'recovery-4000',
         };
         break;
       }
