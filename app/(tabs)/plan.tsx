@@ -32,10 +32,12 @@ import {
   WORKOUT_LIMITER_CONFIG,
   FOCUS_RATIONALE,
   PHYSIOLOGICAL_FOCUS_CATEGORIES,
+  REST_DAY_FREQUENCY_CONFIG,
 } from '../../src/constants';
 import {
   RacePlan,
   RaceDistance,
+  RestDayFrequency,
   ScheduledWorkout,
 } from '../../src/types';
 import { generatePlan } from '../../src/utils/planGenerator';
@@ -75,6 +77,7 @@ export default function PlanScreen() {
   const [raceDate, setRaceDate] = useState<Date | null>(null);
   const [distance, setDistance] = useState<RaceDistance>(1500);
   const [restDay, setRestDay] = useState<number>(6); // 休養日: デフォルト日曜（6）
+  const [restDayFrequency, setRestDayFrequency] = useState<RestDayFrequency>('auto'); // 休養日頻度
   const [keyDays, setKeyDays] = useState<number[]>([2, 5]); // Key曜日: デフォルト水・土
   const [showDatePicker, setShowDatePicker] = useState(false);
 
@@ -126,6 +129,8 @@ export default function PlanScreen() {
       ageCategory: profile.ageCategory,
       experience: profile.experience,
       gender: profile.gender,
+      restDayFrequency,
+      monthlyMileage: profile.monthlyMileage,
     });
     setPlan(plan);
     setView('overview');
@@ -214,6 +219,31 @@ export default function PlanScreen() {
                       </Pressable>
                     ))}
                   </View>
+                </View>
+
+                {/* 休養日頻度 */}
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>休養日の頻度</Text>
+                  <View style={styles.frequencySelector}>
+                    {(['auto', 'weekly', 'biweekly', 'monthly'] as RestDayFrequency[]).map((freq) => {
+                      const config = REST_DAY_FREQUENCY_CONFIG[freq];
+                      const isSelected = restDayFrequency === freq;
+                      return (
+                        <Pressable
+                          key={freq}
+                          style={[styles.frequencyOption, isSelected && styles.frequencyOptionActive]}
+                          onPress={() => setRestDayFrequency(freq)}
+                        >
+                          <Text style={[styles.frequencyOptionText, isSelected && styles.frequencyOptionTextActive]}>
+                            {config.label}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                  <Text style={styles.hintText}>
+                    {REST_DAY_FREQUENCY_CONFIG[restDayFrequency].desc}
+                  </Text>
                 </View>
 
                 {/* Key曜日 */}
@@ -837,6 +867,31 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
   },
   restDayOptionTextActive: {
+    color: '#fff',
+  },
+
+  // 休養日頻度セレクター
+  frequencySelector: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 4,
+  },
+  frequencyOption: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  frequencyOptionActive: {
+    backgroundColor: COLORS.primary,
+  },
+  frequencyOptionText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  frequencyOptionTextActive: {
     color: '#fff',
   },
 

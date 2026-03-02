@@ -13,6 +13,7 @@ import {
   AgeCategory,
   Experience,
   Gender,
+  RestDayFrequency,
 } from '../types';
 
 import {
@@ -27,6 +28,7 @@ import {
   AGE_CATEGORY_CONFIG,
   EXPERIENCE_CONFIG,
   GENDER_CONFIG,
+  REST_DAY_FREQUENCY_CONFIG,
 } from '../constants';
 import { selectWorkoutForCategory } from './workoutSelector';
 
@@ -38,9 +40,38 @@ export interface GeneratePlanParams {
   ageCategory?: AgeCategory;
   experience?: Experience;
   gender?: Gender;
+  restDayFrequency?: RestDayFrequency; // 休養日頻度（デフォルト: 'auto'）
+  monthlyMileage?: number; // 月間走行距離（km）、auto判定に使用
 }
 
-export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageCategory = 'senior', experience = 'intermediate', gender = 'other' }: GeneratePlanParams): RacePlan {
+// 競技歴と月間走行距離から休養日頻度を自動判定する
+// 初心者は安全側（毎週）を維持し、上級者は自由度を高める
+export function determineRestDayFrequency(
+  experience: Experience,
+  monthlyMileage?: number,
+): Exclude<RestDayFrequency, 'auto'> {
+  // 初心者: 常に週1回（安全側を維持）
+  if (experience === 'beginner') return 'weekly';
+
+  // 中級者: 月間200km以上なら2週に1回、それ以外は毎週
+  if (experience === 'intermediate') {
+    if (monthlyMileage && monthlyMileage >= 200) return 'biweekly';
+    return 'weekly';
+  }
+
+  // 上級者・エリート: 月間走行距離に基づき調整
+  if (monthlyMileage && monthlyMileage >= 300) return 'monthly';
+  if (monthlyMileage && monthlyMileage >= 200) return 'biweekly';
+  return 'weekly';
+}
+
+export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageCategory = 'senior', experience = 'intermediate', gender = 'other', restDayFrequency = 'auto', monthlyMileage }: GeneratePlanParams): RacePlan {
+  // 休養日頻度の解決: 'auto'の場合は競技歴と月間走行距離から自動判定
+  const resolvedFrequency: Exclude<RestDayFrequency, 'auto'> = restDayFrequency === 'auto'
+    ? determineRestDayFrequency(experience, monthlyMileage)
+    : restDayFrequency;
+  const restWeekInterval = REST_DAY_FREQUENCY_CONFIG[resolvedFrequency].restWeekInterval;
+
   // 年齢×競技歴による回復週サイクルを算出（短い方を採用）
   // 個別ワークアウトの質・量は維持し、回復頻度で調整する
   const ageConfig = AGE_CATEGORY_CONFIG[ageCategory];
@@ -120,7 +151,11 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
     const phaseFocusKeys = KEY_WORKOUTS_BY_PHASE[phaseType]?.focusKeys || ['aerobic'];
     const isRampTestWeek = rampTestWeeks.includes(weekNumber);
 
-    const days = generateWeeklySchedule(phaseType, phaseFocusKeys, isRecoveryWeek, isRampTestWeek, baseline.limiterType, weekNumber, restDay, keyWorkoutDays, race.distance, baseline.etp, ageConfig.recoveryDaysAfterKey);
+    // 休養日頻度に基づき、この週に休養日を入れるかを判定
+    // 回復週・テスト週は常に休養日を入れる（安全のため）
+    const hasScheduledRestDay = isRecoveryWeek || isRampTestWeek || (weekNumber % restWeekInterval === 0) || restWeekInterval === 1;
+
+    const days = generateWeeklySchedule(phaseType, phaseFocusKeys, isRecoveryWeek, isRampTestWeek, baseline.limiterType, weekNumber, restDay, keyWorkoutDays, race.distance, baseline.etp, ageConfig.recoveryDaysAfterKey, hasScheduledRestDay);
 
     weeklyPlans.push({
       weekNumber,
@@ -185,10 +220,14 @@ function generateWeeklySchedule(
   raceDistance: RaceDistance = 1500,
   etp: number = 80,
   recoveryDaysAfterKey: number = 1,
+  hasScheduledRestDay: boolean = true,
 ): (ScheduledWorkout | null)[] {
   // 休養日の決定
-  const restDays: number[] = [restDay];
+  // hasScheduledRestDay=falseの場合、主要休養日を入れずイージー走に置き換える
+  const restDays: number[] = hasScheduledRestDay ? [restDay] : [];
   if (isRecoveryWeek || isRampTestWeek) {
+    // 回復週・テスト週は常に休養日を確保
+    if (!restDays.includes(restDay)) restDays.push(restDay);
     const secondaryRest = (restDay + 3) % 7;
     restDays.push(secondaryRest);
   }

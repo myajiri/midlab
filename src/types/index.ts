@@ -23,6 +23,9 @@ export type Gender = 'male' | 'female' | 'other';
 // 競技歴
 export type Experience = 'beginner' | 'intermediate' | 'advanced' | 'elite';
 
+// 休養日頻度
+export type RestDayFrequency = 'weekly' | 'biweekly' | 'monthly' | 'auto';
+
 // 終了理由
 export type TerminationReason = 'breath' | 'legs' | 'both' | 'other';
 

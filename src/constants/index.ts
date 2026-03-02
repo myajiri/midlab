@@ -2,10 +2,10 @@
 // 定数定義
 // ============================================
 
-import { LevelName, ZoneName, LimiterType, PhaseType, AgeCategory, Gender, Experience } from '../types';
+import { LevelName, ZoneName, LimiterType, PhaseType, AgeCategory, Gender, Experience, RestDayFrequency } from '../types';
 
 // 型の再エクスポート（store/useAppStore.ts, utils/calculations.ts 等で利用）
-export type { LevelName, ZoneName, LimiterType, PhaseType, AgeCategory, Gender, Experience };
+export type { LevelName, ZoneName, LimiterType, PhaseType, AgeCategory, Gender, Experience, RestDayFrequency };
 
 // テストレベル設定
 // eTP閾値はLEVELSの1500mタイム定義と一致（PB秒 ÷ 3.375）
@@ -90,6 +90,19 @@ export const GENDER_CONFIG: Record<Gender, { label: string; etpAdj: number; reco
   male: { label: '男性', etpAdj: 0, recoveryMultiplier: 1.0 },
   female: { label: '女性', etpAdj: 0, recoveryMultiplier: 1.1, note: '生理周期を考慮してテスト日を選択' },
   other: { label: '回答しない', etpAdj: 0, recoveryMultiplier: 1.0 },
+};
+
+// 休養日頻度設定
+// 休養日（完全休養）の挿入頻度をユーザーが選択可能にする
+export const REST_DAY_FREQUENCY_CONFIG: Record<RestDayFrequency, {
+  label: string;
+  desc: string;
+  restWeekInterval: number; // 何週ごとに休養日を入れるか（1=毎週, 2=2週に1回, 4=月1回）
+}> = {
+  weekly: { label: '毎週', desc: '毎週1回の完全休養（初心者推奨）', restWeekInterval: 1 },
+  biweekly: { label: '2週に1回', desc: '2週間に1回の完全休養', restWeekInterval: 2 },
+  monthly: { label: '月1〜2回', desc: '月に1〜2回の完全休養（上級者向け）', restWeekInterval: 4 },
+  auto: { label: '自動', desc: '競技歴と月間走行距離から自動決定', restWeekInterval: 1 },
 };
 
 // 競技歴設定
