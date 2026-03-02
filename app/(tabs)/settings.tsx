@@ -26,7 +26,7 @@ import {
 import { formatTime, formatKmPace, calculateSpeedIndex, estimateLimiterFromSpeedIndex, calculateEtp } from '../../src/utils';
 import { TimePickerModal } from '../../src/components/ui';
 import { FadeIn, SlideIn } from '../../src/components/ui/Animated';
-import { COLORS, PB_COEFFICIENTS } from '../../src/constants';
+import { COLORS, PB_COEFFICIENTS, TRAINING_PHILOSOPHY } from '../../src/constants';
 import { AgeCategory, Experience, LimiterType, PBs } from '../../src/types';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
@@ -130,6 +130,7 @@ export default function SettingsScreen() {
   // 編集状態
   const [activePickerDistance, setActivePickerDistance] = useState<keyof PBs | null>(null);
   const [expandedHelp, setExpandedHelp] = useState<number | null>(null);
+  const [expandedPhilosophy, setExpandedPhilosophy] = useState<number | null>(null);
 
   // アクティブなピッカーの設定を取得
   const activePickerConfig = useMemo(() => {
@@ -393,6 +394,40 @@ export default function SettingsScreen() {
                   </View>
                   {isExpanded && (
                     <Text style={styles.helpDesc}>{item.description}</Text>
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+        </SlideIn>
+
+        {/* トレーニング哲学 */}
+        <SlideIn delay={350} direction="up">
+          <View style={styles.card}>
+            <View style={styles.philosophyHeader}>
+              <Ionicons name="school-outline" size={18} color="#EAB308" />
+              <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>トレーニング哲学</Text>
+            </View>
+            <Text style={styles.philosophyIntro}>MidLabのメニュー設計の理論的背景</Text>
+            {TRAINING_PHILOSOPHY.map((item, index) => {
+              const isExpanded = expandedPhilosophy === index;
+              return (
+                <Pressable
+                  key={index}
+                  style={[styles.philosophyItem, index < TRAINING_PHILOSOPHY.length - 1 && styles.helpItemBorder]}
+                  onPress={() => setExpandedPhilosophy(isExpanded ? null : index)}
+                >
+                  <View style={styles.philosophyTermRow}>
+                    <Ionicons name={item.icon as any} size={16} color={COLORS.primary} />
+                    <Text style={styles.philosophyTerm}>{item.title}</Text>
+                    <Ionicons
+                      name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                      size={16}
+                      color={COLORS.text.muted}
+                    />
+                  </View>
+                  {isExpanded && (
+                    <Text style={styles.philosophyDesc}>{item.content}</Text>
                   )}
                 </Pressable>
               );
@@ -739,6 +774,40 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     lineHeight: 20,
     marginTop: 8,
+  },
+
+  // トレーニング哲学
+  philosophyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  philosophyIntro: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginBottom: 12,
+  },
+  philosophyItem: {
+    paddingVertical: 12,
+  },
+  philosophyTermRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  philosophyTerm: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+    flex: 1,
+  },
+  philosophyDesc: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    lineHeight: 20,
+    marginTop: 8,
+    paddingLeft: 24,
   },
 
   // 法的情報

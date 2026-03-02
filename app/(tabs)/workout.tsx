@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffectiveValues } from '../../src/stores/useAppStore';
-import { formatTime, formatKmPace, calculateWorkoutPace } from '../../src/utils';
+import { formatTime, formatKmPace, calculateWorkoutPace, getWorkoutRationale } from '../../src/utils';
 import { PremiumGate } from '../../components/PremiumGate';
 import { useIsPremium } from '../../store/useSubscriptionStore';
 import { FadeIn, SlideIn } from '../../src/components/ui/Animated';
@@ -23,6 +23,7 @@ import {
   WORKOUTS,
   ZONE_COEFFICIENTS_V3,
   WORKOUT_LIMITER_CONFIG,
+  LIMITER_RATIONALE,
 } from '../../src/constants';
 import { useLocalSearchParams } from 'expo-router';
 import { WorkoutTemplate, WorkoutSegment, ZoneName, LimiterType } from '../../src/types';
@@ -230,6 +231,8 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
   const variant = workout.limiterVariants?.[limiter];
   const expandedSegments = expandSegments(workout.segments, variant);
   const totalDistance = calculateTotalDistance(workout.segments, variant);
+  const rationale = getWorkoutRationale(workout.category, limiter);
+  const limiterInfo = LIMITER_RATIONALE[limiter];
 
   // インターバルペース計算
   const intervalSegment = workout.segments.find(
@@ -281,6 +284,21 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
           )}
 
           <Text style={styles.detailDescription}>{workout.description}</Text>
+        </SlideIn>
+
+        {/* なぜこのメニューか */}
+        <SlideIn delay={180} direction="up">
+          <View style={styles.rationaleCard}>
+            <View style={styles.rationaleHeader}>
+              <Ionicons name="bulb-outline" size={18} color="#EAB308" />
+              <Text style={styles.rationaleTitle}>なぜこのメニューか</Text>
+            </View>
+            <Text style={styles.rationaleText}>{rationale.headline}</Text>
+            <View style={styles.rationaleLimiterRow}>
+              <Ionicons name={WORKOUT_LIMITER_CONFIG[limiter].icon as any} size={14} color={WORKOUT_LIMITER_CONFIG[limiter].color} />
+              <Text style={styles.rationaleLimiterText}>{rationale.detail}</Text>
+            </View>
+          </View>
         </SlideIn>
 
         {/* セグメント一覧 */}
@@ -721,6 +739,48 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.text.secondary,
     lineHeight: 20,
+  },
+
+  // 根拠セクション
+  rationaleCard: {
+    backgroundColor: 'rgba(234, 179, 8, 0.08)',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 16,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(234, 179, 8, 0.15)',
+  },
+  rationaleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  rationaleTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#EAB308',
+  },
+  rationaleText: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    lineHeight: 20,
+    marginBottom: 10,
+  },
+  rationaleLimiterRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    padding: 10,
+  },
+  rationaleLimiterText: {
+    fontSize: 13,
+    color: COLORS.text.primary,
+    lineHeight: 20,
+    flex: 1,
   },
 
   // セグメント
