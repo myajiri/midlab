@@ -38,8 +38,10 @@ const EXPERIENCE_LEVELS: { key: Experience; label: string; desc: string }[] = [
   { key: 'advanced', label: '上級者', desc: '3年以上' },
 ];
 
-// PB距離設定
+// PB距離設定（200m〜5000m：初回プロファイリングでリミッター分類に使用）
 const PB_DISTANCES: { key: keyof PBs; label: string; minMinutes: number; maxMinutes: number; title: string }[] = [
+  { key: 'm200', label: '200m', minMinutes: 0, maxMinutes: 1, title: '200mベストタイム' },
+  { key: 'm400', label: '400m', minMinutes: 0, maxMinutes: 2, title: '400mベストタイム' },
   { key: 'm800', label: '800m', minMinutes: 1, maxMinutes: 5, title: '800mベストタイム' },
   { key: 'm1500', label: '1500m', minMinutes: 3, maxMinutes: 8, title: '1500mベストタイム' },
   { key: 'm3000', label: '3000m', minMinutes: 7, maxMinutes: 18, title: '3000mベストタイム' },

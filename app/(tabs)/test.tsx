@@ -41,6 +41,7 @@ import {
   LEVELS,
   LEVELS_LITE,
   PACE_INCREMENT,
+  ETP_COEFFICIENT,
   ZONE_COEFFICIENTS_V3,
   RACE_COEFFICIENTS,
 } from '../../src/constants';
@@ -429,6 +430,14 @@ export default function TestScreen() {
                 thumbColor={isLiteMode ? '#22C55E' : '#6B7280'}
               />
             </View>
+            {isLiteMode && (
+              <View style={styles.liteModeNote}>
+                <Ionicons name="bulb-outline" size={14} color={COLORS.warning} />
+                <Text style={styles.liteModeNoteText}>
+                  ライトモードはペース加速を毎周{liteConfig.paceIncrement}秒に抑えます。通常モード（毎周{PACE_INCREMENT}秒）より身体的負担が少なく、回復期やシーズン初期の測定に適しています。推定eTPは通常モードと同じ計算式（最終ペース×{ETP_COEFFICIENT}）を使用するため、モード間で比較する際は同一モードでの相対変化に注目してください。
+                </Text>
+              </View>
+            )}
 
             {/* レベル選択 */}
             <Text style={styles.levelLabel}>レベル選択</Text>
@@ -554,6 +563,23 @@ export default function TestScreen() {
                 <Text style={styles.guideStepText}>2秒以上遅れたら終了→結果を入力</Text>
               </View>
             </View>
+          </View>
+        </SlideIn>
+
+        {/* eTPテストの位置づけ説明 */}
+        <SlideIn delay={500} direction="up">
+          <View style={styles.disclaimerCard}>
+            <View style={styles.disclaimerHeader}>
+              <Ionicons name="information-circle" size={18} color={COLORS.text.secondary} />
+              <Text style={styles.disclaimerTitle}>eTPテストの位置づけ</Text>
+            </View>
+            <Text style={styles.disclaimerText}>
+              eTPテストはロードバイクのランプテストをランニングに転化したものです。
+              絶対値としての精度よりも、同じプロトコルを繰り返すことで「前回比でどれだけ変化したか」を追跡する点に価値があります。
+            </Text>
+            <Text style={styles.disclaimerText}>
+              定期的（4週間ごと推奨）に実施し、トレーニング効果による変化を確認しましょう。
+            </Text>
           </View>
         </SlideIn>
       </ScrollView>
@@ -865,6 +891,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 16,
     padding: 16,
+    marginBottom: 16,
   },
   guideTitle: {
     fontSize: 14,
@@ -897,6 +924,49 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 13,
     color: COLORS.text.secondary,
+  },
+
+  // eTPテスト位置づけ説明カード
+  disclaimerCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 16,
+    padding: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.text.muted,
+  },
+  disclaimerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  disclaimerTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  disclaimerText: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    lineHeight: 18,
+    marginBottom: 6,
+  },
+
+  // ライトモード推定根拠
+  liteModeNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    backgroundColor: 'rgba(234, 179, 8, 0.08)',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 16,
+  },
+  liteModeNoteText: {
+    flex: 1,
+    fontSize: 11,
+    color: COLORS.text.muted,
+    lineHeight: 16,
   },
 
   // 入力フォーム

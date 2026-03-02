@@ -509,8 +509,8 @@ export const getNextTestRecommendation = (results: TestResult[]): { reason: stri
  * 距離差が大きいペアほど判別力が高いため、距離比の対数で重み付け
  */
 export const estimateLimiterFromPBs = (pbs: PBs): LimiterType => {
-  const distanceOrder: (keyof PBs)[] = ['m800', 'm1500', 'm3000', 'm5000'];
-  const distanceMeters: Record<keyof PBs, number> = { m800: 800, m1500: 1500, m3000: 3000, m5000: 5000 };
+  const distanceOrder: (keyof PBs)[] = ['m200', 'm400', 'm800', 'm1500', 'm3000', 'm5000'];
+  const distanceMeters: Record<keyof PBs, number> = { m200: 200, m400: 400, m800: 800, m1500: 1500, m3000: 3000, m5000: 5000 };
   const available = distanceOrder.filter(d => pbs[d] != null && pbs[d]! > 0);
 
   if (available.length < 2) return 'balanced';
@@ -558,8 +558,10 @@ export const estimateLimiterFromPBs = (pbs: PBs): LimiterType => {
 export const estimateEtpFromPb = (pbSeconds: number, distance: number = 1500): number | null => {
   if (!pbSeconds || pbSeconds <= 0) return null;
 
-  // 各距離の係数（RACE_COEFFICIENTSのmin値を使用）
+  // 各距離の係数（短距離ほどスピード依存が高く係数が小さい）
   const coefficients: Record<number, number> = {
+    200: 0.76,
+    400: 0.78,
     800: 0.82,
     1500: 0.88,
     3000: 0.96,
