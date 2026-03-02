@@ -180,6 +180,8 @@ export interface RacePlan {
     limiterType: LimiterType;
   };
   keyWorkoutDays?: number[]; // 0=月〜6=日、ユーザー選択のKey曜日
+  restDay?: number; // 休養日（0=月〜6=日）
+  restDayFrequency?: RestDayFrequency; // 休養日頻度
   phases: Phase[];
   weeklyPlans: WeeklyPlan[];
   rampTestDates: string[];
