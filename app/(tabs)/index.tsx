@@ -277,7 +277,7 @@ export default function HomeScreen() {
                 pathname: '/(tabs)/workout',
                 params: {
                   category: todayWorkout.focusCategory || 'all',
-                  ...(todayWorkout.workoutId ? { workoutId: todayWorkout.workoutId } : {}),
+                  ...(todayWorkout.workoutId ? { workoutId: todayWorkout.type === 'recovery' ? 'recovery-4000' : todayWorkout.workoutId } : {}),
                   t: Date.now().toString(),
                 },
               })}

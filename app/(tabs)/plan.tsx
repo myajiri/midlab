@@ -590,7 +590,7 @@ export default function PlanScreen() {
                             pathname: '/(tabs)/workout',
                             params: {
                               category: day.focusCategory || 'all',
-                              ...(day.workoutId ? { workoutId: day.workoutId } : {}),
+                              ...(day.workoutId ? { workoutId: day.type === 'recovery' ? 'recovery-4000' : day.workoutId } : {}),
                               t: Date.now().toString(),
                             },
                           });
