@@ -293,6 +293,54 @@ export const WORKOUTS = [
     },
   },
   {
+    id: 'easy-12000',
+    name: 'イージー12000m',
+    category: '有酸素ベース',
+    description: '高ボリューム走者向けのイージー走。有酸素ベースの拡大に効果的。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'W-up 3周' },
+      { zone: 'easy' as ZoneName, distance: 9600, label: 'Easy 24周' },
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'C-down 3周' },
+    ],
+    limiterVariants: {
+      cardio: { note: 'ペースを10秒/km遅めに維持' },
+      muscular: { note: '後半6周をMペースに上げてOK' },
+      balanced: { note: '標準ペースで実施' },
+    },
+  },
+  {
+    id: 'easy-14000',
+    name: 'イージー14000m',
+    category: '有酸素ベース',
+    description: '高ボリューム走者向けの長めイージー走。月間400km以上を目指す選手に。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
+      { zone: 'easy' as ZoneName, distance: 10800, label: 'Easy 27周' },
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'C-down 4周' },
+    ],
+    limiterVariants: {
+      cardio: { note: 'ペースを10秒/km遅めに維持' },
+      muscular: { note: '後半6周をMペースに上げてOK' },
+      balanced: { note: '標準ペースで実施' },
+    },
+  },
+  {
+    id: 'easy-16000',
+    name: 'イージー16000m',
+    category: '有酸素ベース',
+    description: 'エリート向けの長距離イージー走。月間450km以上を目指す選手に。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
+      { zone: 'easy' as ZoneName, distance: 12800, label: 'Easy 32周' },
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'C-down 4周' },
+    ],
+    limiterVariants: {
+      cardio: { note: 'ペースを10秒/km遅めに維持' },
+      muscular: { note: '後半8周をMペースに上げてOK' },
+      balanced: { note: '標準ペースで実施' },
+    },
+  },
+  {
     id: 'recovery-4000',
     name: 'リカバリー4000m',
     category: '有酸素ベース',
@@ -323,6 +371,42 @@ export const WORKOUTS = [
     limiterVariants: {
       cardio: { note: 'Mペース区間を1600mに短縮' },
       muscular: { note: 'Mペース区間を2400mに延長可' },
+      balanced: { note: '標準で実施' },
+    },
+  },
+  {
+    id: 'long-14000',
+    name: 'ロングラン14000m',
+    category: '有酸素ベース',
+    description: '高ボリューム走者向けのロングラン。有酸素ベース拡大と精神的タフネスを養成。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'W-up 3周' },
+      { zone: 'easy' as ZoneName, distance: 6000, label: 'Easy 15周' },
+      { zone: 'easy' as ZoneName, distance: 2400, label: 'Easy→M 6周' },
+      { zone: 'marathon' as ZoneName, distance: 3200, label: 'M 8周' },
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'C-down 3周' },
+    ],
+    limiterVariants: {
+      cardio: { note: 'Mペース区間を2400mに短縮' },
+      muscular: { note: 'Mペース区間を4000mに延長可' },
+      balanced: { note: '標準で実施' },
+    },
+  },
+  {
+    id: 'long-18000',
+    name: 'ロングラン18000m',
+    category: '有酸素ベース',
+    description: 'エリート向けのロングラン。月間400km以上の選手に最適。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
+      { zone: 'easy' as ZoneName, distance: 8000, label: 'Easy 20周' },
+      { zone: 'easy' as ZoneName, distance: 3200, label: 'Easy→M 8周' },
+      { zone: 'marathon' as ZoneName, distance: 3600, label: 'M 9周' },
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'C-down 4周' },
+    ],
+    limiterVariants: {
+      cardio: { note: 'Mペース区間を2800mに短縮' },
+      muscular: { note: 'Mペース区間を4400mに延長可' },
       balanced: { note: '標準で実施' },
     },
   },
@@ -756,6 +840,58 @@ export const TRAINING_PHILOSOPHY: Array<{
     icon: 'school',
   },
 ];
+
+// ============================================
+// ボリューム個別化設定
+// ============================================
+
+// 月間走行距離からボリューム倍率を計算するための基準値（種目別・月間km）
+// WEEKLY_DISTANCE_BY_EVENT の build期 × 4.33 / 1000 で算出
+export const DEFAULT_MONTHLY_DISTANCE: Record<number, number> = {
+  800: 173,   // 40km/week × 4.33
+  1500: 216,  // 50km/week × 4.33
+  3000: 260,  // 60km/week × 4.33
+  5000: 303,  // 70km/week × 4.33
+};
+
+// ボリューム倍率の上限・下限
+export const VOLUME_SCALE_LIMITS = {
+  min: 0.6,  // 最低60%（初心者・故障明け向け）
+  max: 2.5,  // 最大250%（エリート向け）
+};
+
+// イージー走距離の選択テーブル（ボリュームスケール後の距離からワークアウトIDを選択）
+export const EASY_WORKOUT_BY_DISTANCE: Array<{ maxDistance: number; workoutId: string; distance: number }> = [
+  { maxDistance: 7000, workoutId: 'easy-6000', distance: 6000 },
+  { maxDistance: 9000, workoutId: 'easy-8000', distance: 8000 },
+  { maxDistance: 11000, workoutId: 'easy-10000', distance: 10000 },
+  { maxDistance: 13000, workoutId: 'easy-12000', distance: 12000 },
+  { maxDistance: 15000, workoutId: 'easy-14000', distance: 14000 },
+  { maxDistance: 999999, workoutId: 'easy-16000', distance: 16000 },
+];
+
+// ロングラン距離の選択テーブル
+export const LONG_RUN_BY_DISTANCE: Array<{ maxDistance: number; workoutId: string; distance: number }> = [
+  { maxDistance: 12000, workoutId: 'long-10000', distance: 10000 },
+  { maxDistance: 16000, workoutId: 'long-14000', distance: 14000 },
+  { maxDistance: 999999, workoutId: 'long-18000', distance: 18000 },
+];
+
+// ワークアウト本数のボリューム倍率テーブル
+// volumeScale > threshold の場合、repsBonus本追加
+export const WORKOUT_REPS_SCALING: Array<{ threshold: number; repsBonus: number }> = [
+  { threshold: 1.8, repsBonus: 2 },
+  { threshold: 1.4, repsBonus: 1 },
+  { threshold: 1.0, repsBonus: 0 },
+];
+
+// 経験レベル別の強度配分倍率（上級者はより高強度の配分比率が高い）
+export const INTENSITY_DISTRIBUTION_BY_EXPERIENCE: Record<Experience, { easyRatio: number; thresholdRatio: number; vo2maxRatio: number; speedRatio: number }> = {
+  beginner: { easyRatio: 1.10, thresholdRatio: 0.85, vo2maxRatio: 0.70, speedRatio: 0.70 },
+  intermediate: { easyRatio: 1.00, thresholdRatio: 1.00, vo2maxRatio: 1.00, speedRatio: 1.00 },
+  advanced: { easyRatio: 0.95, thresholdRatio: 1.05, vo2maxRatio: 1.10, speedRatio: 1.10 },
+  elite: { easyRatio: 0.90, thresholdRatio: 1.10, vo2maxRatio: 1.15, speedRatio: 1.15 },
+};
 
 // カラー定義
 export const COLORS = {

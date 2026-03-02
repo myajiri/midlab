@@ -21,6 +21,8 @@ import {
   getUserStage,
   estimateEtpFromPb,
   estimateVO2max,
+  calculateVolumeScale,
+  getVolumeRepsBonus,
 } from '../utils';
 
 import type { PBs, Profile, TestResult, RacePlan } from '../types';
@@ -918,5 +920,162 @@ describe('PB→リミッター推定の整合性', () => {
     // speedIndex = (124*1.875)/240 = 232.5/240 = 0.969 → balanced
     expect(limiterFromPBs).toBe('balanced');
     expect(limiterFromIndex!.type).toBe('balanced');
+  });
+});
+
+// ============================================
+// calculateVolumeScale
+// ============================================
+
+describe('calculateVolumeScale', () => {
+  it('月間走行距離未設定の場合は1.0を返す', () => {
+    expect(calculateVolumeScale(undefined, 1500)).toBe(1.0);
+    expect(calculateVolumeScale(0, 1500)).toBe(1.0);
+  });
+
+  it('デフォルト距離と同じ場合は約1.0を返す', () => {
+    // 1500m種目のデフォルトは216km/月
+    const scale = calculateVolumeScale(216, 1500);
+    expect(scale).toBe(1.0);
+  });
+
+  it('デフォルトの2倍の月間距離で2.0を返す', () => {
+    // 1500m: デフォルト216km → 432km → scale=2.0
+    const scale = calculateVolumeScale(432, 1500);
+    expect(scale).toBe(2.0);
+  });
+
+  it('月間450kmでエリート向けのスケールを返す', () => {
+    // 1500m: デフォルト216km → 450km → scale≈2.08
+    const scale = calculateVolumeScale(450, 1500);
+    expect(scale).toBeGreaterThan(2.0);
+    expect(scale).toBeLessThanOrEqual(2.5);
+  });
+
+  it('最小値0.6を下回らない', () => {
+    // 非常に少ない月間距離
+    const scale = calculateVolumeScale(50, 1500);
+    expect(scale).toBeGreaterThanOrEqual(0.6);
+  });
+
+  it('最大値2.5を超えない', () => {
+    // 非常に多い月間距離
+    const scale = calculateVolumeScale(1000, 1500);
+    expect(scale).toBeLessThanOrEqual(2.5);
+  });
+
+  it('種目別に異なるスケールが計算される', () => {
+    // 同じ300km/月でも、800m種目と5000m種目では倍率が異なる
+    const scale800 = calculateVolumeScale(300, 800);
+    const scale5000 = calculateVolumeScale(300, 5000);
+    // 800mのデフォルトは少ない → スケールが大きい
+    expect(scale800).toBeGreaterThan(scale5000);
+  });
+});
+
+// ============================================
+// getVolumeRepsBonus
+// ============================================
+
+describe('getVolumeRepsBonus', () => {
+  it('ボリューム倍率1.0以下ではボーナスなし', () => {
+    expect(getVolumeRepsBonus(0.8)).toBe(0);
+    expect(getVolumeRepsBonus(1.0)).toBe(0);
+  });
+
+  it('ボリューム倍率1.4以上で+1本', () => {
+    expect(getVolumeRepsBonus(1.5)).toBe(1);
+  });
+
+  it('ボリューム倍率1.8以上で+2本', () => {
+    expect(getVolumeRepsBonus(2.0)).toBe(2);
+  });
+});
+
+// ============================================
+// generatePlan ボリューム個別化統合テスト
+// ============================================
+
+import { generatePlan } from '../utils/planGenerator';
+
+describe('generatePlan ボリューム個別化', () => {
+  const baseParams = {
+    race: { name: 'テスト記録会', date: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(), distance: 1500 as const },
+    baseline: { etp: 75, limiterType: 'balanced' as const },
+    restDay: 6,
+    keyWorkoutDays: [2, 5],
+    ageCategory: 'senior' as const,
+    experience: 'intermediate' as const,
+    gender: 'other' as const,
+  };
+
+  it('monthlyMileage未設定でもプランが生成される', () => {
+    const plan = generatePlan(baseParams);
+    expect(plan).toBeDefined();
+    expect(plan.weeklyPlans.length).toBeGreaterThan(0);
+  });
+
+  it('月間走行距離が多い場合、イージー走の距離が増加する', () => {
+    const planDefault = generatePlan(baseParams);
+    const planHigh = generatePlan({ ...baseParams, monthlyMileage: 400 });
+
+    // 高ボリュームプランのイージー走ラベルの距離を比較
+    const getEasyDistances = (plan: ReturnType<typeof generatePlan>) => {
+      return plan.weeklyPlans.flatMap(w =>
+        w.days.filter(d => d?.type === 'easy').map(d => d!.label)
+      );
+    };
+
+    const defaultEasy = getEasyDistances(planDefault);
+    const highEasy = getEasyDistances(planHigh);
+
+    // 高ボリュームプランでは「イージー 12km」以上が含まれる
+    const hasHighVolume = highEasy.some(label => {
+      const match = label.match(/(\d+)km/);
+      return match && parseInt(match[1]) >= 12;
+    });
+    expect(hasHighVolume).toBe(true);
+  });
+
+  it('月間走行距離が多い場合、ロングランの距離が増加する', () => {
+    const planHigh = generatePlan({ ...baseParams, monthlyMileage: 400 });
+
+    const longLabels = planHigh.weeklyPlans.flatMap(w =>
+      w.days.filter(d => d?.type === 'long').map(d => d!.label)
+    );
+
+    // 高ボリュームプランではロングラン14km以上が含まれる
+    const hasLongRun = longLabels.some(label => {
+      const match = label.match(/(\d+)km/);
+      return match && parseInt(match[1]) >= 14;
+    });
+    expect(hasLongRun).toBe(true);
+  });
+
+  it('月間走行距離が少ない場合、ボリュームが適切に抑えられる', () => {
+    const planLow = generatePlan({ ...baseParams, monthlyMileage: 100 });
+
+    const easyLabels = planLow.weeklyPlans.flatMap(w =>
+      w.days.filter(d => d?.type === 'easy').map(d => d!.label)
+    );
+
+    // 低ボリュームプランでは「イージー 6km」が中心
+    const allSmall = easyLabels.every(label => {
+      const match = label.match(/(\d+)km/);
+      return match && parseInt(match[1]) <= 10;
+    });
+    expect(allSmall).toBe(true);
+  });
+
+  it('5000m種目で月間450km設定がエリート向けボリュームで生成される', () => {
+    const plan = generatePlan({
+      ...baseParams,
+      race: { ...baseParams.race, distance: 5000 },
+      monthlyMileage: 450,
+      experience: 'advanced',
+    });
+
+    expect(plan).toBeDefined();
+    expect(plan.weeklyPlans.length).toBeGreaterThan(0);
   });
 });

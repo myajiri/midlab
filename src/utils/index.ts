@@ -690,3 +690,7 @@ export const getWeeklyPlanRationale = (
 
 // 移行ユーティリティをエクスポート
 export { migrateStorageKeys, resetMigration } from './migration';
+
+// ボリュームスケーリングユーティリティをエクスポート
+export { calculateVolumeScale } from './planGenerator';
+export { getVolumeRepsBonus } from './workoutSelector';

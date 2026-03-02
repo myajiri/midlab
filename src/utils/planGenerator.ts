@@ -29,6 +29,12 @@ import {
   EXPERIENCE_CONFIG,
   GENDER_CONFIG,
   REST_DAY_FREQUENCY_CONFIG,
+  DEFAULT_MONTHLY_DISTANCE,
+  VOLUME_SCALE_LIMITS,
+  EASY_WORKOUT_BY_DISTANCE,
+  LONG_RUN_BY_DISTANCE,
+  WORKOUT_REPS_SCALING,
+  INTENSITY_DISTRIBUTION_BY_EXPERIENCE,
 } from '../constants';
 import { selectWorkoutForCategory } from './workoutSelector';
 
@@ -41,7 +47,7 @@ export interface GeneratePlanParams {
   experience?: Experience;
   gender?: Gender;
   restDayFrequency?: RestDayFrequency; // 休養日頻度（デフォルト: 'auto'）
-  monthlyMileage?: number; // 月間走行距離（km）、auto判定に使用
+  monthlyMileage?: number; // 月間走行可能距離（km）
 }
 
 // 競技歴と月間走行距離から休養日頻度を自動判定する
@@ -65,12 +71,71 @@ export function determineRestDayFrequency(
   return 'weekly';
 }
 
+/**
+ * 月間走行距離からボリューム倍率を計算
+ * ユーザーの目標月間走行距離と種目別のデフォルト月間距離を比較し、スケーリング係数を算出
+ */
+export function calculateVolumeScale(monthlyMileage: number | undefined, raceDistance: RaceDistance): number {
+  if (!monthlyMileage || monthlyMileage <= 0) return 1.0;
+  const defaultMonthly = DEFAULT_MONTHLY_DISTANCE[raceDistance] || DEFAULT_MONTHLY_DISTANCE[1500];
+  const scale = monthlyMileage / defaultMonthly;
+  return Math.max(VOLUME_SCALE_LIMITS.min, Math.min(VOLUME_SCALE_LIMITS.max, scale));
+}
+
+/**
+ * ボリューム倍率に応じたイージー走ワークアウトIDを選択
+ */
+function selectEasyWorkout(baseEasyDistance: number, volumeScale: number): { workoutId: string; distance: number; label: string } {
+  const scaledDistance = Math.round(baseEasyDistance * volumeScale);
+  for (const entry of EASY_WORKOUT_BY_DISTANCE) {
+    if (scaledDistance <= entry.maxDistance) {
+      return {
+        workoutId: entry.workoutId,
+        distance: entry.distance,
+        label: `イージー ${entry.distance / 1000}km`,
+      };
+    }
+  }
+  const last = EASY_WORKOUT_BY_DISTANCE[EASY_WORKOUT_BY_DISTANCE.length - 1];
+  return { workoutId: last.workoutId, distance: last.distance, label: `イージー ${last.distance / 1000}km` };
+}
+
+/**
+ * ボリューム倍率に応じたロングランワークアウトIDを選択
+ */
+function selectLongRunWorkout(volumeScale: number): { workoutId: string; distance: number } {
+  // ベースのロングランは10000m、ボリュームスケールで選択
+  const scaledDistance = Math.round(10000 * volumeScale);
+  for (const entry of LONG_RUN_BY_DISTANCE) {
+    if (scaledDistance <= entry.maxDistance) {
+      return { workoutId: entry.workoutId, distance: entry.distance };
+    }
+  }
+  const last = LONG_RUN_BY_DISTANCE[LONG_RUN_BY_DISTANCE.length - 1];
+  return { workoutId: last.workoutId, distance: last.distance };
+}
+
+/**
+ * ボリューム倍率に応じたワークアウト本数ボーナスを取得
+ */
+function getWorkoutRepsBonus(volumeScale: number): number {
+  for (const entry of WORKOUT_REPS_SCALING) {
+    if (volumeScale >= entry.threshold) {
+      return entry.repsBonus;
+    }
+  }
+  return 0;
+}
+
 export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageCategory = 'senior', experience = 'intermediate', gender = 'other', restDayFrequency = 'auto', monthlyMileage }: GeneratePlanParams): RacePlan {
   // 休養日頻度の解決: 'auto'の場合は競技歴と月間走行距離から自動判定
   const resolvedFrequency: Exclude<RestDayFrequency, 'auto'> = restDayFrequency === 'auto'
     ? determineRestDayFrequency(experience, monthlyMileage)
     : restDayFrequency;
   const restWeekInterval = REST_DAY_FREQUENCY_CONFIG[resolvedFrequency].restWeekInterval;
+
+  // ボリューム倍率を計算（月間走行距離ベース）
+  const volumeScale = calculateVolumeScale(monthlyMileage, race.distance);
 
   // 年齢×競技歴による回復週サイクルを算出（短い方を採用）
   // 個別ワークアウトの質・量は維持し、回復頻度で調整する
@@ -143,6 +208,8 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
     }
     // 年齢カテゴリによるボリューム倍率
     baseDistance = Math.round(baseDistance * ageConfig.volumeMultiplier);
+    // 月間走行距離によるボリュームスケーリング
+    baseDistance = Math.round(baseDistance * volumeScale);
 
     // 年齢カテゴリの最大強度上限を適用
     const rawLoadPercent = isRecoveryWeek ? 70 : phaseType === 'taper' ? Math.round(100 - phaseProgress * 50) : Math.round(PHASE_CONFIG[phaseType].loadRange[0] + phaseProgress * 10);
@@ -155,7 +222,7 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
     // 回復週・テスト週は常に休養日を入れる（安全のため）
     const hasScheduledRestDay = isRecoveryWeek || isRampTestWeek || (weekNumber % restWeekInterval === 0) || restWeekInterval === 1;
 
-    const days = generateWeeklySchedule(phaseType, phaseFocusKeys, isRecoveryWeek, isRampTestWeek, baseline.limiterType, weekNumber, restDay, keyWorkoutDays, race.distance, baseline.etp, ageConfig.recoveryDaysAfterKey, hasScheduledRestDay);
+    const days = generateWeeklySchedule(phaseType, phaseFocusKeys, isRecoveryWeek, isRampTestWeek, baseline.limiterType, weekNumber, restDay, keyWorkoutDays, race.distance, baseline.etp, ageConfig.recoveryDaysAfterKey, hasScheduledRestDay, volumeScale, experience);
 
     weeklyPlans.push({
       weekNumber,
@@ -221,6 +288,8 @@ function generateWeeklySchedule(
   etp: number = 80,
   recoveryDaysAfterKey: number = 1,
   hasScheduledRestDay: boolean = true,
+  volumeScale: number = 1.0,
+  experience: Experience = 'intermediate',
 ): (ScheduledWorkout | null)[] {
   // 休養日の決定
   // hasScheduledRestDay=falseの場合、主要休養日を入れずイージー走に置き換える
@@ -296,12 +365,12 @@ function generateWeeklySchedule(
       const workoutId = selectWorkoutForCategory(focus?.menuCategory || '', etp);
       days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'workout', label: focus?.name || 'ポイント練習', isKey: true, completed: false, focusKey, focusCategory: focus?.menuCategory, workoutId });
     } else if (d === longRunDay && !isRampTestWeek) {
-      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'long', label: 'ロング', isKey: !isRecoveryWeek, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース' });
+      const longSelection = selectLongRunWorkout(volumeScale);
+      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'long', label: `ロング ${longSelection.distance / 1000}km`, isKey: !isRecoveryWeek, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース', workoutId: longSelection.workoutId });
     } else {
-      const easyDist = EASY_DISTANCE_BY_EVENT[raceDistance]?.[phaseType] || 6000;
-      const easyWorkoutId = easyDist >= 10000 ? 'easy-10000' : easyDist >= 8000 ? 'easy-8000' : 'easy-6000';
-      const easyLabel = `イージー ${easyDist >= 1000 ? `${easyDist / 1000}km` : `${easyDist}m`}`;
-      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'easy', label: easyLabel, isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース', workoutId: easyWorkoutId });
+      const baseEasyDist = EASY_DISTANCE_BY_EVENT[raceDistance]?.[phaseType] || 6000;
+      const easySelection = selectEasyWorkout(baseEasyDist, volumeScale);
+      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'easy', label: easySelection.label, isKey: false, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース', workoutId: easySelection.workoutId });
     }
   }
 
