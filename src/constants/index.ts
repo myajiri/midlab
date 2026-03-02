@@ -131,6 +131,7 @@ export const STORAGE_KEYS = {
   testResults: 'midlab_results',
   activePlan: 'midlab_activePlan',
   workoutLogs: 'midlab_workoutLogs',
+  trainingLogs: 'midlab_trainingLogs',
   settings: 'midlab_settings',
   onboardingComplete: 'midlab_onboardingComplete',
 };

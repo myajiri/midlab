@@ -226,6 +226,28 @@ export interface WorkoutLog {
   notes?: string;
 }
 
+// 体感レベル
+export type FeelingLevel = 'great' | 'good' | 'normal' | 'tough' | 'bad';
+
+// トレーニングログ（日誌エントリ）
+export interface TrainingLog {
+  id: string;
+  date: string;
+  workoutId: string;
+  workoutName: string;
+  workoutCategory: string;
+  status: 'planned' | 'completed' | 'skipped';
+  planId?: string;
+  weekNumber?: number;
+  result?: {
+    distance?: number;
+    duration?: number;
+    feeling?: FeelingLevel;
+    notes?: string;
+  };
+  completedAt?: string;
+}
+
 // アプリ設定
 export interface AppSettings {
   useNewUI?: boolean;

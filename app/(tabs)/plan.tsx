@@ -12,6 +12,9 @@ import {
   Pressable,
   TextInput,
   Alert,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +22,7 @@ import {
   usePlanStore,
   useProfileStore,
   useEffectiveValues,
+  useTrainingLogsStore,
 } from '../../src/stores/useAppStore';
 import { Card, Button, DatePickerModal } from '../../src/components/ui';
 import { FadeIn, SlideIn, AnimatedPressable } from '../../src/components/ui/Animated';
@@ -39,6 +43,8 @@ import {
   RaceDistance,
   RestDayFrequency,
   ScheduledWorkout,
+  TrainingLog,
+  FeelingLevel,
 } from '../../src/types';
 import { generatePlan } from '../../src/utils/planGenerator';
 import { getWeeklyPlanRationale } from '../../src/utils';
@@ -46,8 +52,17 @@ import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
 import { useIsFocused } from '@react-navigation/native';
 
-// シンプルなビュータイプ（3つに削減）
-type ViewType = 'overview' | 'create' | 'weekly';
+// ビュータイプ
+type ViewType = 'overview' | 'create' | 'weekly' | 'log';
+
+// 体感レベル設定
+const FEELING_CONFIG: Record<FeelingLevel, { label: string; icon: string; color: string }> = {
+  great: { label: '最高', icon: 'happy', color: '#22C55E' },
+  good: { label: '良い', icon: 'thumbs-up', color: '#3B82F6' },
+  normal: { label: '普通', icon: 'remove', color: '#EAB308' },
+  tough: { label: 'きつい', icon: 'thumbs-down', color: '#F97316' },
+  bad: { label: '不調', icon: 'sad', color: '#EF4444' },
+};
 
 export default function PlanScreen() {
   const router = useRouter();
@@ -59,16 +74,73 @@ export default function PlanScreen() {
   const { etp, limiter } = useEffectiveValues();
   const profile = useProfileStore((state) => state.profile);
 
+  // トレーニングログ
+  const trainingLogs = useTrainingLogsStore((state) => state.logs);
+  const completeTrainingLog = useTrainingLogsStore((state) => state.completeLog);
+  const skipTrainingLog = useTrainingLogsStore((state) => state.skipLog);
+  const deleteTrainingLog = useTrainingLogsStore((state) => state.deleteLog);
+
   const [view, setView] = useState<ViewType>(activePlan ? 'overview' : 'create');
   const setSubScreenOpen = useSetSubScreenOpen();
   const isFocused = useIsFocused();
 
+  // 結果記録モーダル
+  const [recordModalVisible, setRecordModalVisible] = useState(false);
+  const [recordingLogId, setRecordingLogId] = useState<string | null>(null);
+  const [recordDistance, setRecordDistance] = useState('');
+  const [recordDuration, setRecordDuration] = useState('');
+  const [recordFeeling, setRecordFeeling] = useState<FeelingLevel>('normal');
+  const [recordNotes, setRecordNotes] = useState('');
+
   // フォーカス中のタブのみフラグを制御（タブ間の競合を防止）
   useEffect(() => {
     if (isFocused) {
-      setSubScreenOpen(view === 'weekly');
+      setSubScreenOpen(view === 'weekly' || view === 'log');
     }
   }, [view, isFocused, setSubScreenOpen]);
+
+  // 結果記録モーダルを開く
+  const openRecordModal = (logId: string) => {
+    setRecordingLogId(logId);
+    setRecordDistance('');
+    setRecordDuration('');
+    setRecordFeeling('normal');
+    setRecordNotes('');
+    setRecordModalVisible(true);
+  };
+
+  // 結果を保存
+  const handleSaveRecord = () => {
+    if (!recordingLogId) return;
+    completeTrainingLog(recordingLogId, {
+      distance: recordDistance ? parseInt(recordDistance, 10) : undefined,
+      duration: recordDuration ? parseInt(recordDuration, 10) : undefined,
+      feeling: recordFeeling,
+      notes: recordNotes || undefined,
+    });
+    setRecordModalVisible(false);
+    setRecordingLogId(null);
+  };
+
+  // ログを日付でグループ化
+  const groupedLogs = useMemo(() => {
+    const groups: Record<string, TrainingLog[]> = {};
+    for (const log of trainingLogs) {
+      const date = log.date;
+      if (!groups[date]) groups[date] = [];
+      groups[date].push(log);
+    }
+    // 日付降順でソート
+    return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
+  }, [trainingLogs]);
+
+  // プラン関連のログのみフィルタ
+  const planLogs = useMemo(() => {
+    if (!activePlan) return groupedLogs;
+    const raceDate = activePlan.race.date.split('T')[0];
+    const startDate = activePlan.weeklyPlans?.[0]?.startDate?.split('T')[0] || '';
+    return groupedLogs.filter(([date]) => date >= startDate && date <= raceDate);
+  }, [groupedLogs, activePlan]);
 
   const [selectedWeek, setSelectedWeek] = useState(1);
 
@@ -563,6 +635,199 @@ export default function PlanScreen() {
   }
 
   // ============================================
+  // トレーニング記録画面（日誌）
+  // ============================================
+  if (view === 'log') {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayLogs = trainingLogs.filter((l) => l.date === todayStr);
+    const plannedLogs = todayLogs.filter((l) => l.status === 'planned');
+
+    return (
+      <SwipeBackView onSwipeBack={() => setView('overview')}>
+        <SafeAreaView style={styles.container} edges={['top']}>
+          {/* ヘッダー */}
+          <View style={styles.header}>
+            <Pressable style={styles.backButton} onPress={() => setView('overview')}>
+              <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+            </Pressable>
+            <Text style={styles.headerTitle}>トレーニング記録</Text>
+            <View style={{ width: 40 }} />
+          </View>
+
+          <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
+            {/* 今日の実施予定 */}
+            {plannedLogs.length > 0 && (
+              <FadeIn>
+                <Text style={styles.sectionLabel}>今日の実施予定</Text>
+                <View style={styles.logSection}>
+                  {plannedLogs.map((log) => (
+                    <View key={log.id} style={styles.logCard}>
+                      <View style={styles.logCardHeader}>
+                        <View style={styles.logCardInfo}>
+                          <Text style={styles.logCardName}>{log.workoutName}</Text>
+                          <Text style={styles.logCardCategory}>{log.workoutCategory}</Text>
+                        </View>
+                        <View style={[styles.logStatusBadge, styles.logStatusPlanned]}>
+                          <Text style={styles.logStatusText}>予定</Text>
+                        </View>
+                      </View>
+                      <View style={styles.logCardActions}>
+                        <Pressable
+                          style={styles.logRecordButton}
+                          onPress={() => openRecordModal(log.id)}
+                        >
+                          <Ionicons name="create-outline" size={16} color="#fff" />
+                          <Text style={styles.logRecordButtonText}>結果を記録</Text>
+                        </Pressable>
+                        <Pressable
+                          style={styles.logSkipButton}
+                          onPress={() => {
+                            Alert.alert('スキップ', 'このメニューをスキップしますか？', [
+                              { text: 'キャンセル', style: 'cancel' },
+                              { text: 'スキップ', onPress: () => skipTrainingLog(log.id) },
+                            ]);
+                          }}
+                        >
+                          <Text style={styles.logSkipButtonText}>スキップ</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </FadeIn>
+            )}
+
+            {/* 時系列記録 */}
+            <SlideIn delay={100} direction="up">
+              <Text style={styles.sectionLabel}>
+                {activePlan ? 'レースまでの記録' : 'すべての記録'}
+              </Text>
+              {planLogs.length === 0 ? (
+                <View style={styles.logEmptyState}>
+                  <Ionicons name="book-outline" size={48} color={COLORS.text.muted} />
+                  <Text style={styles.logEmptyText}>まだ記録がありません</Text>
+                  <Text style={styles.logEmptySubText}>
+                    トレーニングタブからメニューを選択して実施しましょう
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.logTimeline}>
+                  {planLogs.map(([date, logs], groupIndex) => {
+                    const dateObj = new Date(date + 'T00:00:00');
+                    const isToday = date === todayStr;
+                    const dateLabel = isToday
+                      ? '今日'
+                      : `${dateObj.getMonth() + 1}/${dateObj.getDate()}（${['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()]}）`;
+
+                    return (
+                      <SlideIn key={date} delay={150 + groupIndex * 50} direction="up">
+                        <View style={styles.logDateGroup}>
+                          <View style={styles.logDateHeader}>
+                            <View style={[styles.logDateDot, isToday && styles.logDateDotToday]} />
+                            <Text style={[styles.logDateText, isToday && styles.logDateTextToday]}>
+                              {dateLabel}
+                            </Text>
+                          </View>
+                          {logs.map((log) => (
+                            <View key={log.id} style={styles.logTimelineCard}>
+                              <View style={styles.logTimelineCardHeader}>
+                                <Text style={styles.logTimelineCardName}>{log.workoutName}</Text>
+                                <View style={[
+                                  styles.logStatusBadge,
+                                  log.status === 'completed' && styles.logStatusCompleted,
+                                  log.status === 'skipped' && styles.logStatusSkipped,
+                                  log.status === 'planned' && styles.logStatusPlanned,
+                                ]}>
+                                  <Text style={styles.logStatusText}>
+                                    {log.status === 'completed' ? '完了' : log.status === 'skipped' ? 'スキップ' : '予定'}
+                                  </Text>
+                                </View>
+                              </View>
+                              <Text style={styles.logTimelineCardCategory}>{log.workoutCategory}</Text>
+                              {log.result && (
+                                <View style={styles.logResultSummary}>
+                                  {log.result.distance != null && (
+                                    <View style={styles.logResultItem}>
+                                      <Ionicons name="navigate-outline" size={14} color={COLORS.text.muted} />
+                                      <Text style={styles.logResultValue}>{log.result.distance}m</Text>
+                                    </View>
+                                  )}
+                                  {log.result.duration != null && (
+                                    <View style={styles.logResultItem}>
+                                      <Ionicons name="time-outline" size={14} color={COLORS.text.muted} />
+                                      <Text style={styles.logResultValue}>{Math.floor(log.result.duration / 60)}分{log.result.duration % 60}秒</Text>
+                                    </View>
+                                  )}
+                                  {log.result.feeling && (
+                                    <View style={styles.logResultItem}>
+                                      <Ionicons
+                                        name={FEELING_CONFIG[log.result.feeling].icon as any}
+                                        size={14}
+                                        color={FEELING_CONFIG[log.result.feeling].color}
+                                      />
+                                      <Text style={[styles.logResultValue, { color: FEELING_CONFIG[log.result.feeling].color }]}>
+                                        {FEELING_CONFIG[log.result.feeling].label}
+                                      </Text>
+                                    </View>
+                                  )}
+                                </View>
+                              )}
+                              {log.result?.notes && (
+                                <Text style={styles.logResultNotes}>{log.result.notes}</Text>
+                              )}
+                              {log.status === 'planned' && (
+                                <View style={styles.logCardActions}>
+                                  <Pressable
+                                    style={[styles.logRecordButton, { flex: 1 }]}
+                                    onPress={() => openRecordModal(log.id)}
+                                  >
+                                    <Ionicons name="create-outline" size={14} color="#fff" />
+                                    <Text style={styles.logRecordButtonText}>記録</Text>
+                                  </Pressable>
+                                  <Pressable
+                                    style={styles.logDeleteButton}
+                                    onPress={() => {
+                                      Alert.alert('削除', 'この記録を削除しますか？', [
+                                        { text: 'キャンセル', style: 'cancel' },
+                                        { text: '削除', style: 'destructive', onPress: () => deleteTrainingLog(log.id) },
+                                      ]);
+                                    }}
+                                  >
+                                    <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                                  </Pressable>
+                                </View>
+                              )}
+                            </View>
+                          ))}
+                        </View>
+                      </SlideIn>
+                    );
+                  })}
+                </View>
+              )}
+            </SlideIn>
+          </ScrollView>
+
+          {/* 結果記録モーダル */}
+          <RecordResultModal
+            visible={recordModalVisible}
+            onClose={() => setRecordModalVisible(false)}
+            onSave={handleSaveRecord}
+            distance={recordDistance}
+            setDistance={setRecordDistance}
+            duration={recordDuration}
+            setDuration={setRecordDuration}
+            feeling={recordFeeling}
+            setFeeling={setRecordFeeling}
+            notes={recordNotes}
+            setNotes={setRecordNotes}
+          />
+        </SafeAreaView>
+      </SwipeBackView>
+    );
+  }
+
+  // ============================================
   // 概要画面
   // ============================================
   return (
@@ -650,6 +915,25 @@ export default function PlanScreen() {
           </SlideIn>
         )}
 
+        {/* トレーニング記録ボタン */}
+        <SlideIn delay={250} direction="up">
+          <Pressable
+            style={styles.logEntryButton}
+            onPress={() => setView('log')}
+          >
+            <View style={styles.logEntryButtonLeft}>
+              <Ionicons name="book-outline" size={20} color={COLORS.primary} />
+              <View>
+                <Text style={styles.logEntryButtonTitle}>トレーニング記録</Text>
+                <Text style={styles.logEntryButtonSubtitle}>
+                  {trainingLogs.filter((l) => l.status === 'completed').length}件の記録
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
+          </Pressable>
+        </SlideIn>
+
         {/* 全週一覧（コンパクト） */}
         <SlideIn delay={300} direction="up">
           <View style={styles.weeksOverview}>
@@ -710,6 +994,129 @@ function getWorkoutIconInfo(type: string): { name: string; color: string } {
     case 'test': return { name: 'analytics', color: '#8B5CF6' };
     default: return { name: 'fitness', color: '#F97316' };
   }
+}
+
+// ============================================
+// 結果記録モーダル
+// ============================================
+
+interface RecordResultModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onSave: () => void;
+  distance: string;
+  setDistance: (v: string) => void;
+  duration: string;
+  setDuration: (v: string) => void;
+  feeling: FeelingLevel;
+  setFeeling: (v: FeelingLevel) => void;
+  notes: string;
+  setNotes: (v: string) => void;
+}
+
+function RecordResultModal({
+  visible, onClose, onSave,
+  distance, setDistance,
+  duration, setDuration,
+  feeling, setFeeling,
+  notes, setNotes,
+}: RecordResultModalProps) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        style={styles.modalOverlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <Pressable style={styles.modalOverlayPress} onPress={onClose}>
+          <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
+            {/* ヘッダー */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>結果を記録</Text>
+              <Pressable onPress={onClose}>
+                <Ionicons name="close" size={24} color={COLORS.text.secondary} />
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              {/* 距離 */}
+              <View style={styles.modalInputGroup}>
+                <Text style={styles.modalInputLabel}>走行距離（m）</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={distance}
+                  onChangeText={setDistance}
+                  placeholder="例: 6000"
+                  placeholderTextColor={COLORS.text.muted}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              {/* 所要時間 */}
+              <View style={styles.modalInputGroup}>
+                <Text style={styles.modalInputLabel}>所要時間（分）</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={duration}
+                  onChangeText={setDuration}
+                  placeholder="例: 25"
+                  placeholderTextColor={COLORS.text.muted}
+                  keyboardType="numeric"
+                />
+              </View>
+
+              {/* 体感 */}
+              <View style={styles.modalInputGroup}>
+                <Text style={styles.modalInputLabel}>体感</Text>
+                <View style={styles.feelingSelector}>
+                  {(Object.keys(FEELING_CONFIG) as FeelingLevel[]).map((key) => {
+                    const config = FEELING_CONFIG[key];
+                    const isActive = feeling === key;
+                    return (
+                      <Pressable
+                        key={key}
+                        style={[styles.feelingOption, isActive && { backgroundColor: config.color + '25', borderColor: config.color }]}
+                        onPress={() => setFeeling(key)}
+                      >
+                        <Ionicons name={config.icon as any} size={18} color={isActive ? config.color : COLORS.text.muted} />
+                        <Text style={[styles.feelingOptionText, isActive && { color: config.color }]}>
+                          {config.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* メモ */}
+              <View style={styles.modalInputGroup}>
+                <Text style={styles.modalInputLabel}>メモ</Text>
+                <TextInput
+                  style={[styles.modalInput, styles.modalInputMultiline]}
+                  value={notes}
+                  onChangeText={setNotes}
+                  placeholder="練習の感想や気づきなど"
+                  placeholderTextColor={COLORS.text.muted}
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+            </ScrollView>
+
+            {/* ボタン */}
+            <View style={styles.modalButtons}>
+              <Pressable style={styles.modalCancelButton} onPress={onClose}>
+                <Text style={styles.modalCancelButtonText}>キャンセル</Text>
+              </Pressable>
+              <Pressable style={styles.modalSaveButton} onPress={onSave}>
+                <Ionicons name="checkmark" size={18} color="#fff" />
+                <Text style={styles.modalSaveButtonText}>保存</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
 }
 
 
@@ -1387,5 +1794,323 @@ const styles = StyleSheet.create({
     color: COLORS.text.muted,
     textAlign: 'center',
     opacity: 0.7,
+  },
+
+  // トレーニング記録ボタン（概要画面）
+  logEntryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 20,
+  },
+  logEntryButtonLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  logEntryButtonTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  logEntryButtonSubtitle: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginTop: 2,
+  },
+
+  // トレーニング記録画面
+  logSection: {
+    gap: 10,
+    marginBottom: 24,
+  },
+  logCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 14,
+    padding: 16,
+  },
+  logCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  logCardInfo: {
+    flex: 1,
+  },
+  logCardName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 4,
+  },
+  logCardCategory: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+  },
+  logCardActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  logRecordButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.primary,
+    borderRadius: 10,
+  },
+  logRecordButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  logSkipButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 10,
+  },
+  logSkipButtonText: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+  },
+  logDeleteButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderRadius: 10,
+  },
+
+  // ステータスバッジ
+  logStatusBadge: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+  },
+  logStatusPlanned: {
+    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+  },
+  logStatusCompleted: {
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+  },
+  logStatusSkipped: {
+    backgroundColor: 'rgba(156, 163, 175, 0.15)',
+  },
+  logStatusText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+
+  // 空状態
+  logEmptyState: {
+    alignItems: 'center',
+    paddingVertical: 48,
+    gap: 12,
+  },
+  logEmptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  logEmptySubText: {
+    fontSize: 13,
+    color: COLORS.text.muted,
+    textAlign: 'center',
+  },
+
+  // タイムライン
+  logTimeline: {
+    gap: 4,
+  },
+  logDateGroup: {
+    marginBottom: 16,
+  },
+  logDateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  logDateDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.text.muted,
+  },
+  logDateDotToday: {
+    backgroundColor: COLORS.primary,
+  },
+  logDateText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  logDateTextToday: {
+    color: COLORS.primary,
+  },
+  logTimelineCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 12,
+    padding: 14,
+    marginLeft: 20,
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(255, 255, 255, 0.08)',
+    marginBottom: 8,
+  },
+  logTimelineCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  logTimelineCardName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    flex: 1,
+  },
+  logTimelineCardCategory: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginBottom: 8,
+  },
+  logResultSummary: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 4,
+  },
+  logResultItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  logResultValue: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+  },
+  logResultNotes: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    fontStyle: 'italic',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+  },
+
+  // 結果記録モーダル
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  modalOverlayPress: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: COLORS.background.dark,
+    borderRadius: 20,
+    padding: 24,
+    width: '92%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  modalBody: {
+    maxHeight: 400,
+  },
+  modalInputGroup: {
+    marginBottom: 18,
+  },
+  modalInputLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
+    marginBottom: 8,
+  },
+  modalInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    fontSize: 15,
+    color: COLORS.text.primary,
+  },
+  modalInputMultiline: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  feelingSelector: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  feelingOption: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'transparent',
+    gap: 4,
+  },
+  feelingOptionText: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: COLORS.text.muted,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 20,
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  modalCancelButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.secondary,
+  },
+  modalSaveButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary,
+  },
+  modalSaveButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
