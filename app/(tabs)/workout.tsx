@@ -18,6 +18,7 @@ import { formatTime, formatKmPace, calculateWorkoutPace, getWorkoutRationale } f
 import { PremiumGate } from '../../components/PremiumGate';
 import { useIsPremium } from '../../store/useSubscriptionStore';
 import { FadeIn, SlideIn } from '../../src/components/ui/Animated';
+import { useToast } from '../../src/components/ui/Toast';
 import {
   COLORS,
   WORKOUTS,
@@ -25,7 +26,7 @@ import {
   WORKOUT_LIMITER_CONFIG,
   LIMITER_RATIONALE,
 } from '../../src/constants';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { WorkoutTemplate, WorkoutSegment, ZoneName, LimiterType, TrainingLog } from '../../src/types';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
@@ -58,7 +59,7 @@ interface ExpandedSegment {
 
 export default function WorkoutScreen() {
   const isPremium = useIsPremium();
-  const router = useRouter();
+  const { showToast } = useToast();
   const { etp, limiter } = useEffectiveValues();
   const activePlan = usePlanStore((state) => state.activePlan);
   const addTrainingLog = useTrainingLogsStore((state) => state.addLog);
@@ -80,11 +81,7 @@ export default function WorkoutScreen() {
       planId: activePlan?.id,
     };
     addTrainingLog(log);
-    // 計画タブに遷移（タブ間はnavigateを使用）
-    router.navigate({
-      pathname: '/(tabs)/plan',
-      params: { showLog: 'true' },
-    });
+    showToast('計画タブの「トレーニング記録」に追加しました', 'success');
   };
 
   // フォーカス中のタブのみフラグを制御（タブ間の競合を防止）

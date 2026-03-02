@@ -3,7 +3,7 @@
 // ============================================
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter } from 'expo-router';
 import {
   View,
   Text,
@@ -66,7 +66,6 @@ const FEELING_CONFIG: Record<FeelingLevel, { label: string; icon: string; color:
 
 export default function PlanScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ showLog?: string }>();
   const isPremium = useIsPremium();
   const activePlan = usePlanStore((state) => state.activePlan);
   const setPlan = usePlanStore((state) => state.setPlan);
@@ -92,13 +91,6 @@ export default function PlanScreen() {
   const [recordDuration, setRecordDuration] = useState('');
   const [recordFeeling, setRecordFeeling] = useState<FeelingLevel>('normal');
   const [recordNotes, setRecordNotes] = useState('');
-
-  // ワークアウト画面から遷移時にログビューを表示
-  useEffect(() => {
-    if (params.showLog === 'true') {
-      setView('log');
-    }
-  }, [params.showLog]);
 
   // フォーカス中のタブのみフラグを制御（タブ間の競合を防止）
   useEffect(() => {
