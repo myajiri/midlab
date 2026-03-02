@@ -23,6 +23,7 @@ import {
 
 import { STORAGE_KEYS } from '../constants';
 import { calculateEtp, calculateZonesV3, getEffectiveValues, getUserStage, estimateLimiterFromPBs } from '../utils';
+import { generatePlan } from '../utils/planGenerator';
 
 // ============================================
 // Profile Store
@@ -227,6 +228,8 @@ interface PlanState {
     notes?: string;
   }) => void;
   toggleWorkoutComplete: (weekNumber: number, workoutId: string) => void;
+  // プロフィール変更に応じて計画を再生成（完了状態を保持）
+  regeneratePlan: (profile: Profile, testResults: TestResult[]) => void;
 }
 
 export const usePlanStore = create<PlanState>()(
@@ -284,6 +287,68 @@ export const usePlanStore = create<PlanState>()(
 
         set({
           activePlan: { ...plan, weeklyPlans: updatedWeeklyPlans },
+        });
+      },
+
+      // プロフィール変更に応じて計画を再生成（完了状態を保持）
+      regeneratePlan: (profile, testResults) => {
+        const currentPlan = get().activePlan;
+        if (!currentPlan) return;
+
+        // 現在のeTP・リミッターを取得
+        const effective = getEffectiveValues(profile, testResults);
+
+        // 既存の完了状態・実績データを保存（ワークアウトIDで索引）
+        const completionMap = new Map<string, { completed: boolean; actualData?: { distance?: number; duration?: number; notes?: string } }>();
+        for (const week of currentPlan.weeklyPlans) {
+          for (const day of week.days) {
+            if (day && day.completed) {
+              completionMap.set(day.id, { completed: true, actualData: day.actualData });
+            }
+          }
+        }
+
+        // 同じレース・設定で計画を再生成
+        const newPlan = generatePlan({
+          race: currentPlan.race,
+          baseline: { etp: effective.etp, limiterType: effective.limiter },
+          restDay: currentPlan.restDay ?? 6,
+          keyWorkoutDays: currentPlan.keyWorkoutDays,
+          ageCategory: profile.ageCategory,
+          experience: profile.experience,
+          gender: profile.gender,
+          restDayFrequency: currentPlan.restDayFrequency ?? 'auto',
+          monthlyMileage: profile.monthlyMileage,
+        });
+
+        // 完了状態を復元
+        const restoredWeeklyPlans = newPlan.weeklyPlans.map((week) => ({
+          ...week,
+          days: week.days.map((day) => {
+            if (!day) return day;
+            const saved = completionMap.get(day.id);
+            if (saved) {
+              return { ...day, completed: saved.completed, actualData: saved.actualData };
+            }
+            return day;
+          }),
+          workouts: week.workouts.map((w) => {
+            const saved = completionMap.get(w.id);
+            if (saved) {
+              return { ...w, completed: saved.completed, actualData: saved.actualData };
+            }
+            return w;
+          }),
+        }));
+
+        // 元のID・作成日時を保持して更新
+        set({
+          activePlan: {
+            ...newPlan,
+            id: currentPlan.id,
+            createdAt: currentPlan.createdAt,
+            weeklyPlans: restoredWeeklyPlans,
+          },
         });
       },
     }),
@@ -449,3 +514,28 @@ export const useTrainingZones = (): TrainingZones => {
   const { etp, limiter } = useEffectiveValues();
   return calculateZonesV3(etp, limiter);
 };
+
+// ============================================
+// プロフィール変更時の計画自動同期
+// ============================================
+
+// プロフィールまたはテスト結果が変更されたら、既存の計画を自動で再生成する
+const syncPlanWithProfile = () => {
+  const profile = useProfileStore.getState().profile;
+  const testResults = useTestResultsStore.getState().results;
+  usePlanStore.getState().regeneratePlan(profile, testResults);
+};
+
+// プロフィール変更を監視
+useProfileStore.subscribe((state, prevState) => {
+  if (state.profile !== prevState.profile) {
+    syncPlanWithProfile();
+  }
+});
+
+// テスト結果変更を監視
+useTestResultsStore.subscribe((state, prevState) => {
+  if (state.results !== prevState.results) {
+    syncPlanWithProfile();
+  }
+});

@@ -269,6 +269,8 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
     race: { name: race.name, date: race.date, distance: race.distance },
     baseline: { etp: baseline.etp, limiterType: baseline.limiterType },
     keyWorkoutDays,
+    restDay,
+    restDayFrequency,
     phases: phasesForPlan,
     weeklyPlans,
     rampTestDates,
