@@ -670,6 +670,30 @@ export const getWorkoutRationale = (
  * 週間計画の根拠テキストを生成
  * フェーズとリミッタータイプに基づき、この週のメニュー構成の理由を説明
  */
+// 期×リミッター別の週間ねらいテキスト
+const PHASE_LIMITER_FOCUS: Record<PhaseType, Record<LimiterType, string>> = {
+  base: {
+    cardio: 'イージーランと閾値走を中心に有酸素基盤を構築します。毛細血管の発達とミトコンドリアの増加を促し、心肺系の土台を固めます。',
+    muscular: 'イージーランで有酸素基盤を築きつつ、流しやドリルで神経筋系を活性化します。ランニングエコノミーの基礎を作ります。',
+    balanced: 'イージーランと閾値走を軸に有酸素基盤をバランスよく構築します。心肺系・筋持久力の両面から土台を固めます。',
+  },
+  build: {
+    cardio: 'VO2maxインターバルを重点的に配置し、最大酸素摂取量の天井を引き上げます。回復を長めに取り、1本1本の質を重視します。',
+    muscular: 'レペティション・スピード系を重点的に配置し、神経筋協調性とランニングエコノミーを改善します。本数を多めに設定し、筋適応を促します。',
+    balanced: 'VO2maxインターバルとスピード系をバランスよく配置し、心肺機能と筋持久力を同時に引き上げます。',
+  },
+  peak: {
+    cardio: 'レースペースに近い強度のVO2max走と閾値走で、本番に向けた心肺系の最終調整を行います。レース特異的な刺激で仕上げます。',
+    muscular: 'レースペースのレペティションとスピード持久走で、神経筋系の最終調整を行います。レースリズムの定着を重視します。',
+    balanced: 'レースペースに特化した練習で心肺系と筋持久力の最終調整を行います。本番のペース感覚を磨きます。',
+  },
+  taper: {
+    cardio: 'トレーニング量を減らしつつ高強度の刺激は維持し、蓄積された疲労を取り除きます。心肺系のキレを保ちながらレースに備えます。',
+    muscular: 'トレーニング量を減らしつつスピード刺激は維持し、蓄積された疲労を取り除きます。神経筋系のキレを保ちながらレースに備えます。',
+    balanced: 'トレーニング量を減らしつつ強度は維持し、蓄積された疲労を取り除きます。心身のキレを保ちながらレースに備えます。',
+  },
+};
+
 export const getWeeklyPlanRationale = (
   phaseType: PhaseType,
   limiterType: LimiterType,
@@ -684,8 +708,7 @@ export const getWeeklyPlanRationale = (
   }
 
   const phase = PHASE_RATIONALE[phaseType];
-  const limiter = LIMITER_RATIONALE[limiterType];
-  return `${phase.purpose}のフェーズです。${limiter.trainingFocus}`;
+  return `${phase.purpose}のフェーズです。${PHASE_LIMITER_FOCUS[phaseType][limiterType]}`;
 };
 
 // 移行ユーティリティをエクスポート
