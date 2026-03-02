@@ -6,6 +6,7 @@ import {
   LevelName,
   ZoneName,
   LimiterType,
+  PhaseType,
   AgeCategory,
   Experience,
   TerminationReason,
@@ -617,6 +618,72 @@ export const estimateLimiterFromSpeedIndex = (
   } else {
     return { type: 'cardio', confidence: 'high', reason: '持久型（長距離寄り）' };
   }
+};
+
+// ============================================
+// ワークアウト根拠生成
+// ============================================
+
+import {
+  LIMITER_RATIONALE,
+  FOCUS_RATIONALE,
+  PHASE_RATIONALE,
+  PHYSIOLOGICAL_FOCUS_CATEGORIES,
+  WORKOUT_LIMITER_CONFIG,
+} from '../constants';
+
+/**
+ * ワークアウトの根拠テキストを生成
+ * リミッタータイプとフォーカスカテゴリに基づき、なぜこのメニューかを説明
+ */
+export const getWorkoutRationale = (
+  category: string,
+  limiterType: LimiterType,
+): { headline: string; detail: string } => {
+  // フォーカスカテゴリのキーを逆引き
+  const focusKey = Object.entries(PHYSIOLOGICAL_FOCUS_CATEGORIES).find(
+    ([_, v]) => v.menuCategory === category
+  )?.[0];
+
+  const focusRationale = focusKey ? FOCUS_RATIONALE[focusKey] : null;
+  const limiterConfig = WORKOUT_LIMITER_CONFIG[limiterType];
+
+  if (focusRationale) {
+    const connection = focusRationale.limiterConnection[limiterType];
+    return {
+      headline: focusRationale.whyImportant,
+      detail: connection,
+    };
+  }
+
+  // フォールバック（総合カテゴリ等）
+  const limiterRationale = LIMITER_RATIONALE[limiterType];
+  return {
+    headline: `${limiterConfig.name}のあなたに適したトレーニングです。`,
+    detail: limiterRationale.trainingFocus,
+  };
+};
+
+/**
+ * 週間計画の根拠テキストを生成
+ * フェーズとリミッタータイプに基づき、この週のメニュー構成の理由を説明
+ */
+export const getWeeklyPlanRationale = (
+  phaseType: PhaseType,
+  limiterType: LimiterType,
+  isRecoveryWeek: boolean,
+  isRampTestWeek: boolean,
+): string => {
+  if (isRampTestWeek) {
+    return 'ETPテスト週です。テストで最新の走力とリミッタータイプを再測定し、以降のトレーニングに反映します。';
+  }
+  if (isRecoveryWeek) {
+    return '回復週です。負荷を落として体の回復を促し、次の高負荷週に備えます。計画的な休養がパフォーマンス向上の鍵です。';
+  }
+
+  const phase = PHASE_RATIONALE[phaseType];
+  const limiter = LIMITER_RATIONALE[limiterType];
+  return `${phase.purpose}のフェーズです。${limiter.trainingFocus}`;
 };
 
 // 移行ユーティリティをエクスポート

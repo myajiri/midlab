@@ -27,6 +27,11 @@ import { useIsPremium } from '../../store/useSubscriptionStore';
 import {
   COLORS,
   PHASE_CONFIG,
+  PHASE_RATIONALE,
+  LIMITER_RATIONALE,
+  WORKOUT_LIMITER_CONFIG,
+  FOCUS_RATIONALE,
+  PHYSIOLOGICAL_FOCUS_CATEGORIES,
 } from '../../src/constants';
 import {
   RacePlan,
@@ -34,6 +39,7 @@ import {
   ScheduledWorkout,
 } from '../../src/types';
 import { generatePlan } from '../../src/utils/planGenerator';
+import { getWeeklyPlanRationale } from '../../src/utils';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
 import { useIsFocused } from '@react-navigation/native';
@@ -441,12 +447,36 @@ export default function PlanScreen() {
             </SlideIn>
           )}
 
+          {/* フェーズ根拠 */}
+          <SlideIn delay={170} direction="up">
+            <View style={styles.weekRationaleCard}>
+              <View style={styles.weekRationaleHeader}>
+                <Ionicons name="bulb-outline" size={16} color="#EAB308" />
+                <Text style={styles.weekRationaleTitle}>この週のねらい</Text>
+              </View>
+              <Text style={styles.weekRationaleText}>
+                {getWeeklyPlanRationale(weekPlan.phaseType, activePlan.baseline.limiterType, weekPlan.isRecoveryWeek, weekPlan.isRampTestWeek)}
+              </Text>
+              {!weekPlan.isRecoveryWeek && !weekPlan.isRampTestWeek && (
+                <View style={styles.weekRationaleLimiterRow}>
+                  <Ionicons name={WORKOUT_LIMITER_CONFIG[activePlan.baseline.limiterType].icon as any} size={14} color={WORKOUT_LIMITER_CONFIG[activePlan.baseline.limiterType].color} />
+                  <Text style={styles.weekRationaleLimiterText}>{LIMITER_RATIONALE[activePlan.baseline.limiterType].summary}</Text>
+                </View>
+              )}
+            </View>
+          </SlideIn>
+
           {/* 日別スケジュール */}
           <View style={styles.scheduleList}>
             {weekPlan.days.map((day, i) => {
               if (!day) return null;
               const isRestDay = day.type === 'rest';
               const iconInfo = getWorkoutIconInfo(day.type);
+              // Key練習の根拠テキスト
+              const dayFocusKey = day.focusKey;
+              const focusInfo = dayFocusKey && dayFocusKey !== 'test' ? PHYSIOLOGICAL_FOCUS_CATEGORIES[dayFocusKey] : null;
+              const focusRationale = dayFocusKey && dayFocusKey !== 'test' ? FOCUS_RATIONALE[dayFocusKey] : null;
+              const limiterConnection = focusRationale?.limiterConnection[activePlan.baseline.limiterType];
               return (
                 <SlideIn key={i} delay={200 + i * 50} direction="up">
                   <View style={[styles.dayCard, day.completed && styles.dayCardCompleted]}>
@@ -470,6 +500,9 @@ export default function PlanScreen() {
                       <View style={styles.dayCenter}>
                         <Text style={[styles.dayLabel, day.isKey && styles.dayLabelKey]}>{day.label}</Text>
                         {day.isKey && <Text style={styles.keyBadge}>Key</Text>}
+                        {day.isKey && limiterConnection && (
+                          <Text style={styles.dayRationaleHint} numberOfLines={1}>{focusInfo?.description || ''}</Text>
+                        )}
                       </View>
                     </Pressable>
                     {!isRestDay && (
@@ -1178,6 +1211,53 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     color: '#8B5CF6',
+  },
+
+  // 週間根拠カード
+  weekRationaleCard: {
+    backgroundColor: 'rgba(234, 179, 8, 0.08)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(234, 179, 8, 0.15)',
+  },
+  weekRationaleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  weekRationaleTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#EAB308',
+  },
+  weekRationaleText: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    lineHeight: 20,
+  },
+  weekRationaleLimiterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  weekRationaleLimiterText: {
+    fontSize: 12,
+    color: COLORS.text.primary,
+    fontWeight: '500',
+  },
+  dayRationaleHint: {
+    fontSize: 10,
+    color: COLORS.text.muted,
+    marginTop: 2,
+    width: '100%',
   },
 
   // スケジュールリスト
