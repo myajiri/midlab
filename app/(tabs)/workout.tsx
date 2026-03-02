@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useEffectiveValues } from '../../src/stores/useAppStore';
+import { useEffectiveValues, usePlanStore, useTrainingLogsStore } from '../../src/stores/useAppStore';
 import { formatTime, formatKmPace, calculateWorkoutPace, getWorkoutRationale } from '../../src/utils';
 import { PremiumGate } from '../../components/PremiumGate';
 import { useIsPremium } from '../../store/useSubscriptionStore';
@@ -25,8 +25,8 @@ import {
   WORKOUT_LIMITER_CONFIG,
   LIMITER_RATIONALE,
 } from '../../src/constants';
-import { useLocalSearchParams } from 'expo-router';
-import { WorkoutTemplate, WorkoutSegment, ZoneName, LimiterType } from '../../src/types';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { WorkoutTemplate, WorkoutSegment, ZoneName, LimiterType, TrainingLog } from '../../src/types';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
 import { useIsFocused } from '@react-navigation/native';
@@ -58,12 +58,34 @@ interface ExpandedSegment {
 
 export default function WorkoutScreen() {
   const isPremium = useIsPremium();
+  const router = useRouter();
   const { etp, limiter } = useEffectiveValues();
+  const activePlan = usePlanStore((state) => state.activePlan);
+  const addTrainingLog = useTrainingLogsStore((state) => state.addLog);
   const params = useLocalSearchParams<{ category?: string; t?: string }>();
   const [selectedCategory, setSelectedCategory] = useState<string>(params.category || 'all');
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutTemplate | null>(null);
   const setSubScreenOpen = useSetSubScreenOpen();
   const isFocused = useIsFocused();
+
+  // メニューを実施選択する
+  const handleSelectForTraining = (workout: WorkoutTemplate) => {
+    const log: TrainingLog = {
+      id: `tl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      date: new Date().toISOString().split('T')[0],
+      workoutId: workout.id,
+      workoutName: workout.name,
+      workoutCategory: workout.category,
+      status: 'planned',
+      planId: activePlan?.id,
+    };
+    addTrainingLog(log);
+    // 計画タブに遷移
+    router.push({
+      pathname: '/(tabs)/plan',
+      params: { showLog: 'true' },
+    });
+  };
 
   // フォーカス中のタブのみフラグを制御（タブ間の競合を防止）
   useEffect(() => {
@@ -108,6 +130,7 @@ export default function WorkoutScreen() {
           etp={etp}
           limiter={limiter}
           onBack={() => setSelectedWorkout(null)}
+          onStartTraining={handleSelectForTraining}
         />
       </SwipeBackView>
     );
@@ -181,32 +204,46 @@ export default function WorkoutScreen() {
               const expanded = expandSegments(workout.segments, variant);
 
               return (
-                <Pressable
-                  key={workout.id}
-                  style={styles.workoutCard}
-                  onPress={() => setSelectedWorkout(workout)}
-                >
-                  <IntensityGraph segments={expanded} height={80} />
-                  <View style={styles.workoutCardBody}>
-                    <View style={styles.workoutCardNameRow}>
-                      <Text style={styles.workoutCardName}>{workout.name}</Text>
-                      <View style={styles.workoutCardCategoryBadge}>
-                        <Text style={styles.workoutCardCategoryText}>
-                          {CATEGORY_LABELS[workout.category] || workout.category}
-                        </Text>
+                <View key={workout.id} style={styles.workoutCard}>
+                  <Pressable onPress={() => setSelectedWorkout(workout)}>
+                    <IntensityGraph segments={expanded} height={80} />
+                    <View style={styles.workoutCardBody}>
+                      <View style={styles.workoutCardNameRow}>
+                        <Text style={styles.workoutCardName}>{workout.name}</Text>
+                        <View style={styles.workoutCardCategoryBadge}>
+                          <Text style={styles.workoutCardCategoryText}>
+                            {CATEGORY_LABELS[workout.category] || workout.category}
+                          </Text>
+                        </View>
                       </View>
+                      <Text style={styles.workoutCardDistance}>
+                        {totalDistance.toLocaleString()}m ({(totalDistance / 400).toFixed(0)}周)
+                      </Text>
+                      {variant?.note && (
+                        <View style={styles.workoutCardNote}>
+                          <Ionicons name={WORKOUT_LIMITER_CONFIG[limiter].icon as any} size={14} color={WORKOUT_LIMITER_CONFIG[limiter].color} />
+                          <Text style={styles.workoutCardNoteText}>{variant.note}</Text>
+                        </View>
+                      )}
                     </View>
-                    <Text style={styles.workoutCardDistance}>
-                      {totalDistance.toLocaleString()}m ({(totalDistance / 400).toFixed(0)}周)
-                    </Text>
-                    {variant?.note && (
-                      <View style={styles.workoutCardNote}>
-                        <Ionicons name={WORKOUT_LIMITER_CONFIG[limiter].icon as any} size={14} color={WORKOUT_LIMITER_CONFIG[limiter].color} />
-                        <Text style={styles.workoutCardNoteText}>{variant.note}</Text>
-                      </View>
-                    )}
+                  </Pressable>
+                  <View style={styles.workoutCardActions}>
+                    <Pressable
+                      style={styles.workoutDetailButton}
+                      onPress={() => setSelectedWorkout(workout)}
+                    >
+                      <Ionicons name="information-circle-outline" size={16} color={COLORS.text.secondary} />
+                      <Text style={styles.workoutDetailButtonText}>詳細</Text>
+                    </Pressable>
+                    <Pressable
+                      style={styles.workoutStartButton}
+                      onPress={() => handleSelectForTraining(workout)}
+                    >
+                      <Ionicons name="play-circle" size={16} color="#fff" />
+                      <Text style={styles.workoutStartButtonText}>このメニューを実施</Text>
+                    </Pressable>
                   </View>
-                </Pressable>
+                </View>
               );
             })}
           </View>
@@ -225,9 +262,10 @@ interface WorkoutDetailScreenProps {
   etp: number;
   limiter: LimiterType;
   onBack: () => void;
+  onStartTraining?: (workout: WorkoutTemplate) => void;
 }
 
-function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScreenProps) {
+function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining }: WorkoutDetailScreenProps) {
   const variant = workout.limiterVariants?.[limiter];
   const expandedSegments = expandSegments(workout.segments, variant);
   const totalDistance = calculateTotalDistance(workout.segments, variant);
@@ -344,6 +382,19 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack }: WorkoutDetailScr
         {intervalSegment && intervalPace && (
           <SlideIn delay={300} direction="up">
             <CompactLapTable distance={intervalSegment.distance} pace400m={intervalPace} />
+          </SlideIn>
+        )}
+
+        {/* このメニューを実施ボタン */}
+        {onStartTraining && (
+          <SlideIn delay={400} direction="up">
+            <Pressable
+              style={styles.startTrainingButton}
+              onPress={() => onStartTraining(workout)}
+            >
+              <Ionicons name="play-circle" size={20} color="#fff" />
+              <Text style={styles.startTrainingButtonText}>このメニューを実施</Text>
+            </Pressable>
           </SlideIn>
         )}
       </ScrollView>
@@ -650,6 +701,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#F97316',
   },
+  workoutCardActions: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    paddingTop: 4,
+  },
+  workoutDetailButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  workoutDetailButtonText: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    fontWeight: '500',
+  },
+  workoutStartButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: COLORS.primary,
+  },
+  workoutStartButtonText: {
+    fontSize: 13,
+    color: '#fff',
+    fontWeight: '600',
+  },
 
   // 詳細画面
   detailHeader: {
@@ -855,5 +943,22 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: COLORS.text.primary,
+  },
+
+  // 実施ボタン（詳細画面）
+  startTrainingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 24,
+    paddingVertical: 16,
+    backgroundColor: COLORS.primary,
+    borderRadius: 14,
+  },
+  startTrainingButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

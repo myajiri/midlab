@@ -11,6 +11,8 @@ import {
   TestResult,
   RacePlan,
   WorkoutLog,
+  TrainingLog,
+  FeelingLevel,
   AppSettings,
   LimiterType,
   AgeCategory,
@@ -316,6 +318,80 @@ export const useWorkoutLogsStore = create<WorkoutLogsState>()(
     }),
     {
       name: STORAGE_KEYS.workoutLogs,
+      storage: createJSONStorage(() => AsyncStorage),
+    }
+  )
+);
+
+// ============================================
+// Training Logs Store（トレーニング日誌）
+// ============================================
+
+interface TrainingLogsState {
+  logs: TrainingLog[];
+  addLog: (log: TrainingLog) => void;
+  completeLog: (id: string, result: {
+    distance?: number;
+    duration?: number;
+    feeling?: FeelingLevel;
+    notes?: string;
+  }) => void;
+  skipLog: (id: string) => void;
+  updateLog: (id: string, updates: Partial<TrainingLog>) => void;
+  deleteLog: (id: string) => void;
+  getLogsByPlanId: (planId: string) => TrainingLog[];
+}
+
+export const useTrainingLogsStore = create<TrainingLogsState>()(
+  persist(
+    (set, get) => ({
+      logs: [],
+
+      addLog: (log) => {
+        const current = get().logs;
+        set({ logs: [log, ...current] });
+      },
+
+      completeLog: (id, result) => {
+        const logs = get().logs.map((log) => {
+          if (log.id !== id) return log;
+          return {
+            ...log,
+            status: 'completed' as const,
+            result,
+            completedAt: new Date().toISOString(),
+          };
+        });
+        set({ logs });
+      },
+
+      skipLog: (id) => {
+        const logs = get().logs.map((log) => {
+          if (log.id !== id) return log;
+          return { ...log, status: 'skipped' as const };
+        });
+        set({ logs });
+      },
+
+      updateLog: (id, updates) => {
+        const logs = get().logs.map((log) => {
+          if (log.id !== id) return log;
+          return { ...log, ...updates };
+        });
+        set({ logs });
+      },
+
+      deleteLog: (id) => {
+        const logs = get().logs.filter((log) => log.id !== id);
+        set({ logs });
+      },
+
+      getLogsByPlanId: (planId) => {
+        return get().logs.filter((log) => log.planId === planId);
+      },
+    }),
+    {
+      name: STORAGE_KEYS.trainingLogs,
       storage: createJSONStorage(() => AsyncStorage),
     }
   )
