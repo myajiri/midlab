@@ -280,8 +280,8 @@ export default function OnboardingMain() {
         }}
         value={activePickerDistance ? (pbs[activePickerDistance] || undefined) : undefined}
         title={activePickerConfig?.title || 'ベストタイム'}
-        minMinutes={activePickerConfig?.minMinutes || 1}
-        maxMinutes={activePickerConfig?.maxMinutes || 30}
+        minMinutes={activePickerConfig?.minMinutes ?? 1}
+        maxMinutes={activePickerConfig?.maxMinutes ?? 30}
       />
     </SafeAreaView>
   );
