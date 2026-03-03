@@ -7,7 +7,7 @@ export default {
   expo: {
     name: "ミドラボ",
     slug: "midlab",
-    version: "1.0.1",
+    version: "1.0.2",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     scheme: "midlab",
@@ -21,7 +21,7 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.midlab.app",
-      buildNumber: "23"
+      buildNumber: "24"
     },
     android: {
       adaptiveIcon: {
@@ -29,7 +29,7 @@ export default {
         backgroundColor: "#0a0a0f"
       },
       package: "com.midlab.app",
-      versionCode: 22
+      versionCode: 23
     },
     web: {
       bundler: "metro",
