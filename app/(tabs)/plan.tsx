@@ -1032,9 +1032,25 @@ export default function PlanScreen() {
 
         {/* 管理ボタン */}
         <SlideIn delay={400} direction="up">
-          <Pressable style={styles.actionButton} onPress={handleDeletePlan}>
+          <Pressable
+            style={styles.actionButton}
+            onPress={() => {
+              Alert.alert(
+                '新しい計画を作成',
+                '現在の計画を上書きして新しい計画を作成します。トレーニング記録やテスト結果は保持されます。',
+                [
+                  { text: 'キャンセル', style: 'cancel' },
+                  { text: '作成する', onPress: () => setView('create') },
+                ],
+              );
+            }}
+          >
+            <Ionicons name="create-outline" size={18} color={COLORS.primary} />
+            <Text style={[styles.actionButtonText, { color: COLORS.primary }]}>新しい計画を作成</Text>
+          </Pressable>
+          <Pressable style={[styles.actionButton, { marginTop: 8 }]} onPress={handleDeletePlan}>
             <Ionicons name="trash-outline" size={18} color="#EF4444" />
-            <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>削除</Text>
+            <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>計画を削除</Text>
           </Pressable>
         </SlideIn>
       </ScrollView>

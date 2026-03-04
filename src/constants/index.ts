@@ -344,16 +344,48 @@ export const WORKOUTS = [
     id: 'recovery-4000',
     name: 'リカバリー4000m',
     category: '有酸素ベース',
-    description: 'キーワークアウト翌日の回復走。リカバリーペースで体の回復を促進。ゆっくり余裕を持って走る。',
+    description: 'キーワークアウト翌日の回復走。表示ペースは上限目安で、これより遅くてOK。体の回復を最優先に。分割走（朝夕2回）にしても効果的。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 800, label: 'W-up 2周' },
       { zone: 'jog' as ZoneName, distance: 2400, label: 'Recovery 6周' },
       { zone: 'jog' as ZoneName, distance: 800, label: 'C-down 2周' },
     ],
     limiterVariants: {
-      cardio: { note: '3200mに短縮可' },
-      muscular: { note: '標準で実施' },
-      balanced: { note: '標準で実施' },
+      cardio: { note: '3200mに短縮可。ペースは上限目安' },
+      muscular: { note: '標準で実施。ペースは上限目安' },
+      balanced: { note: '標準で実施。ペースは上限目安' },
+    },
+  },
+  {
+    id: 'recovery-6000',
+    name: 'リカバリー6000m',
+    category: '有酸素ベース',
+    description: '月間走行距離200km以上の選手向けリカバリー走。表示ペースは上限目安で、これより遅くてOK。分割走（朝夕2回に分けて3000m×2）も推奨。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'W-up 3周' },
+      { zone: 'jog' as ZoneName, distance: 3600, label: 'Recovery 9周' },
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'C-down 3周' },
+    ],
+    limiterVariants: {
+      cardio: { note: '4000mに短縮可。ペースは上限目安' },
+      muscular: { note: '標準で実施。ペースは上限目安' },
+      balanced: { note: '標準で実施。ペースは上限目安' },
+    },
+  },
+  {
+    id: 'recovery-8000',
+    name: 'リカバリー8000m',
+    category: '有酸素ベース',
+    description: '月間走行距離300km以上の選手向けリカバリー走。表示ペースは上限目安で、これより遅くてOK。分割走（朝夕2回に分けて4000m×2）も推奨。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
+      { zone: 'jog' as ZoneName, distance: 4800, label: 'Recovery 12周' },
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'C-down 4周' },
+    ],
+    limiterVariants: {
+      cardio: { note: '6000mに短縮可。ペースは上限目安' },
+      muscular: { note: '標準で実施。ペースは上限目安' },
+      balanced: { note: '標準で実施。ペースは上限目安' },
     },
   },
   {
@@ -478,7 +510,7 @@ export const WORKOUTS = [
   {
     id: 'reps-200x10',
     name: '200m×10レペティション',
-    category: '神経筋系',
+    category: 'スピード・スプリント',
     targetLimiter: 'muscular' as LimiterType,
     description: 'レペティションペースでの短距離反復。神経筋協調性とランニングエコノミーを改善。筋持久力リミッター型のスピード強化に効果的。',
     segments: [
@@ -560,7 +592,7 @@ export const WORKOUTS = [
   {
     id: 'reps-300x8',
     name: '300m×8レペティション',
-    category: '神経筋系',
+    category: 'スピード・スプリント',
     description: '300mレペティション。200mより長い距離でスピード持久力を養成。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
@@ -576,7 +608,7 @@ export const WORKOUTS = [
   {
     id: 'reps-400x6',
     name: '400m×6レペティション',
-    category: '神経筋系',
+    category: 'スピード・スプリント',
     description: '400mレペティション。1周のスピード持久力とフォーム維持を養成。中距離選手に効果的。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
@@ -613,6 +645,72 @@ export const WORKOUTS = [
       balanced: { note: '標準で実施' },
     },
   },
+  // ショートインターバル・スプリント系（中距離選手向け追加メニュー）
+  {
+    id: 'short-200x12',
+    name: '200m×12ショートインターバル',
+    category: 'スピード・スプリント',
+    description: 'VO2max〜Rペースでの高回転ショートインターバル。800m/1500m選手のスピード持久力を養成。レースペースへの適応に効果的。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
+      { zone: 'repetition' as ZoneName, distance: 200, label: 'R 200m', reps: 12, recoveryDistance: 200 },
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'C-down 3周' },
+    ],
+    limiterVariants: {
+      cardio: { reps: 10, recoveryDistance: 300, note: '10本に減、回復300m' },
+      muscular: { reps: 14, recoveryDistance: 200, note: '14本に増量' },
+      balanced: { reps: 12, recoveryDistance: 200, note: '標準で実施' },
+    },
+  },
+  {
+    id: 'sprint-150x8',
+    name: '150m×8スプリント',
+    category: 'スピード・スプリント',
+    description: '最大スピードに近い短距離スプリント。ランニングフォームの改善とトップスピードの向上に。800m選手のラストスパート強化に効果的。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
+      { zone: 'repetition' as ZoneName, distance: 150, label: 'Sprint 150m', reps: 8, recoveryDistance: 250 },
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'C-down 3周' },
+    ],
+    limiterVariants: {
+      cardio: { reps: 6, recoveryDistance: 400, note: '6本に減、回復400m' },
+      muscular: { reps: 10, recoveryDistance: 200, note: '10本に増量' },
+      balanced: { reps: 8, recoveryDistance: 250, note: '標準で実施' },
+    },
+  },
+  {
+    id: 'speed-300x6',
+    name: '300m×6スピード持久力',
+    category: 'スピード・スプリント',
+    description: '300mをレペティションペースで。レースの中盤〜終盤のペース維持能力を養成。1500m選手のスピード持久力強化に最適。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
+      { zone: 'repetition' as ZoneName, distance: 300, label: 'R 300m', reps: 6, recoveryDistance: 300 },
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'C-down 3周' },
+    ],
+    limiterVariants: {
+      cardio: { reps: 5, recoveryDistance: 500, note: '5本に減、回復500m' },
+      muscular: { reps: 8, recoveryDistance: 300, note: '8本に増量' },
+      balanced: { reps: 6, recoveryDistance: 300, note: '標準で実施' },
+    },
+  },
+  {
+    id: 'windsprints',
+    name: 'ウインドスプリント（流し）',
+    category: 'スピード・スプリント',
+    description: 'イージー走＋流し。イージー走の後に100m流しを入れることで、スピード刺激を加えつつ回復を確保。基礎期のスピード維持に。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 800, label: 'W-up 2周' },
+      { zone: 'easy' as ZoneName, distance: 4000, label: 'Easy 10周' },
+      { zone: 'repetition' as ZoneName, distance: 100, label: '流し 100m', reps: 6, recoveryDistance: 300 },
+      { zone: 'jog' as ZoneName, distance: 800, label: 'C-down 2周' },
+    ],
+    limiterVariants: {
+      cardio: { note: '流し4本に減' },
+      muscular: { note: '流し8本に増量' },
+      balanced: { note: '標準で実施' },
+    },
+  },
 ];
 
 // イージー走距離目安（種目×フェーズ別）
@@ -631,15 +729,16 @@ export const WEEKLY_DISTANCE_BY_EVENT = {
   5000: { base: 55000, build: 70000, peak: 60000, taper: 35000 },
 };
 
-// キーワークアウト（フェーズ別）
-export const KEY_WORKOUTS_BY_PHASE = {
+// キーワークアウト（フェーズ別・デフォルト）
+// 種目別の調整は KEY_WORKOUTS_BY_DISTANCE で上書きされる
+export const KEY_WORKOUTS_BY_PHASE: Record<PhaseType, { categories: string[]; focusKeys: string[]; description: string }> = {
   base: {
     categories: ['有酸素ベース', '乳酸閾値'],
     focusKeys: ['aerobic', 'threshold'],
     description: '有酸素能力の土台を構築',
   },
   build: {
-    categories: ['VO2max', '乳酸閾値', '神経筋系'],
+    categories: ['VO2max', '乳酸閾値', 'スピード・スプリント'],
     focusKeys: ['vo2max', 'threshold', 'speed'],
     description: 'VO2max・乳酸閾値の向上',
   },
@@ -649,10 +748,25 @@ export const KEY_WORKOUTS_BY_PHASE = {
     description: 'レースペースへの最終調整',
   },
   taper: {
-    categories: ['有酸素ベース', '神経筋系'],
+    categories: ['有酸素ベース', 'スピード・スプリント'],
     focusKeys: ['aerobic', 'speed'],
-    description: '疲労回復と神経筋系維持',
+    description: '疲労回復とスピード維持',
   },
+};
+
+// 種目別キーワークアウト配分
+// 800m/1500mではスピード・スプリントを2つのKey日の1つに昇格
+export const KEY_WORKOUTS_BY_DISTANCE: Record<number, Partial<Record<PhaseType, { focusKeys: string[] }>>> = {
+  800: {
+    base: { focusKeys: ['threshold', 'speed'] },       // 800m: 基礎期でもスピード刺激
+    build: { focusKeys: ['vo2max', 'speed'] },          // 800m: スピードを2番手に昇格
+    peak: { focusKeys: ['speed', 'vo2max'] },           // 800m: スピードを最優先
+  },
+  1500: {
+    build: { focusKeys: ['vo2max', 'speed'] },          // 1500m: スピードを2番手に昇格
+    peak: { focusKeys: ['vo2max', 'speed'] },           // 1500m: スピードを2番手に
+  },
+  // 3000m, 5000mはデフォルト（KEY_WORKOUTS_BY_PHASE）をそのまま使用
 };
 
 // 生理学的焦点カテゴリ
@@ -679,11 +793,11 @@ export const PHYSIOLOGICAL_FOCUS_CATEGORIES: Record<string, { name: string; menu
     description: '最大酸素摂取量の向上',
   },
   speed: {
-    name: '神経筋系',
-    menuCategory: '神経筋系',
+    name: 'スピード・スプリント',
+    menuCategory: 'スピード・スプリント',
     iconName: 'flash',
     color: '#EF4444',
-    description: '神経筋協調性・ランニングエコノミー',
+    description: 'スピード持久力・ランニングエコノミー',
   },
 };
 
@@ -699,9 +813,10 @@ export const WORKOUT_SELECTION_BY_ETP: Record<string, Array<{ maxEtp: number; wo
     { maxEtp: 75, workoutId: 'tempo-6000' },       // 速い選手 → 長めテンポ
     { maxEtp: 999, workoutId: 'tempo-4000' },      // 標準 → 4000m
   ],
-  '神経筋系': [
-    { maxEtp: 75, workoutId: 'reps-400x6' },       // 速い選手 → 長めレップ
-    { maxEtp: 999, workoutId: 'reps-200x10' },     // 標準 → 200m
+  'スピード・スプリント': [
+    { maxEtp: 70, workoutId: 'speed-300x6' },      // SS〜S: 300mスピード持久力
+    { maxEtp: 80, workoutId: 'reps-400x6' },       // A: 400mレップ
+    { maxEtp: 999, workoutId: 'reps-200x10' },     // B〜C: 200mレップ
   ],
 };
 
@@ -794,10 +909,10 @@ export const FOCUS_RATIONALE: Record<string, {
     },
   },
   speed: {
-    whyImportant: '神経筋系のトレーニングはランニングエコノミー（走効率）を改善し、同じ酸素消費量でより速く走れるようになります。',
+    whyImportant: 'スピード・スプリント系のトレーニングはランニングエコノミー（走効率）とトップスピードを改善し、レースのペース変動への対応力を高めます。特に800m/1500mではスピード持久力が成績を大きく左右します。',
     limiterConnection: {
       cardio: '心肺リミッター型でもスピード維持は重要です。本数を控えめにし回復を十分取ります。',
-      muscular: 'あなたの筋持久力リミッターを改善するために重点配置されています。本数を多めにして神経筋適応を最大化します。',
+      muscular: 'あなたの筋持久力リミッターを改善するために重点配置されています。本数を多めにしてスピード適応を最大化します。',
       balanced: 'バランスよくスピード刺激を与え、走効率の向上を図ります。',
     },
   },
@@ -877,6 +992,13 @@ export const LONG_RUN_BY_DISTANCE: Array<{ maxDistance: number; workoutId: strin
   { maxDistance: 999999, workoutId: 'long-18000', distance: 18000 },
 ];
 
+// リカバリー走距離の選択テーブル（ボリュームスケールで選択）
+export const RECOVERY_WORKOUT_BY_DISTANCE: Array<{ maxDistance: number; workoutId: string; distance: number }> = [
+  { maxDistance: 5000, workoutId: 'recovery-4000', distance: 4000 },
+  { maxDistance: 7000, workoutId: 'recovery-6000', distance: 6000 },
+  { maxDistance: 999999, workoutId: 'recovery-8000', distance: 8000 },
+];
+
 // ワークアウト本数のボリューム倍率テーブル
 // volumeScale > threshold の場合、repsBonus本追加
 export const WORKOUT_REPS_SCALING: Array<{ threshold: number; repsBonus: number }> = [
@@ -896,7 +1018,7 @@ export const INTENSITY_DISTRIBUTION_BY_EXPERIENCE: Record<Experience, { easyRati
 // プラン生成バージョン
 // メニュー内容・プランロジックに変更があった場合にインクリメントする
 // これにより既存ユーザーに再生成を促す通知が表示される
-export const PLAN_VERSION = 2;
+export const PLAN_VERSION = 3;
 
 // カラー定義
 export const COLORS = {
