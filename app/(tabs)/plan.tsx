@@ -23,6 +23,7 @@ import {
   useProfileStore,
   useEffectiveValues,
   useTrainingLogsStore,
+  useTestResultsStore,
 } from '../../src/stores/useAppStore';
 import { Card, Button, DatePickerModal } from '../../src/components/ui';
 import { FadeIn, SlideIn, AnimatedPressable } from '../../src/components/ui/Animated';
@@ -37,6 +38,7 @@ import {
   FOCUS_RATIONALE,
   PHYSIOLOGICAL_FOCUS_CATEGORIES,
   REST_DAY_FREQUENCY_CONFIG,
+  PLAN_VERSION,
 } from '../../src/constants';
 import {
   RacePlan,
@@ -71,8 +73,32 @@ export default function PlanScreen() {
   const setPlan = usePlanStore((state) => state.setPlan);
   const clearPlan = usePlanStore((state) => state.clearPlan);
   const toggleWorkoutComplete = usePlanStore((state) => state.toggleWorkoutComplete);
+  const regeneratePlan = usePlanStore((state) => state.regeneratePlan);
   const { etp, limiter } = useEffectiveValues();
   const profile = useProfileStore((state) => state.profile);
+  const testResults = useTestResultsStore((state) => state.results);
+
+  // メニュー更新通知の非表示フラグ
+  const [updateBannerDismissed, setUpdateBannerDismissed] = useState(false);
+  const showUpdateBanner = activePlan && !updateBannerDismissed && (activePlan.planVersion || 0) < PLAN_VERSION;
+
+  // メニュー更新: 計画を再生成
+  const handleRegeneratePlan = () => {
+    Alert.alert(
+      'メニューを更新',
+      '最新のメニューで計画を再生成します。完了済みのマークは保持されます。',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '更新する',
+          onPress: () => {
+            regeneratePlan(profile, testResults);
+            setUpdateBannerDismissed(true);
+          },
+        },
+      ],
+    );
+  };
 
   // トレーニングログ
   const trainingLogs = useTrainingLogsStore((state) => state.logs);
@@ -585,12 +611,13 @@ export default function PlanScreen() {
                     <Pressable
                       style={styles.dayContent}
                       onPress={() => {
-                        if (!isRestDay && day.type !== 'test') {
+                        // タップ: メニュー詳細を確認（差し替えモードではない）
+                        if (!isRestDay && day.type !== 'test' && day.workoutId) {
                           router.push({
                             pathname: '/(tabs)/workout',
                             params: {
                               category: day.focusCategory || 'all',
-                              ...(day.workoutId ? { workoutId: day.type === 'recovery' ? 'recovery-4000' : day.workoutId } : {}),
+                              workoutId: day.workoutId,
                               t: Date.now().toString(),
                             },
                           });
@@ -604,13 +631,35 @@ export default function PlanScreen() {
                         </View>
                       </View>
                       <View style={styles.dayCenter}>
-                        <Text style={[styles.dayLabel, day.isKey && styles.dayLabelKey]}>{day.label}</Text>
-                        {day.isKey && <Text style={styles.keyBadge}>Key</Text>}
+                        <View style={styles.dayLabelRow}>
+                          <Text style={[styles.dayLabel, day.isKey && styles.dayLabelKey]} numberOfLines={1}>{day.label}</Text>
+                          {day.isKey && <Text style={styles.keyBadge}>Key</Text>}
+                        </View>
                         {day.isKey && limiterConnection && (
                           <Text style={styles.dayRationaleHint} numberOfLines={1}>{focusInfo?.description || ''}</Text>
                         )}
                       </View>
                     </Pressable>
+                    {!isRestDay && day.type !== 'test' && (
+                      <Pressable
+                        style={styles.dayReplaceButton}
+                        onPress={() => {
+                          // 変更ボタン: 差し替えモードでワークアウト画面へ
+                          router.push({
+                            pathname: '/(tabs)/workout',
+                            params: {
+                              category: day.focusCategory || 'all',
+                              replaceWeek: weekPlan.weekNumber.toString(),
+                              replaceDayId: day.id,
+                              replaceDayLabel: `第${weekPlan.weekNumber}週 ${dayNames[i]}曜`,
+                              t: Date.now().toString(),
+                            },
+                          });
+                        }}
+                      >
+                        <Ionicons name="swap-horizontal" size={16} color={COLORS.text.muted} />
+                      </Pressable>
+                    )}
                     {!isRestDay && (
                       <Pressable
                         style={styles.checkButton}
@@ -630,7 +679,7 @@ export default function PlanScreen() {
           </View>
 
           <FadeIn delay={600}>
-            <Text style={styles.completionHintText}>タップで完了マーク</Text>
+            <Text style={styles.completionHintText}>タップで詳細確認 ・ ⇄で変更 ・ ○で完了</Text>
           </FadeIn>
         </ScrollView>
       </SafeAreaView>
@@ -851,6 +900,35 @@ export default function PlanScreen() {
           </View>
         </FadeIn>
 
+        {/* メニュー更新通知バナー */}
+        {showUpdateBanner && (
+          <SlideIn delay={80} direction="up">
+            <View style={styles.updateBanner}>
+              <View style={styles.updateBannerContent}>
+                <Ionicons name="refresh-circle" size={22} color="#EAB308" />
+                <View style={styles.updateBannerTextContainer}>
+                  <Text style={styles.updateBannerTitle}>メニューが更新されました</Text>
+                  <Text style={styles.updateBannerDesc}>走力に合わせた最新メニューに更新できます</Text>
+                </View>
+              </View>
+              <View style={styles.updateBannerActions}>
+                <Pressable
+                  style={styles.updateBannerButton}
+                  onPress={handleRegeneratePlan}
+                >
+                  <Text style={styles.updateBannerButtonText}>更新する</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.updateBannerDismiss}
+                  onPress={() => setUpdateBannerDismissed(true)}
+                >
+                  <Text style={styles.updateBannerDismissText}>後で</Text>
+                </Pressable>
+              </View>
+            </View>
+          </SlideIn>
+        )}
+
         {/* フェーズバー */}
         {activePlan.phases && (
           <SlideIn delay={100} direction="up">
@@ -974,9 +1052,25 @@ export default function PlanScreen() {
 
         {/* 管理ボタン */}
         <SlideIn delay={400} direction="up">
-          <Pressable style={styles.actionButton} onPress={handleDeletePlan}>
+          <Pressable
+            style={styles.actionButton}
+            onPress={() => {
+              Alert.alert(
+                '新しい計画を作成',
+                '現在の計画を上書きして新しい計画を作成します。トレーニング記録やテスト結果は保持されます。',
+                [
+                  { text: 'キャンセル', style: 'cancel' },
+                  { text: '作成する', onPress: () => setView('create') },
+                ],
+              );
+            }}
+          >
+            <Ionicons name="create-outline" size={18} color={COLORS.primary} />
+            <Text style={[styles.actionButtonText, { color: COLORS.primary }]}>新しい計画を作成</Text>
+          </Pressable>
+          <Pressable style={[styles.actionButton, { marginTop: 8 }]} onPress={handleDeletePlan}>
             <Ionicons name="trash-outline" size={18} color="#EF4444" />
-            <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>削除</Text>
+            <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>計画を削除</Text>
           </Pressable>
         </SlideIn>
       </ScrollView>
@@ -1722,8 +1816,6 @@ const styles = StyleSheet.create({
   dayRationaleHint: {
     fontSize: 10,
     color: COLORS.text.muted,
-    marginTop: 2,
-    width: '100%',
   },
 
   // スケジュールリスト
@@ -1762,6 +1854,9 @@ const styles = StyleSheet.create({
   },
   dayCenter: {
     flex: 1,
+    gap: 2,
+  },
+  dayLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -1769,6 +1864,7 @@ const styles = StyleSheet.create({
   dayLabel: {
     fontSize: 14,
     color: COLORS.text.primary,
+    flexShrink: 1,
   },
   dayLabelKey: {
     fontWeight: '500',
@@ -1786,6 +1882,12 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  dayReplaceButton: {
+    width: 36,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   checkButton: {
     width: 48,
@@ -2116,5 +2218,62 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
+  },
+
+  // メニュー更新通知バナー
+  updateBanner: {
+    backgroundColor: 'rgba(234, 179, 8, 0.1)',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(234, 179, 8, 0.25)',
+  },
+  updateBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 12,
+  },
+  updateBannerTextContainer: {
+    flex: 1,
+  },
+  updateBannerTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#EAB308',
+    marginBottom: 4,
+  },
+  updateBannerDesc: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    lineHeight: 18,
+  },
+  updateBannerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  updateBannerButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#EAB308',
+    alignItems: 'center',
+  },
+  updateBannerButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  updateBannerDismiss: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+  },
+  updateBannerDismissText: {
+    fontSize: 14,
+    color: COLORS.text.muted,
   },
 });

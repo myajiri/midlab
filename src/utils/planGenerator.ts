@@ -21,6 +21,7 @@ import {
   PHASE_DISTRIBUTION,
   DISTRIBUTION_BY_LIMITER,
   KEY_WORKOUTS_BY_PHASE,
+  KEY_WORKOUTS_BY_DISTANCE,
   WEEKLY_DISTANCE_BY_EVENT,
   EASY_DISTANCE_BY_EVENT,
   TAPER_CONFIG,
@@ -33,8 +34,10 @@ import {
   VOLUME_SCALE_LIMITS,
   EASY_WORKOUT_BY_DISTANCE,
   LONG_RUN_BY_DISTANCE,
+  RECOVERY_WORKOUT_BY_DISTANCE,
   WORKOUT_REPS_SCALING,
   INTENSITY_DISTRIBUTION_BY_EXPERIENCE,
+  PLAN_VERSION,
 } from '../constants';
 import { selectWorkoutForCategory } from './workoutSelector';
 
@@ -98,6 +101,20 @@ function selectEasyWorkout(baseEasyDistance: number, volumeScale: number): { wor
   }
   const last = EASY_WORKOUT_BY_DISTANCE[EASY_WORKOUT_BY_DISTANCE.length - 1];
   return { workoutId: last.workoutId, distance: last.distance, label: `イージー ${last.distance / 1000}km` };
+}
+
+/**
+ * ボリューム倍率に応じたリカバリー走ワークアウトIDを選択
+ */
+function selectRecoveryWorkout(volumeScale: number): { workoutId: string; distance: number } {
+  const scaledDistance = Math.round(4000 * volumeScale);
+  for (const entry of RECOVERY_WORKOUT_BY_DISTANCE) {
+    if (scaledDistance <= entry.maxDistance) {
+      return { workoutId: entry.workoutId, distance: entry.distance };
+    }
+  }
+  const last = RECOVERY_WORKOUT_BY_DISTANCE[RECOVERY_WORKOUT_BY_DISTANCE.length - 1];
+  return { workoutId: last.workoutId, distance: last.distance };
 }
 
 /**
@@ -215,7 +232,9 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
     const rawLoadPercent = isRecoveryWeek ? 70 : phaseType === 'taper' ? Math.round(100 - phaseProgress * 50) : Math.round(PHASE_CONFIG[phaseType].loadRange[0] + phaseProgress * 10);
     const loadPercent = Math.min(rawLoadPercent, ageConfig.maxIntensityPercent);
     const phaseKeyCategories = KEY_WORKOUTS_BY_PHASE[phaseType]?.categories || ['有酸素ベース'];
-    const phaseFocusKeys = KEY_WORKOUTS_BY_PHASE[phaseType]?.focusKeys || ['aerobic'];
+    // 種目別focusKeys: 800m/1500mではスピード・スプリントをKey日に昇格
+    const distanceOverride = KEY_WORKOUTS_BY_DISTANCE[race.distance]?.[phaseType];
+    const phaseFocusKeys = distanceOverride?.focusKeys || KEY_WORKOUTS_BY_PHASE[phaseType]?.focusKeys || ['aerobic'];
     const isRampTestWeek = rampTestWeeks.includes(weekNumber);
 
     // 休養日頻度に基づき、この週に休養日を入れるかを判定
@@ -274,6 +293,7 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
     phases: phasesForPlan,
     weeklyPlans,
     rampTestDates,
+    planVersion: PLAN_VERSION,
   };
 }
 
@@ -377,6 +397,8 @@ function generateWeeklySchedule(
   }
 
   // ポストプロセス: Key翌日のeasyをrecoveryに変換（年齢に応じて複数日）
+  // リカバリー距離はvolumeScaleに応じてスケーリング
+  const recoverySelection = selectRecoveryWorkout(volumeScale);
   for (let d = 0; d < 7; d++) {
     for (let offset = 1; offset <= recoveryDaysAfterKey; offset++) {
       const keyDay = (d - offset + 7) % 7;
@@ -386,8 +408,8 @@ function generateWeeklySchedule(
         days[d] = {
           ...currentWorkout,
           type: 'recovery',
-          label: 'リカバリー',
-          workoutId: 'recovery-4000',
+          label: `リカバリー ${recoverySelection.distance / 1000}km`,
+          workoutId: recoverySelection.workoutId,
         };
         break;
       }

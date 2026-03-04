@@ -458,7 +458,7 @@ const generateWeeklySchedule = (
             aerobic: '有酸素ベース',
             threshold: '乳酸閾値',
             vo2max: 'VO2max',
-            speed: '神経筋系',
+            speed: 'スピード・スプリント',
         };
         return labels[key] || '有酸素ベース';
     };
