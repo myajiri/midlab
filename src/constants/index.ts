@@ -818,6 +818,11 @@ export const WORKOUT_SELECTION_BY_ETP: Record<string, Array<{ maxEtp: number; wo
     { maxEtp: 80, workoutId: 'reps-400x6' },       // A: 400mレップ
     { maxEtp: 999, workoutId: 'reps-200x10' },     // B〜C: 200mレップ
   ],
+  '有酸素ベース': [
+    { maxEtp: 70, workoutId: 'windsprints' },       // SS〜S: 流し付きイージー走
+    { maxEtp: 80, workoutId: 'easy-12000' },        // A: やや長めのイージー走
+    { maxEtp: 999, workoutId: 'easy-10000' },       // B〜C: 標準ロングイージー走
+  ],
 };
 
 // ============================================
