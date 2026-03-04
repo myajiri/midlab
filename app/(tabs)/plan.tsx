@@ -617,7 +617,7 @@ export default function PlanScreen() {
                             pathname: '/(tabs)/workout',
                             params: {
                               category: day.focusCategory || 'all',
-                              workoutId: day.type === 'recovery' ? 'recovery-4000' : day.workoutId,
+                              workoutId: day.workoutId,
                               t: Date.now().toString(),
                             },
                           });
@@ -631,8 +631,10 @@ export default function PlanScreen() {
                         </View>
                       </View>
                       <View style={styles.dayCenter}>
-                        <Text style={[styles.dayLabel, day.isKey && styles.dayLabelKey]}>{day.label}</Text>
-                        {day.isKey && <Text style={styles.keyBadge}>Key</Text>}
+                        <View style={styles.dayLabelRow}>
+                          <Text style={[styles.dayLabel, day.isKey && styles.dayLabelKey]} numberOfLines={1}>{day.label}</Text>
+                          {day.isKey && <Text style={styles.keyBadge}>Key</Text>}
+                        </View>
                         {day.isKey && limiterConnection && (
                           <Text style={styles.dayRationaleHint} numberOfLines={1}>{focusInfo?.description || ''}</Text>
                         )}
@@ -1814,8 +1816,6 @@ const styles = StyleSheet.create({
   dayRationaleHint: {
     fontSize: 10,
     color: COLORS.text.muted,
-    marginTop: 2,
-    width: '100%',
   },
 
   // スケジュールリスト
@@ -1854,6 +1854,9 @@ const styles = StyleSheet.create({
   },
   dayCenter: {
     flex: 1,
+    gap: 2,
+  },
+  dayLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -1861,6 +1864,7 @@ const styles = StyleSheet.create({
   dayLabel: {
     fontSize: 14,
     color: COLORS.text.primary,
+    flexShrink: 1,
   },
   dayLabelKey: {
     fontWeight: '500',
