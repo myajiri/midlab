@@ -10,6 +10,7 @@ import {
   Profile,
   TestResult,
   RacePlan,
+  SubRace,
   WorkoutLog,
   TrainingLog,
   FeelingLevel,
@@ -228,6 +229,9 @@ interface PlanState {
     notes?: string;
   }) => void;
   toggleWorkoutComplete: (weekNumber: number, workoutId: string) => void;
+  // サブレース管理
+  addSubRace: (subRace: SubRace) => void;
+  removeSubRace: (subRaceId: string) => void;
   // プロフィール変更に応じて計画を再生成（完了状態を保持）
   regeneratePlan: (profile: Profile, testResults: TestResult[]) => void;
   // 特定日のワークアウトを別のメニューに差し替える
@@ -292,6 +296,63 @@ export const usePlanStore = create<PlanState>()(
         });
       },
 
+      // サブレース追加
+      addSubRace: (subRace) => {
+        const plan = get().activePlan;
+        if (!plan) return;
+
+        const currentSubRaces = plan.subRaces || [];
+        const updatedSubRaces = [...currentSubRaces, subRace].sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+
+        // サブレースを週間プランに反映
+        const updatedWeeklyPlans = plan.weeklyPlans.map((week) => {
+          const weekStart = new Date(week.startDate);
+          const weekEnd = new Date(week.endDate);
+          const subRaceInWeek = updatedSubRaces.find((sr) => {
+            const srDate = new Date(sr.date);
+            return srDate >= weekStart && srDate <= weekEnd;
+          });
+          return { ...week, subRace: subRaceInWeek || undefined };
+        });
+
+        set({
+          activePlan: {
+            ...plan,
+            subRaces: updatedSubRaces,
+            weeklyPlans: updatedWeeklyPlans,
+          },
+        });
+      },
+
+      // サブレース削除
+      removeSubRace: (subRaceId) => {
+        const plan = get().activePlan;
+        if (!plan) return;
+
+        const updatedSubRaces = (plan.subRaces || []).filter((sr) => sr.id !== subRaceId);
+
+        // サブレースを週間プランから除去
+        const updatedWeeklyPlans = plan.weeklyPlans.map((week) => {
+          const weekStart = new Date(week.startDate);
+          const weekEnd = new Date(week.endDate);
+          const subRaceInWeek = updatedSubRaces.find((sr) => {
+            const srDate = new Date(sr.date);
+            return srDate >= weekStart && srDate <= weekEnd;
+          });
+          return { ...week, subRace: subRaceInWeek || undefined };
+        });
+
+        set({
+          activePlan: {
+            ...plan,
+            subRaces: updatedSubRaces,
+            weeklyPlans: updatedWeeklyPlans,
+          },
+        });
+      },
+
       // 特定日のワークアウトを別のメニューに差し替える
       replaceWorkout: (weekNumber, dayId, newWorkoutId, newWorkoutName, newWorkoutCategory) => {
         const plan = get().activePlan;
@@ -348,32 +409,44 @@ export const usePlanStore = create<PlanState>()(
           monthlyMileage: profile.monthlyMileage,
         });
 
-        // 完了状態を復元
-        const restoredWeeklyPlans = newPlan.weeklyPlans.map((week) => ({
-          ...week,
-          days: week.days.map((day) => {
-            if (!day) return day;
-            const saved = completionMap.get(day.id);
-            if (saved) {
-              return { ...day, completed: saved.completed, actualData: saved.actualData };
-            }
-            return day;
-          }),
-          workouts: week.workouts.map((w) => {
-            const saved = completionMap.get(w.id);
-            if (saved) {
-              return { ...w, completed: saved.completed, actualData: saved.actualData };
-            }
-            return w;
-          }),
-        }));
+        // 完了状態を復元し、サブレースを再配置
+        const subRaces = currentPlan.subRaces || [];
+        const restoredWeeklyPlans = newPlan.weeklyPlans.map((week) => {
+          const weekStart = new Date(week.startDate);
+          const weekEnd = new Date(week.endDate);
+          const subRaceInWeek = subRaces.find((sr) => {
+            const srDate = new Date(sr.date);
+            return srDate >= weekStart && srDate <= weekEnd;
+          });
 
-        // 元のID・作成日時を保持して更新
+          return {
+            ...week,
+            subRace: subRaceInWeek || undefined,
+            days: week.days.map((day) => {
+              if (!day) return day;
+              const saved = completionMap.get(day.id);
+              if (saved) {
+                return { ...day, completed: saved.completed, actualData: saved.actualData };
+              }
+              return day;
+            }),
+            workouts: week.workouts.map((w) => {
+              const saved = completionMap.get(w.id);
+              if (saved) {
+                return { ...w, completed: saved.completed, actualData: saved.actualData };
+              }
+              return w;
+            }),
+          };
+        });
+
+        // 元のID・作成日時・サブレースを保持して更新
         set({
           activePlan: {
             ...newPlan,
             id: currentPlan.id,
             createdAt: currentPlan.createdAt,
+            subRaces: currentPlan.subRaces,
             weeklyPlans: restoredWeeklyPlans,
           },
         });

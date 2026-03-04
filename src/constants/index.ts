@@ -249,6 +249,7 @@ export const WORKOUTS = [
     name: 'イージー6000m',
     category: '有酸素ベース',
     description: '基礎的な有酸素能力を構築するイージーペースでの持続走。会話ができるペースで脂肪燃焼と毛細血管発達を促進。ペースは上限目安で、余裕があればさらにゆっくり走ってもOK。',
+    selectionGuide: '月間走行距離が少なめ（〜150km）の選手や、ポイント練習翌日のつなぎに最適。8000mでは長すぎる・疲労が残りそうな場合はこちらを選択。短い分、ペースの安定感に意識を向けやすい。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 800, label: 'W-up 2周' },
       { zone: 'easy' as ZoneName, distance: 4400, label: 'Easy 11周' },
@@ -265,6 +266,7 @@ export const WORKOUTS = [
     name: 'イージー8000m',
     category: '有酸素ベース',
     description: '有酸素能力を構築するイージーペースでの持続走。ペースは上限目安で、余裕があればさらにゆっくり走ってもOK。',
+    selectionGuide: '月間150〜250kmの選手の標準的なつなぎ練習。6000mより刺激時間が長く有酸素適応が進みやすい。10000mだと疲労が翌日に残る場合はこちら。一定ペースを保つ練習としても有効。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 800, label: 'W-up 2周' },
       { zone: 'easy' as ZoneName, distance: 6400, label: 'Easy 16周' },
@@ -281,6 +283,7 @@ export const WORKOUTS = [
     name: 'イージー10000m',
     category: '有酸素ベース',
     description: '長めのイージー走。有酸素キャパシティの拡大に効果的。ペースは上限目安で、余裕を持って走る。',
+    selectionGuide: '月間250〜350kmの選手に。8000mでは物足りないが12000mだと負担が大きい場合に最適。有酸素キャパシティの拡大期（基礎期〜強化期）に特に効果的。後半のペース落ちを防ぐ意識を。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1200, label: 'W-up 3周' },
       { zone: 'easy' as ZoneName, distance: 7600, label: 'Easy 19周' },
@@ -297,6 +300,7 @@ export const WORKOUTS = [
     name: 'イージー12000m',
     category: '有酸素ベース',
     description: '高ボリューム走者向けのイージー走。有酸素ベースの拡大に効果的。',
+    selectionGuide: '月間350〜400kmの選手向け。10000mと比べて約20%長い分、脂肪代謝能力と精神的持久力がより鍛えられる。ただしポイント練習翌日は10000m以下を推奨。週に1〜2回の実施が目安。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1200, label: 'W-up 3周' },
       { zone: 'easy' as ZoneName, distance: 9600, label: 'Easy 24周' },
@@ -313,6 +317,7 @@ export const WORKOUTS = [
     name: 'イージー14000m',
     category: '有酸素ベース',
     description: '高ボリューム走者向けの長めイージー走。月間400km以上を目指す選手に。',
+    selectionGuide: '月間400km以上の選手向け。12000mからさらに2km伸ばし、有酸素基盤を厚くする。中距離専門でも5000m以上のレースを見据える場合は検討価値あり。ポイント練習から離れた日に配置。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
       { zone: 'easy' as ZoneName, distance: 10800, label: 'Easy 27周' },
@@ -329,6 +334,7 @@ export const WORKOUTS = [
     name: 'イージー16000m',
     category: '有酸素ベース',
     description: 'エリート向けの長距離イージー走。月間450km以上を目指す選手に。',
+    selectionGuide: '月間450km以上のエリート選手向け。14000mでは距離が不足する場合に。長時間のイージーペース維持が有酸素酵素活性を最大限に高める。ただしこの距離のイージーは疲労も蓄積するため週1回を目安に。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
       { zone: 'easy' as ZoneName, distance: 12800, label: 'Easy 32周' },
@@ -345,6 +351,7 @@ export const WORKOUTS = [
     name: 'リカバリー4000m',
     category: '有酸素ベース',
     description: 'キーワークアウト翌日の回復走。表示ペースは上限目安で、これより遅くてOK。体の回復を最優先に。分割走（朝夕2回）にしても効果的。',
+    selectionGuide: 'イージー走とは明確に異なり、積極的回復が目的。イージーペースよりさらに遅いリカバリーペースで走る。ポイント練習翌日や疲労感が強い日に。イージー走を選ぶか迷ったら、脚に張りや重さがあればこちらを。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 800, label: 'W-up 2周' },
       { zone: 'jog' as ZoneName, distance: 2400, label: 'Recovery 6周' },
@@ -393,6 +400,7 @@ export const WORKOUTS = [
     name: 'ロングラン10000m',
     category: '有酸素ベース',
     description: 'プログレッシブ・ロングラン。後半にかけてペースを上げ、疲労状態でのペース維持能力を養成。',
+    selectionGuide: 'イージー走との違いは後半にMペース区間があること。レース後半のペース維持能力を養う。14000mロングランだと負荷が高すぎる場合や、月間走行距離が〜250kmの場合に。後半のMペース区間で「疲れた状態からの切り替え」を意識。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 800, label: 'W-up 2周' },
       { zone: 'easy' as ZoneName, distance: 4000, label: 'Easy 10周' },
@@ -411,6 +419,7 @@ export const WORKOUTS = [
     name: 'ロングラン14000m',
     category: '有酸素ベース',
     description: '高ボリューム走者向けのロングラン。有酸素ベース拡大と精神的タフネスを養成。',
+    selectionGuide: '10000mロングランより4km長く、Mペース区間も延長。月間300km以上の選手向け。10000mロングランでは物足りなくなった段階で移行。後半のMペース区間が長い分、レース後半のシミュレーションとしてより実戦的。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1200, label: 'W-up 3周' },
       { zone: 'easy' as ZoneName, distance: 6000, label: 'Easy 15周' },
@@ -429,6 +438,7 @@ export const WORKOUTS = [
     name: 'ロングラン18000m',
     category: '有酸素ベース',
     description: 'エリート向けのロングラン。月間400km以上の選手に最適。',
+    selectionGuide: '月間400km以上のエリート選手向けロングラン。14000mでは刺激が不足する場合に。Mペース区間が9周と長く、有酸素系と精神面の両方を大きく鍛える。体調万全の日に実施し、翌日はリカバリーを。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
       { zone: 'easy' as ZoneName, distance: 8000, label: 'Easy 20周' },
@@ -447,6 +457,7 @@ export const WORKOUTS = [
     name: 'テンポ走4000m',
     category: '乳酸閾値',
     description: '閾値ペースでの持続走。乳酸処理能力を向上させ、レースペースの維持能力を高める。「快適にきつい」ペースを維持。',
+    selectionGuide: 'クルーズインターバル（1200×4, 1600×3）との違いは「休憩なしの持続走」であること。閾値ペースを途切れなく維持する集中力と乳酸処理能力を養う。6000mテンポ走がまだきつい段階や、閾値走に慣れていない場合はこちらから。意識すべきポイントは「ペースの均一性」。前半突っ込まず最後まで同じペースを保つこと。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1200, label: 'W-up 3周' },
       { zone: 'threshold' as ZoneName, distance: 4000, label: 'T 10周' },
@@ -463,6 +474,7 @@ export const WORKOUTS = [
     name: 'クルーズ1600m×3',
     category: '乳酸閾値',
     description: '閾値ペースでのクルーズインターバル。回復を挟むことで質の高い閾値刺激を維持。',
+    selectionGuide: '1200m×4と比べて1本の距離が長く本数が少ない。テンポ走（持続走）に近い刺激を、回復を挟みながら得られる。1200m×4では「短すぎてペースが安定しない」場合や、3000m〜5000m選手でより長い持続刺激が欲しい場合に選択。意識すべきポイントは「各本の入りを落ち着いて入り、後半もペースを落とさない」こと。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1200, label: 'W-up 3周' },
       { zone: 'threshold' as ZoneName, distance: 1600, label: 'T 1600m', reps: 3, recoveryDistance: 400 },
@@ -480,6 +492,7 @@ export const WORKOUTS = [
     category: 'VO2max',
     targetLimiter: 'cardio' as LimiterType,
     description: 'インターバルペースでの高強度反復。VO2maxを刺激し最大酸素摂取量を向上。心肺リミッター型の改善に効果的。',
+    selectionGuide: 'VO2maxインターバルの定番メニュー。800m×6より1本が長くペース配分が求められる。1200m×4ほどきつくなく、バランスの良い刺激が得られる。1500m選手の標準メニューとして最適。800m×6との違いは、1本あたりのVO2max滞在時間が長い点。意識すべきポイントは「全本を同じペースで走ること」。最初の1本が速すぎると後半で崩れやすい。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
       { zone: 'interval' as ZoneName, distance: 1000, label: 'I 1000m', reps: 5, recoveryDistance: 400 },
@@ -496,6 +509,7 @@ export const WORKOUTS = [
     name: '800m×6インターバル',
     category: 'VO2max',
     description: '800mインターバル。1000mより速いペースで短時間の高強度刺激。スピード持久力の養成に。',
+    selectionGuide: '1000m×5と比べて1本が短く本数が多い。VO2maxへの到達が早く、スピード寄りの刺激になる。800m選手や、1000mインターバルだとペースが安定しない段階の選手に推奨。600m×8との違いは、1本の持続時間が長い分VO2max刺激がしっかり入ること。意識すべきポイントは「回復中に完全に呼吸を整えきらない」こと。やや息が残った状態で次の本に入る。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
       { zone: 'interval' as ZoneName, distance: 800, label: 'I 800m', reps: 6, recoveryDistance: 400 },
@@ -513,6 +527,7 @@ export const WORKOUTS = [
     category: 'スピード・スプリント',
     targetLimiter: 'muscular' as LimiterType,
     description: 'レペティションペースでの短距離反復。神経筋協調性とランニングエコノミーを改善。筋持久力リミッター型のスピード強化に効果的。',
+    selectionGuide: '神経筋系メニューの中で最も短い距離。ピュアなスピードとフォーム改善に特化。300m×8や400m×6と比べて乳酸の蓄積が少なく、1本1本をフレッシュな状態で全力に近い質で走れる。スピードの絶対値を上げたい場合はこちら。意識すべきポイントは「力まずにリラックスしたフォームでトップスピードに乗る」こと。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
       { zone: 'repetition' as ZoneName, distance: 200, label: 'R 200m', reps: 10, recoveryDistance: 200 },
@@ -530,6 +545,7 @@ export const WORKOUTS = [
     category: 'VO2max',
     targetLimiter: 'cardio' as LimiterType,
     description: '1200mインターバル。走力の高い選手向け。1000mよりVO2max刺激時間を確保できる。',
+    selectionGuide: 'VO2maxインターバルの中で最も1本が長く負荷が高い。1000m×5で余裕が出てきた選手のステップアップに。eTPが低い（速い）選手に自動推奨される。1000m×5との違いは、1本あたりのVO2max帯の滞在時間がさらに長く、乳酸耐性も同時に鍛えられる点。意識すべきポイントは「800〜1000m通過で最もきつくなるが、そこからの200mを粘る」こと。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
       { zone: 'interval' as ZoneName, distance: 1200, label: 'I 1200m', reps: 4, recoveryDistance: 400 },
@@ -546,6 +562,7 @@ export const WORKOUTS = [
     name: '600m×8インターバル',
     category: 'VO2max',
     description: '600mショートインターバル。高回転でVO2max刺激。スピード持久力の養成に。',
+    selectionGuide: 'VO2maxインターバルの中で最も短く本数が多い。800m×6より速いペースで走れるため、スピード要素が強い。800m選手のレースペース練習としても有効。800m×6との違いは、回復が短く高回転でVO2maxに繰り返し到達するショートインターバル的な性質。意識すべきポイントは「回復200mの間にフォームを整え、次の本のスタートダッシュをスムーズにすること」。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
       { zone: 'interval' as ZoneName, distance: 600, label: 'I 600m', reps: 8, recoveryDistance: 200 },
@@ -562,6 +579,7 @@ export const WORKOUTS = [
     name: 'テンポ走6000m',
     category: '乳酸閾値',
     description: '長めの閾値ペース持続走。乳酸処理能力と精神的タフネスを同時に養成。',
+    selectionGuide: '4000mテンポ走の上位版。4000mでは余裕が出てきた選手や、eTPが低い（速い）選手に推奨。15周の持続走は精神的にもタフだが、3000m〜5000mレースの後半を想定した実戦的トレーニング。4000mとの選択基準は「4000mテンポ走を閾値ペースで安定して走りきれるか」。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1200, label: 'W-up 3周' },
       { zone: 'threshold' as ZoneName, distance: 6000, label: 'T 15周' },
@@ -578,6 +596,7 @@ export const WORKOUTS = [
     name: 'クルーズ1200m×4',
     category: '乳酸閾値',
     description: '1200mクルーズインターバル。テンポ走より短い回復で質の高い閾値刺激。',
+    selectionGuide: '1600m×3と比べて1本が短く本数が多い。短い本数で集中しやすく、800m〜1500m選手に特に有効。テンポ走のような長時間の持続が苦手でも、分割することで閾値ペースの質を確保できる。1600m×3との選択基準は「1600mを閾値ペースで安定して走りきれるか」。まだ難しければこちらから。意識すべきポイントは「回復を短く保ち、次の本もペースを落とさない」こと。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1200, label: 'W-up 3周' },
       { zone: 'threshold' as ZoneName, distance: 1200, label: 'T 1200m', reps: 4, recoveryDistance: 400 },
@@ -594,6 +613,7 @@ export const WORKOUTS = [
     name: '300m×8レペティション',
     category: 'スピード・スプリント',
     description: '300mレペティション。200mより長い距離でスピード持久力を養成。',
+    selectionGuide: '200m×10と400m×6の中間。200mでは短すぎてスピード持久力が鍛えにくく、400mでは乳酸がきつすぎる場合に最適。800m〜1500m選手のラストスパート強化に特に有効。200m×10との違いは、後半100mで乳酸を感じながらフォームを維持する練習になること。意識すべきポイントは「250m通過以降でフォームが崩れないよう腕振りを意識する」こと。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
       { zone: 'repetition' as ZoneName, distance: 300, label: 'R 300m', reps: 8, recoveryDistance: 300 },
@@ -610,6 +630,7 @@ export const WORKOUTS = [
     name: '400m×6レペティション',
     category: 'スピード・スプリント',
     description: '400mレペティション。1周のスピード持久力とフォーム維持を養成。中距離選手に効果的。',
+    selectionGuide: '神経筋系メニューの中で最も距離が長く、スピード持久力への負荷が最大。200mや300mのレペティションで余裕が出てきた段階のステップアップに。eTPが低い（速い）選手に自動推奨される。200m・300mとの違いは、1周全体を通じて乳酸を処理しながらスピードを維持する能力が求められる点。意識すべきポイントは「300m通過以降の減速を最小限に抑える」こと。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
       { zone: 'repetition' as ZoneName, distance: 400, label: 'R 400m', reps: 6, recoveryDistance: 400 },
@@ -626,6 +647,7 @@ export const WORKOUTS = [
     name: 'ピラミッド',
     category: '総合',
     description: '段階的に距離を上げ下げするピラミッド。400→800→1200→800→400で多様なペース刺激。スピードと持久力を同時養成。',
+    selectionGuide: '単一距離のインターバルやレペティションとは異なり、異なる距離・ペースを1セッションで経験できる。マンネリ防止やレース中のペース変化への対応力を養うのに有効。インターバルとレペティションどちらを選ぶか迷った場合の「いいとこ取り」メニュー。意識すべきポイントは「距離が変わってもゾーンに合ったペースを守ること」。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
       { zone: 'interval' as ZoneName, distance: 400, label: 'I 400m' },

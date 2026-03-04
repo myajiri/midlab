@@ -699,6 +699,8 @@ export const getWeeklyPlanRationale = (
   limiterType: LimiterType,
   isRecoveryWeek: boolean,
   isRampTestWeek: boolean,
+  subRaceName?: string,
+  subRacePriority?: 'high' | 'medium' | 'low',
 ): string => {
   if (isRampTestWeek) {
     return 'ETPテスト週です。テストで最新の走力とリミッタータイプを再測定し、以降のトレーニングに反映します。';
@@ -708,7 +710,18 @@ export const getWeeklyPlanRationale = (
   }
 
   const phase = PHASE_RATIONALE[phaseType];
-  return `${phase.purpose}のフェーズです。${PHASE_LIMITER_FOCUS[phaseType][limiterType]}`;
+  let rationale = `${phase.purpose}のフェーズです。${PHASE_LIMITER_FOCUS[phaseType][limiterType]}`;
+
+  if (subRaceName) {
+    const priorityText = subRacePriority === 'high'
+      ? `今週は「${subRaceName}」に出場予定です。レースに向けて練習負荷を落とし、調整を図ります。`
+      : subRacePriority === 'medium'
+        ? `今週は「${subRaceName}」に出場予定です。軽めの調整を入れつつ、トレーニングの流れを維持します。`
+        : `今週は「${subRaceName}」に出場予定（練習レース）。通常のトレーニングを維持しつつ、レースを実戦練習として活用します。`;
+    rationale = priorityText;
+  }
+
+  return rationale;
 };
 
 // 移行ユーティリティをエクスポート

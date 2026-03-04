@@ -369,6 +369,19 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining, o
           <Text style={styles.detailDescription}>{workout.description}</Text>
         </SlideIn>
 
+        {/* 選択ガイド（同カテゴリ内での差分・選び方） */}
+        {workout.selectionGuide && (
+          <SlideIn delay={170} direction="up">
+            <View style={styles.selectionGuideCard}>
+              <View style={styles.selectionGuideHeader}>
+                <Ionicons name="git-compare-outline" size={18} color="#3B82F6" />
+                <Text style={styles.selectionGuideTitle}>このメニューの選び方</Text>
+              </View>
+              <Text style={styles.selectionGuideText}>{workout.selectionGuide}</Text>
+            </View>
+          </SlideIn>
+        )}
+
         {/* なぜこのメニューか */}
         <SlideIn delay={180} direction="up">
           <View style={styles.rationaleCard}>
@@ -885,6 +898,33 @@ const styles = StyleSheet.create({
   },
   detailDescription: {
     fontSize: 14,
+    color: COLORS.text.secondary,
+    lineHeight: 20,
+  },
+
+  // 選択ガイドセクション
+  selectionGuideCard: {
+    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 16,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.15)',
+  },
+  selectionGuideHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  selectionGuideTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3B82F6',
+  },
+  selectionGuideText: {
+    fontSize: 13,
     color: COLORS.text.secondary,
     lineHeight: 20,
   },
