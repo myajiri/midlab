@@ -43,6 +43,7 @@ import {
   RaceDistance,
   RestDayFrequency,
   ScheduledWorkout,
+  SubRace,
   TrainingLog,
   FeelingLevel,
 } from '../../src/types';
@@ -153,6 +154,16 @@ export default function PlanScreen() {
   const [keyDays, setKeyDays] = useState<number[]>([2, 5]); // Key曜日: デフォルト水・土
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  // サブレースモーダル
+  const [showSubRaceModal, setShowSubRaceModal] = useState(false);
+  const [subRaceName, setSubRaceName] = useState('');
+  const [subRaceDate, setSubRaceDate] = useState<Date | null>(null);
+  const [subRaceDistance, setSubRaceDistance] = useState<RaceDistance>(1500);
+  const [subRacePriority, setSubRacePriority] = useState<'high' | 'medium' | 'low'>('medium');
+  const [showSubRaceDatePicker, setShowSubRaceDatePicker] = useState(false);
+  const addSubRace = usePlanStore((state) => state.addSubRace);
+  const removeSubRace = usePlanStore((state) => state.removeSubRace);
+
   // 日付バリデーション
   // ※ Hooks（useMemo）は条件分岐の前に配置する必要がある（Rules of Hooks）
   const validateDate = (date: Date | null): { valid: boolean; error?: string } => {
@@ -163,6 +174,9 @@ export default function PlanScreen() {
     const minDate = new Date();
     minDate.setDate(minDate.getDate() + 28);
     if (date < minDate) return { valid: false, error: '最低4週間後の日付を選択してください' };
+    const maxDate = new Date();
+    maxDate.setMonth(maxDate.getMonth() + 6);
+    if (date > maxDate) return { valid: false, error: '6ヶ月以内のレースを設定してください。それ以上先の場合は、時期が近づいてから計画を作成することをお勧めします。' };
     return { valid: true };
   };
 
@@ -225,7 +239,7 @@ export default function PlanScreen() {
           <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
             <FadeIn>
               <Text style={styles.pageTitle}>計画を作成</Text>
-              <Text style={styles.pageSubtitle}>目標レースに向けたトレーニング計画を作成します</Text>
+              <Text style={styles.pageSubtitle}>6ヶ月以内の最も重要なレース（ターゲットレース）を設定します。{'\n'}途中のレースは計画作成後に追加できます。</Text>
             </FadeIn>
 
             <SlideIn delay={100} direction="up">
@@ -530,9 +544,17 @@ export default function PlanScreen() {
           </SlideIn>
 
           {/* バッジ */}
-          {(weekPlan.isRecoveryWeek || weekPlan.isRampTestWeek) && (
+          {(weekPlan.isRecoveryWeek || weekPlan.isRampTestWeek || weekPlan.subRace) && (
             <SlideIn delay={150} direction="up">
               <View style={styles.weekBadges}>
+                {weekPlan.subRace && (
+                  <View style={styles.subRaceBadge}>
+                    <Ionicons name="trophy" size={14} color="#F97316" />
+                    <Text style={styles.subRaceBadgeText}>
+                      {weekPlan.subRace.name} ({weekPlan.subRace.distance}m)
+                    </Text>
+                  </View>
+                )}
                 {weekPlan.isRecoveryWeek && (
                   <View style={styles.recoveryBadge}>
                     <Ionicons name="leaf" size={14} color="#22C55E" />
@@ -557,7 +579,7 @@ export default function PlanScreen() {
                 <Text style={styles.weekRationaleTitle}>この週のねらい</Text>
               </View>
               <Text style={styles.weekRationaleText}>
-                {getWeeklyPlanRationale(weekPlan.phaseType, activePlan.baseline.limiterType, weekPlan.isRecoveryWeek, weekPlan.isRampTestWeek)}
+                {getWeeklyPlanRationale(weekPlan.phaseType, activePlan.baseline.limiterType, weekPlan.isRecoveryWeek, weekPlan.isRampTestWeek, weekPlan.subRace?.name, weekPlan.subRace?.priority)}
               </Text>
               {!weekPlan.isRecoveryWeek && !weekPlan.isRampTestWeek && (
                 <View style={styles.weekRationaleLimiterRow}>
@@ -837,9 +859,14 @@ export default function PlanScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
-        {/* レースカウントダウン */}
+        {/* ターゲットレース カウントダウン */}
         <FadeIn>
           <View style={styles.raceCard}>
+            <View style={styles.raceCardHeader}>
+              <View style={styles.targetRaceBadge}>
+                <Text style={styles.targetRaceBadgeText}>ターゲットレース</Text>
+              </View>
+            </View>
             <View style={styles.raceCardHeader}>
               <Ionicons name="flag" size={20} color="#F97316" />
               <Text style={styles.raceName}>{activePlan.race.name}</Text>
@@ -938,6 +965,76 @@ export default function PlanScreen() {
           </Pressable>
         </SlideIn>
 
+        {/* サブレース（予定レース） */}
+        <SlideIn delay={280} direction="up">
+          <View style={styles.subRaceSection}>
+            <View style={styles.subRaceSectionHeader}>
+              <Text style={styles.sectionLabel}>レーススケジュール</Text>
+              <Pressable
+                style={styles.addSubRaceButton}
+                onPress={() => {
+                  setSubRaceName('');
+                  setSubRaceDate(null);
+                  setSubRaceDistance(1500);
+                  setSubRacePriority('medium');
+                  setShowSubRaceModal(true);
+                }}
+              >
+                <Ionicons name="add-circle-outline" size={18} color={COLORS.primary} />
+                <Text style={styles.addSubRaceButtonText}>レース追加</Text>
+              </Pressable>
+            </View>
+
+            {(!activePlan.subRaces || activePlan.subRaces.length === 0) ? (
+              <View style={styles.subRaceEmpty}>
+                <Text style={styles.subRaceEmptyText}>
+                  ターゲットレースまでに出場予定のレースを追加できます。{'\n'}
+                  レース前の練習負荷が自動調整されます。
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.subRaceList}>
+                {activePlan.subRaces.map((sr) => {
+                  const srDate = new Date(sr.date);
+                  const daysUntilSr = Math.ceil((srDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                  const priorityConfig = {
+                    high: { label: '重要', color: '#EF4444' },
+                    medium: { label: '中程度', color: '#EAB308' },
+                    low: { label: '練習レース', color: '#9CA3AF' },
+                  };
+                  return (
+                    <View key={sr.id} style={styles.subRaceItem}>
+                      <View style={styles.subRaceItemLeft}>
+                        <View style={[styles.subRacePriorityDot, { backgroundColor: priorityConfig[sr.priority].color }]} />
+                        <View>
+                          <Text style={styles.subRaceItemName}>{sr.name}</Text>
+                          <Text style={styles.subRaceItemDetail}>
+                            {sr.distance}m
+                            {' '}·{' '}
+                            {daysUntilSr > 0 ? `あと${daysUntilSr}日` : '終了'}
+                            {' '}·{' '}
+                            {priorityConfig[sr.priority].label}
+                          </Text>
+                        </View>
+                      </View>
+                      <Pressable
+                        onPress={() => {
+                          Alert.alert('サブレース削除', `「${sr.name}」を削除しますか？`, [
+                            { text: 'キャンセル', style: 'cancel' },
+                            { text: '削除', style: 'destructive', onPress: () => removeSubRace(sr.id) },
+                          ]);
+                        }}
+                      >
+                        <Ionicons name="close-circle-outline" size={20} color={COLORS.text.muted} />
+                      </Pressable>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        </SlideIn>
+
         {/* 全週一覧（コンパクト） */}
         <SlideIn delay={300} direction="up">
           <View style={styles.weeksOverview}>
@@ -980,6 +1077,138 @@ export default function PlanScreen() {
           </Pressable>
         </SlideIn>
       </ScrollView>
+
+      {/* サブレース追加モーダル */}
+      <Modal
+        visible={showSubRaceModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSubRaceModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalOverlayPress}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>レースを追加</Text>
+              <Pressable onPress={() => setShowSubRaceModal(false)}>
+                <Ionicons name="close" size={24} color={COLORS.text.primary} />
+              </Pressable>
+            </View>
+
+            <ScrollView style={styles.modalBody}>
+              {/* レース名 */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>レース名</Text>
+                <TextInput
+                  style={styles.input}
+                  value={subRaceName}
+                  onChangeText={setSubRaceName}
+                  placeholder="例: 県選手権"
+                  placeholderTextColor={COLORS.text.muted}
+                />
+              </View>
+
+              {/* レース日 */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>レース日</Text>
+                <Pressable
+                  style={styles.inputButton}
+                  onPress={() => setShowSubRaceDatePicker(true)}
+                >
+                  <Text style={[styles.inputButtonText, !subRaceDate && styles.inputPlaceholder]}>
+                    {subRaceDate ? formatDateDisplay(subRaceDate) : '日付を選択'}
+                  </Text>
+                  <Ionicons name="calendar-outline" size={20} color={COLORS.text.muted} />
+                </Pressable>
+              </View>
+
+              {/* 種目 */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>種目</Text>
+                <View style={styles.distanceSelector}>
+                  {([800, 1500, 3000, 5000] as RaceDistance[]).map((d) => (
+                    <Pressable
+                      key={d}
+                      style={[styles.distanceOption, subRaceDistance === d && styles.distanceOptionActive]}
+                      onPress={() => setSubRaceDistance(d)}
+                    >
+                      <Text style={[styles.distanceOptionText, subRaceDistance === d && styles.distanceOptionTextActive]}>
+                        {d}m
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              {/* 重要度 */}
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>重要度</Text>
+                <View style={styles.prioritySelector}>
+                  {([
+                    { key: 'high' as const, label: '重要', desc: 'しっかり調整して臨むレース', color: '#EF4444' },
+                    { key: 'medium' as const, label: '中程度', desc: '軽い調整で臨むレース', color: '#EAB308' },
+                    { key: 'low' as const, label: '練習レース', desc: '調整なし・練習の一環', color: '#9CA3AF' },
+                  ]).map((p) => (
+                    <Pressable
+                      key={p.key}
+                      style={[styles.priorityOption, subRacePriority === p.key && { borderColor: p.color, borderWidth: 1 }]}
+                      onPress={() => setSubRacePriority(p.key)}
+                    >
+                      <View style={[styles.subRacePriorityDot, { backgroundColor: p.color }]} />
+                      <View>
+                        <Text style={[styles.priorityOptionText, subRacePriority === p.key && { color: COLORS.text.primary }]}>{p.label}</Text>
+                        <Text style={styles.priorityOptionDesc}>{p.desc}</Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            </ScrollView>
+
+            <Pressable
+              style={[styles.createButton, (!subRaceName || !subRaceDate) && styles.createButtonDisabled]}
+              onPress={() => {
+                if (!subRaceName || !subRaceDate) return;
+                // サブレースのバリデーション
+                const planStart = activePlan.weeklyPlans?.[0]?.startDate;
+                const raceEnd = activePlan.race.date;
+                const srDateStr = subRaceDate.toISOString();
+                if (planStart && srDateStr < planStart) {
+                  Alert.alert('エラー', '計画開始日より前の日付は設定できません');
+                  return;
+                }
+                if (srDateStr >= raceEnd) {
+                  Alert.alert('エラー', 'ターゲットレース日以降の日付は設定できません');
+                  return;
+                }
+                addSubRace({
+                  id: `sr-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                  name: subRaceName,
+                  date: srDateStr,
+                  distance: subRaceDistance,
+                  priority: subRacePriority,
+                });
+                setShowSubRaceModal(false);
+              }}
+              disabled={!subRaceName || !subRaceDate}
+            >
+              <Text style={styles.createButtonText}>追加</Text>
+            </Pressable>
+          </View>
+          </View>
+        </KeyboardAvoidingView>
+
+        <DatePickerModal
+          visible={showSubRaceDatePicker}
+          onClose={() => setShowSubRaceDatePicker(false)}
+          onSelect={(date) => setSubRaceDate(date)}
+          value={subRaceDate || undefined}
+          title="レース日を選択"
+        />
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1577,6 +1806,114 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
   },
 
+  // ターゲットレースバッジ
+  targetRaceBadge: {
+    backgroundColor: 'rgba(249, 115, 22, 0.15)',
+    paddingVertical: 3,
+    paddingHorizontal: 10,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginBottom: 4,
+  },
+  targetRaceBadgeText: {
+    fontSize: 11,
+    color: '#F97316',
+    fontWeight: '600',
+  },
+
+  // サブレースセクション
+  subRaceSection: {
+    marginTop: 4,
+  },
+  subRaceSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  addSubRaceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  addSubRaceButtonText: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '500',
+  },
+  subRaceEmpty: {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderStyle: 'dashed',
+  },
+  subRaceEmptyText: {
+    fontSize: 13,
+    color: COLORS.text.muted,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  subRaceList: {
+    gap: 8,
+  },
+  subRaceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 14,
+  },
+  subRaceItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  subRacePriorityDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  subRaceItemName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  subRaceItemDetail: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginTop: 2,
+  },
+
+  // 重要度セレクター（モーダル）
+  prioritySelector: {
+    gap: 8,
+  },
+  priorityOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  priorityOptionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+  },
+  priorityOptionDesc: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginTop: 2,
+  },
+
   // 週ナビゲーション
   weekNav: {
     flexDirection: 'row',
@@ -1677,6 +2014,20 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '500',
     color: '#8B5CF6',
+  },
+  subRaceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(249, 115, 22, 0.1)',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+  },
+  subRaceBadgeText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#F97316',
   },
 
   // 週間根拠カード

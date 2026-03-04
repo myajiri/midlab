@@ -125,6 +125,15 @@ export interface RaceInfo {
   distance: RaceDistance;
 }
 
+// サブレース（ターゲットレースに向かう過程で出場するレース）
+export interface SubRace {
+  id: string;
+  name: string;
+  date: string;
+  distance: RaceDistance;
+  priority: 'high' | 'medium' | 'low'; // レースの重要度（調整度合いに影響）
+}
+
 // 週間ワークアウト
 export interface ScheduledWorkout {
   id: string;
@@ -168,6 +177,7 @@ export interface WeeklyPlan {
   focusKeys: string[];
   isRecoveryWeek: boolean;
   isRampTestWeek: boolean;
+  subRace?: SubRace; // この週にサブレースがある場合
 }
 
 // レースプラン
@@ -175,6 +185,7 @@ export interface RacePlan {
   id: string;
   createdAt: string;
   race: RaceInfo;
+  subRaces?: SubRace[]; // サブレース（ターゲットレースまでの予定レース）
   baseline: {
     etp: number;
     limiterType: LimiterType;
@@ -209,6 +220,7 @@ export interface WorkoutTemplate {
   name: string;
   category: string;
   description: string;
+  selectionGuide?: string; // 同カテゴリ内での選び方・他メニューとの差分・意識すべきポイント
   segments: WorkoutSegment[];
   targetLimiter?: LimiterType;
   limiterVariants: Record<LimiterType, LimiterVariant>;
