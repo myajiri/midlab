@@ -611,15 +611,13 @@ export default function PlanScreen() {
                     <Pressable
                       style={styles.dayContent}
                       onPress={() => {
-                        if (!isRestDay && day.type !== 'test') {
+                        // タップ: メニュー詳細を確認（差し替えモードではない）
+                        if (!isRestDay && day.type !== 'test' && day.workoutId) {
                           router.push({
                             pathname: '/(tabs)/workout',
                             params: {
                               category: day.focusCategory || 'all',
-                              ...(day.workoutId ? { workoutId: day.type === 'recovery' ? 'recovery-4000' : day.workoutId } : {}),
-                              replaceWeek: weekPlan.weekNumber.toString(),
-                              replaceDayId: day.id,
-                              replaceDayLabel: `第${weekPlan.weekNumber}週 ${dayNames[i]}曜`,
+                              workoutId: day.type === 'recovery' ? 'recovery-4000' : day.workoutId,
                               t: Date.now().toString(),
                             },
                           });
@@ -640,6 +638,26 @@ export default function PlanScreen() {
                         )}
                       </View>
                     </Pressable>
+                    {!isRestDay && day.type !== 'test' && (
+                      <Pressable
+                        style={styles.dayReplaceButton}
+                        onPress={() => {
+                          // 変更ボタン: 差し替えモードでワークアウト画面へ
+                          router.push({
+                            pathname: '/(tabs)/workout',
+                            params: {
+                              category: day.focusCategory || 'all',
+                              replaceWeek: weekPlan.weekNumber.toString(),
+                              replaceDayId: day.id,
+                              replaceDayLabel: `第${weekPlan.weekNumber}週 ${dayNames[i]}曜`,
+                              t: Date.now().toString(),
+                            },
+                          });
+                        }}
+                      >
+                        <Ionicons name="swap-horizontal" size={16} color={COLORS.text.muted} />
+                      </Pressable>
+                    )}
                     {!isRestDay && (
                       <Pressable
                         style={styles.checkButton}
@@ -659,7 +677,7 @@ export default function PlanScreen() {
           </View>
 
           <FadeIn delay={600}>
-            <Text style={styles.completionHintText}>タップで完了マーク</Text>
+            <Text style={styles.completionHintText}>タップで詳細確認 ・ ⇄で変更 ・ ○で完了</Text>
           </FadeIn>
         </ScrollView>
       </SafeAreaView>
@@ -1860,6 +1878,12 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  dayReplaceButton: {
+    width: 36,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   checkButton: {
     width: 48,
