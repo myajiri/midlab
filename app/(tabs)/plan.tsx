@@ -634,12 +634,12 @@ export default function PlanScreen() {
                       style={styles.dayContent}
                       onPress={() => {
                         // タップ: メニュー詳細を確認（差し替えモードではない）
-                        if (!isRestDay && day.type !== 'test' && day.workoutId) {
+                        if (!isRestDay && day.type !== 'test') {
                           router.push({
                             pathname: '/(tabs)/workout',
                             params: {
                               category: day.focusCategory || 'all',
-                              workoutId: day.workoutId,
+                              ...(day.workoutId ? { workoutId: day.workoutId } : {}),
                               t: Date.now().toString(),
                             },
                           });
