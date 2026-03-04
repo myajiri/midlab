@@ -23,6 +23,7 @@ import {
   useProfileStore,
   useEffectiveValues,
   useTrainingLogsStore,
+  useTestResultsStore,
 } from '../../src/stores/useAppStore';
 import { Card, Button, DatePickerModal } from '../../src/components/ui';
 import { FadeIn, SlideIn, AnimatedPressable } from '../../src/components/ui/Animated';
@@ -37,6 +38,7 @@ import {
   FOCUS_RATIONALE,
   PHYSIOLOGICAL_FOCUS_CATEGORIES,
   REST_DAY_FREQUENCY_CONFIG,
+  PLAN_VERSION,
 } from '../../src/constants';
 import {
   RacePlan,
@@ -71,8 +73,32 @@ export default function PlanScreen() {
   const setPlan = usePlanStore((state) => state.setPlan);
   const clearPlan = usePlanStore((state) => state.clearPlan);
   const toggleWorkoutComplete = usePlanStore((state) => state.toggleWorkoutComplete);
+  const regeneratePlan = usePlanStore((state) => state.regeneratePlan);
   const { etp, limiter } = useEffectiveValues();
   const profile = useProfileStore((state) => state.profile);
+  const testResults = useTestResultsStore((state) => state.results);
+
+  // メニュー更新通知の非表示フラグ
+  const [updateBannerDismissed, setUpdateBannerDismissed] = useState(false);
+  const showUpdateBanner = activePlan && !updateBannerDismissed && (activePlan.planVersion || 0) < PLAN_VERSION;
+
+  // メニュー更新: 計画を再生成
+  const handleRegeneratePlan = () => {
+    Alert.alert(
+      'メニューを更新',
+      '最新のメニューで計画を再生成します。完了済みのマークは保持されます。',
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        {
+          text: '更新する',
+          onPress: () => {
+            regeneratePlan(profile, testResults);
+            setUpdateBannerDismissed(true);
+          },
+        },
+      ],
+    );
+  };
 
   // トレーニングログ
   const trainingLogs = useTrainingLogsStore((state) => state.logs);
@@ -591,6 +617,9 @@ export default function PlanScreen() {
                             params: {
                               category: day.focusCategory || 'all',
                               ...(day.workoutId ? { workoutId: day.type === 'recovery' ? 'recovery-4000' : day.workoutId } : {}),
+                              replaceWeek: weekPlan.weekNumber.toString(),
+                              replaceDayId: day.id,
+                              replaceDayLabel: `第${weekPlan.weekNumber}週 ${dayNames[i]}曜`,
                               t: Date.now().toString(),
                             },
                           });
@@ -850,6 +879,35 @@ export default function PlanScreen() {
             </View>
           </View>
         </FadeIn>
+
+        {/* メニュー更新通知バナー */}
+        {showUpdateBanner && (
+          <SlideIn delay={80} direction="up">
+            <View style={styles.updateBanner}>
+              <View style={styles.updateBannerContent}>
+                <Ionicons name="refresh-circle" size={22} color="#EAB308" />
+                <View style={styles.updateBannerTextContainer}>
+                  <Text style={styles.updateBannerTitle}>メニューが更新されました</Text>
+                  <Text style={styles.updateBannerDesc}>走力に合わせた最新メニューに更新できます</Text>
+                </View>
+              </View>
+              <View style={styles.updateBannerActions}>
+                <Pressable
+                  style={styles.updateBannerButton}
+                  onPress={handleRegeneratePlan}
+                >
+                  <Text style={styles.updateBannerButtonText}>更新する</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.updateBannerDismiss}
+                  onPress={() => setUpdateBannerDismissed(true)}
+                >
+                  <Text style={styles.updateBannerDismissText}>後で</Text>
+                </Pressable>
+              </View>
+            </View>
+          </SlideIn>
+        )}
 
         {/* フェーズバー */}
         {activePlan.phases && (
@@ -2116,5 +2174,62 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
+  },
+
+  // メニュー更新通知バナー
+  updateBanner: {
+    backgroundColor: 'rgba(234, 179, 8, 0.1)',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(234, 179, 8, 0.25)',
+  },
+  updateBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 12,
+  },
+  updateBannerTextContainer: {
+    flex: 1,
+  },
+  updateBannerTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#EAB308',
+    marginBottom: 4,
+  },
+  updateBannerDesc: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    lineHeight: 18,
+  },
+  updateBannerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  updateBannerButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#EAB308',
+    alignItems: 'center',
+  },
+  updateBannerButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+  updateBannerDismiss: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+  },
+  updateBannerDismissText: {
+    fontSize: 14,
+    color: COLORS.text.muted,
   },
 });

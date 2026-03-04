@@ -185,6 +185,7 @@ export interface RacePlan {
   phases: Phase[];
   weeklyPlans: WeeklyPlan[];
   rampTestDates: string[];
+  planVersion?: number; // プラン生成時のバージョン（メニューアップデート検知用）
 }
 
 // ワークアウトセグメント

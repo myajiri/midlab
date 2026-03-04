@@ -26,7 +26,7 @@ import {
   WORKOUT_LIMITER_CONFIG,
   LIMITER_RATIONALE,
 } from '../../src/constants';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { WorkoutTemplate, WorkoutSegment, ZoneName, LimiterType, TrainingLog } from '../../src/types';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
@@ -62,12 +62,20 @@ export default function WorkoutScreen() {
   const { showToast } = useToast();
   const { etp, limiter } = useEffectiveValues();
   const activePlan = usePlanStore((state) => state.activePlan);
+  const replaceWorkoutInPlan = usePlanStore((state) => state.replaceWorkout);
   const addTrainingLog = useTrainingLogsStore((state) => state.addLog);
-  const params = useLocalSearchParams<{ category?: string; workoutId?: string; t?: string }>();
+  const params = useLocalSearchParams<{ category?: string; workoutId?: string; replaceWeek?: string; replaceDayId?: string; replaceDayLabel?: string; t?: string }>();
   const [selectedCategory, setSelectedCategory] = useState<string>(params.category || 'all');
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutTemplate | null>(null);
   const setSubScreenOpen = useSetSubScreenOpen();
   const isFocused = useIsFocused();
+  const router = useRouter();
+
+  // 差し替えモード判定
+  const isReplaceMode = !!(params.replaceWeek && params.replaceDayId);
+  const replaceWeek = params.replaceWeek ? parseInt(params.replaceWeek, 10) : 0;
+  const replaceDayId = params.replaceDayId || '';
+  const replaceDayLabel = params.replaceDayLabel || '';
 
   // メニューを実施選択する
   const handleSelectForTraining = (workout: WorkoutTemplate) => {
@@ -82,6 +90,13 @@ export default function WorkoutScreen() {
     };
     addTrainingLog(log);
     showToast('計画タブの「トレーニング記録」に追加しました', 'success');
+  };
+
+  // 計画内メニューを差し替える
+  const handleReplaceWorkout = (workout: WorkoutTemplate) => {
+    replaceWorkoutInPlan(replaceWeek, replaceDayId, workout.id, workout.name, workout.category);
+    showToast(`${replaceDayLabel}のメニューを「${workout.name}」に変更しました`, 'success');
+    router.back();
   };
 
   // フォーカス中のタブのみフラグを制御（タブ間の競合を防止）
@@ -138,6 +153,8 @@ export default function WorkoutScreen() {
           limiter={limiter}
           onBack={() => setSelectedWorkout(null)}
           onStartTraining={handleSelectForTraining}
+          onReplaceWorkout={isReplaceMode ? handleReplaceWorkout : undefined}
+          replaceDayLabel={replaceDayLabel}
         />
       </SwipeBackView>
     );
@@ -148,7 +165,15 @@ export default function WorkoutScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
         <FadeIn>
-          <Text style={styles.sectionTitle}>トレーニング</Text>
+          <Text style={styles.sectionTitle}>{isReplaceMode ? 'メニューを変更' : 'トレーニング'}</Text>
+
+          {/* 差し替えモードのバナー */}
+          {isReplaceMode && (
+            <View style={styles.replaceBanner}>
+              <Ionicons name="swap-horizontal" size={18} color={COLORS.primary} />
+              <Text style={styles.replaceBannerText}>{replaceDayLabel}のメニューを選択してください</Text>
+            </View>
+          )}
 
           {/* ETP表示（2行テーブル） */}
           <View style={styles.etpBox}>
@@ -242,13 +267,23 @@ export default function WorkoutScreen() {
                       <Ionicons name="information-circle-outline" size={16} color={COLORS.text.secondary} />
                       <Text style={styles.workoutDetailButtonText}>詳細</Text>
                     </Pressable>
-                    <Pressable
-                      style={styles.workoutStartButton}
-                      onPress={() => handleSelectForTraining(workout)}
-                    >
-                      <Ionicons name="play-circle" size={16} color="#fff" />
-                      <Text style={styles.workoutStartButtonText}>このメニューを実施</Text>
-                    </Pressable>
+                    {isReplaceMode ? (
+                      <Pressable
+                        style={styles.workoutReplaceButton}
+                        onPress={() => handleReplaceWorkout(workout)}
+                      >
+                        <Ionicons name="swap-horizontal" size={16} color="#fff" />
+                        <Text style={styles.workoutStartButtonText}>このメニューに変更</Text>
+                      </Pressable>
+                    ) : (
+                      <Pressable
+                        style={styles.workoutStartButton}
+                        onPress={() => handleSelectForTraining(workout)}
+                      >
+                        <Ionicons name="play-circle" size={16} color="#fff" />
+                        <Text style={styles.workoutStartButtonText}>このメニューを実施</Text>
+                      </Pressable>
+                    )}
                   </View>
                 </View>
               );
@@ -270,9 +305,11 @@ interface WorkoutDetailScreenProps {
   limiter: LimiterType;
   onBack: () => void;
   onStartTraining?: (workout: WorkoutTemplate) => void;
+  onReplaceWorkout?: (workout: WorkoutTemplate) => void;
+  replaceDayLabel?: string;
 }
 
-function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining }: WorkoutDetailScreenProps) {
+function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining, onReplaceWorkout, replaceDayLabel }: WorkoutDetailScreenProps) {
   const variant = workout.limiterVariants?.[limiter];
   const expandedSegments = expandSegments(workout.segments, variant);
   const totalDistance = calculateTotalDistance(workout.segments, variant);
@@ -392,15 +429,30 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining }:
           </SlideIn>
         )}
 
-        {/* このメニューを実施ボタン */}
-        {onStartTraining && (
+        {/* メニュー差し替えボタン（計画画面から遷移した場合） */}
+        {onReplaceWorkout && (
           <SlideIn delay={400} direction="up">
             <Pressable
-              style={styles.startTrainingButton}
+              style={styles.replaceTrainingButton}
+              onPress={() => onReplaceWorkout(workout)}
+            >
+              <Ionicons name="swap-horizontal" size={20} color="#fff" />
+              <Text style={styles.startTrainingButtonText}>
+                {replaceDayLabel ? `${replaceDayLabel}をこのメニューに変更` : 'このメニューに変更'}
+              </Text>
+            </Pressable>
+          </SlideIn>
+        )}
+
+        {/* このメニューを実施ボタン */}
+        {onStartTraining && (
+          <SlideIn delay={onReplaceWorkout ? 450 : 400} direction="up">
+            <Pressable
+              style={[styles.startTrainingButton, onReplaceWorkout && styles.startTrainingButtonSecondary]}
               onPress={() => onStartTraining(workout)}
             >
-              <Ionicons name="play-circle" size={20} color="#fff" />
-              <Text style={styles.startTrainingButtonText}>このメニューを実施</Text>
+              <Ionicons name="play-circle" size={20} color={onReplaceWorkout ? COLORS.text.secondary : '#fff'} />
+              <Text style={[styles.startTrainingButtonText, onReplaceWorkout && styles.startTrainingButtonTextSecondary]}>このメニューを実施</Text>
             </Pressable>
           </SlideIn>
         )}
@@ -967,5 +1019,56 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  startTrainingButtonSecondary: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    marginTop: 10,
+  },
+  startTrainingButtonTextSecondary: {
+    color: COLORS.text.secondary,
+  },
+
+  // 差し替えボタン（詳細画面）
+  replaceTrainingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 24,
+    paddingVertical: 16,
+    backgroundColor: '#EAB308',
+    borderRadius: 14,
+  },
+
+  // 差し替えモードバナー
+  replaceBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(45, 159, 45, 0.1)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(45, 159, 45, 0.25)',
+  },
+  replaceBannerText: {
+    fontSize: 14,
+    color: COLORS.primary,
+    fontWeight: '500',
+    flex: 1,
+  },
+
+  // 差し替えボタン（一覧画面）
+  workoutReplaceButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#EAB308',
   },
 });

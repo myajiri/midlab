@@ -35,6 +35,7 @@ import {
   LONG_RUN_BY_DISTANCE,
   WORKOUT_REPS_SCALING,
   INTENSITY_DISTRIBUTION_BY_EXPERIENCE,
+  PLAN_VERSION,
 } from '../constants';
 import { selectWorkoutForCategory } from './workoutSelector';
 
@@ -274,6 +275,7 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
     phases: phasesForPlan,
     weeklyPlans,
     rampTestDates,
+    planVersion: PLAN_VERSION,
   };
 }
 

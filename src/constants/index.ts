@@ -893,6 +893,11 @@ export const INTENSITY_DISTRIBUTION_BY_EXPERIENCE: Record<Experience, { easyRati
   elite: { easyRatio: 0.90, thresholdRatio: 1.10, vo2maxRatio: 1.15, speedRatio: 1.15 },
 };
 
+// プラン生成バージョン
+// メニュー内容・プランロジックに変更があった場合にインクリメントする
+// これにより既存ユーザーに再生成を促す通知が表示される
+export const PLAN_VERSION = 2;
+
 // カラー定義
 export const COLORS = {
   background: {
