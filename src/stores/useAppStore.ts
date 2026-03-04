@@ -234,6 +234,8 @@ interface PlanState {
   removeSubRace: (subRaceId: string) => void;
   // プロフィール変更に応じて計画を再生成（完了状態を保持）
   regeneratePlan: (profile: Profile, testResults: TestResult[]) => void;
+  // 特定日のワークアウトを別のメニューに差し替える
+  replaceWorkout: (weekNumber: number, dayId: string, newWorkoutId: string, newWorkoutName: string, newWorkoutCategory: string) => void;
 }
 
 export const usePlanStore = create<PlanState>()(
@@ -348,6 +350,31 @@ export const usePlanStore = create<PlanState>()(
             subRaces: updatedSubRaces,
             weeklyPlans: updatedWeeklyPlans,
           },
+        });
+      },
+
+      // 特定日のワークアウトを別のメニューに差し替える
+      replaceWorkout: (weekNumber, dayId, newWorkoutId, newWorkoutName, newWorkoutCategory) => {
+        const plan = get().activePlan;
+        if (!plan) return;
+
+        const updatedWeeklyPlans = plan.weeklyPlans.map((week) => {
+          if (week.weekNumber !== weekNumber) return week;
+          return {
+            ...week,
+            days: week.days.map((d) => {
+              if (!d || d.id !== dayId) return d;
+              return { ...d, workoutId: newWorkoutId, label: newWorkoutName, focusCategory: newWorkoutCategory };
+            }),
+            workouts: week.workouts.map((w) => {
+              if (w.id !== dayId) return w;
+              return { ...w, workoutId: newWorkoutId, label: newWorkoutName, focusCategory: newWorkoutCategory };
+            }),
+          };
+        });
+
+        set({
+          activePlan: { ...plan, weeklyPlans: updatedWeeklyPlans },
         });
       },
 
