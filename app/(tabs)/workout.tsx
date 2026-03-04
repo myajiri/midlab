@@ -108,20 +108,21 @@ export default function WorkoutScreen() {
 
   // 他画面からのカテゴリパラメータ変更に対応（タイムスタンプで強制更新）
   useEffect(() => {
-    if (params.category) {
+    if (isFocused && params.category) {
       setSelectedCategory(params.category);
     }
-  }, [params.category, params.t]);
+  }, [params.category, params.t, isFocused]);
 
   // workoutIdパラメータが渡された場合、該当メニューの詳細画面を自動表示
+  // isFocusedを依存に含め、タブ切り替え時にもパラメータを検出する
   useEffect(() => {
-    if (params.workoutId) {
+    if (isFocused && params.workoutId) {
       const workout = WORKOUTS.find((w) => w.id === params.workoutId);
       if (workout) {
         setSelectedWorkout(workout as WorkoutTemplate);
       }
     }
-  }, [params.workoutId, params.t]);
+  }, [params.workoutId, params.t, isFocused]);
 
   // カテゴリ一覧
   // ※ Hooks（useMemo）は条件分岐の前に配置する必要がある（Rules of Hooks）
