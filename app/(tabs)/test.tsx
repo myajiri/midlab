@@ -171,6 +171,14 @@ export default function TestScreen() {
       <SwipeBackView onSwipeBack={() => setView('main')}>
       <SafeAreaView style={styles.container} edges={['top']}>
         <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
+          <View style={styles.header}>
+            <Pressable style={styles.backButton} onPress={() => setView('main')}>
+              <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
+            </Pressable>
+            <Text style={styles.headerTitle}>テスト結果</Text>
+            <View style={{ width: 40 }} />
+          </View>
+
           <SuccessCheckmark size={80} color={COLORS.success} />
 
           <SlideIn direction="up" delay={300}>

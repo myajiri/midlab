@@ -115,14 +115,15 @@ export interface Phase {
   weeks: number;
 }
 
-// レース距離
-export type RaceDistance = 800 | 1500 | 3000 | 5000;
+// レース距離（正式陸上種目 + カスタム）
+export type RaceDistance = 400 | 800 | 1500 | 3000 | 5000 | 10000 | 21097 | 42195 | 'custom';
 
 // レース情報
 export interface RaceInfo {
   name: string;
   date: string;
   distance: RaceDistance;
+  customDistance?: number; // distance === 'custom' の場合の実際の距離（m）
 }
 
 // サブレース（ターゲットレースに向かう過程で出場するレース）
@@ -131,24 +132,30 @@ export interface SubRace {
   name: string;
   date: string;
   distance: RaceDistance;
+  customDistance?: number; // distance === 'custom' の場合
   priority: 'high' | 'medium' | 'low'; // レースの重要度（調整度合いに影響）
 }
+
+// ゾーン別距離（メートル）
+export type ZoneDistances = Partial<Record<ZoneName, number>>;
 
 // 週間ワークアウト
 export interface ScheduledWorkout {
   id: string;
   dayOfWeek: number; // 0=月, 6=日
-  type: 'workout' | 'easy' | 'long' | 'rest' | 'test' | 'recovery';
+  type: 'workout' | 'easy' | 'long' | 'rest' | 'test' | 'recovery' | 'race';
   label: string;
   workoutId?: string;
   isKey?: boolean;
   completed?: boolean;
   focusKey?: string;
   focusCategory?: string;
+  zoneDistances?: ZoneDistances; // ワークアウトのゾーン別距離
   actualData?: {
     distance?: number;
     duration?: number;
     notes?: string;
+    zoneDistances?: ZoneDistances; // 実際のゾーン別距離（修正可能）
   };
 }
 

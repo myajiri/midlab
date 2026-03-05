@@ -24,6 +24,9 @@ import {
   UserStage,
   WeekProgress,
   ScheduledWorkout,
+  ZoneDistances,
+  WorkoutTemplate,
+  WeeklyPlan,
 } from '../types';
 
 import {
@@ -37,6 +40,7 @@ import {
   AGE_CATEGORY_CONFIG,
   EXPERIENCE_CONFIG,
   PB_COEFFICIENTS,
+  WORKOUTS,
 } from '../constants';
 
 // ============================================
@@ -722,6 +726,128 @@ export const getWeeklyPlanRationale = (
   }
 
   return rationale;
+};
+
+// ============================================
+// ゾーン別距離計算・トレーニング分析
+// ============================================
+
+/**
+ * ワークアウトIDからゾーン別距離（m）を計算
+ */
+export const getWorkoutZoneDistances = (workoutId: string, limiterType?: LimiterType): ZoneDistances => {
+  const workout = WORKOUTS.find((w: WorkoutTemplate) => w.id === workoutId);
+  if (!workout) return {};
+  const zones: ZoneDistances = {};
+  const variant = limiterType ? workout.limiterVariants?.[limiterType] : undefined;
+  for (const seg of workout.segments) {
+    const reps = seg.reps ? (variant?.reps || seg.reps) : 1;
+    const dist = seg.distance * reps;
+    zones[seg.zone] = (zones[seg.zone] || 0) + dist;
+    // リカバリーはjogゾーンとして加算
+    if (seg.reps && seg.reps > 1 && seg.recoveryDistance) {
+      const recovery = (variant?.recoveryDistance || seg.recoveryDistance) * (reps - 1);
+      zones['jog'] = (zones['jog'] || 0) + recovery;
+    }
+  }
+  return zones;
+};
+
+/**
+ * ゾーン別距離からゾーン別推定時間（秒）を計算
+ */
+export const calculateZoneTimes = (zoneDistances: ZoneDistances, etp: number, limiterType: LimiterType): Partial<Record<ZoneName, number>> => {
+  const zones = calculateZonesV3(etp, limiterType);
+  const times: Partial<Record<ZoneName, number>> = {};
+  for (const [zone, distance] of Object.entries(zoneDistances)) {
+    const pace = zones[zone as ZoneName]; // 秒/400m
+    if (pace && distance) {
+      times[zone as ZoneName] = (distance / 400) * pace;
+    }
+  }
+  return times;
+};
+
+/**
+ * 計画全体のトレーニング分析データを計算
+ */
+export interface TrainingAnalytics {
+  // 完了済みワークアウトのゾーン別合計距離（m）
+  completedZoneDistances: ZoneDistances;
+  // 計画全体のゾーン別目標距離（m）
+  plannedZoneDistances: ZoneDistances;
+  // 週間走行距離（直近7日間の完了ワークアウト距離合計）
+  weeklyDistance: number;
+  // 過去30日間の走行距離
+  monthlyDistance: number;
+  // 完了ワークアウト数
+  completedCount: number;
+  // 全ワークアウト数（休養日除く）
+  totalCount: number;
+}
+
+export const calculateTrainingAnalytics = (
+  weeklyPlans: WeeklyPlan[],
+  limiterType: LimiterType,
+): TrainingAnalytics => {
+  const completedZoneDistances: ZoneDistances = {};
+  const plannedZoneDistances: ZoneDistances = {};
+  let completedCount = 0;
+  let totalCount = 0;
+  let weeklyDistance = 0;
+  let monthlyDistance = 0;
+
+  const now = new Date();
+  const weekAgo = new Date(now);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const monthAgo = new Date(now);
+  monthAgo.setDate(monthAgo.getDate() - 30);
+
+  for (const week of weeklyPlans) {
+    for (let i = 0; i < week.days.length; i++) {
+      const day = week.days[i];
+      if (!day || day.type === 'rest') continue;
+      totalCount++;
+
+      const dayDate = new Date(week.startDate);
+      dayDate.setDate(dayDate.getDate() + i);
+
+      // ワークアウトのゾーン別距離を取得
+      const zones = day.workoutId
+        ? getWorkoutZoneDistances(day.workoutId, limiterType)
+        : {};
+
+      // 計画されたゾーン距離を集計（過去の日のみ）
+      if (dayDate <= now) {
+        for (const [zone, dist] of Object.entries(zones)) {
+          plannedZoneDistances[zone as ZoneName] = (plannedZoneDistances[zone as ZoneName] || 0) + (dist || 0);
+        }
+      }
+
+      if (day.completed) {
+        completedCount++;
+        // 実績ゾーン距離がある場合はそれを使用、なければ計画値
+        const actualZones = day.actualData?.zoneDistances || zones;
+        for (const [zone, dist] of Object.entries(actualZones)) {
+          completedZoneDistances[zone as ZoneName] = (completedZoneDistances[zone as ZoneName] || 0) + (dist || 0);
+        }
+
+        // 総距離の計算
+        const totalDist = day.actualData?.distance || Object.values(zones).reduce((s, d) => s + (d || 0), 0);
+        if (dayDate >= weekAgo) weeklyDistance += totalDist;
+        if (dayDate >= monthAgo) monthlyDistance += totalDist;
+      }
+    }
+  }
+
+  return {
+    completedZoneDistances,
+    plannedZoneDistances,
+    completedCount,
+    totalCount,
+    weeklyDistance,
+    monthlyDistance,
+  };
 };
 
 // 移行ユーティリティをエクスポート

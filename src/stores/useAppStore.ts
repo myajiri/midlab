@@ -306,7 +306,7 @@ export const usePlanStore = create<PlanState>()(
           (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
         );
 
-        // サブレースを週間プランに反映
+        // サブレースを週間プランに反映 + レース日/前日のメニュー調整
         const updatedWeeklyPlans = plan.weeklyPlans.map((week) => {
           const weekStart = new Date(week.startDate);
           const weekEnd = new Date(week.endDate);
@@ -314,7 +314,46 @@ export const usePlanStore = create<PlanState>()(
             const srDate = new Date(sr.date);
             return srDate >= weekStart && srDate <= weekEnd;
           });
-          return { ...week, subRace: subRaceInWeek || undefined };
+
+          if (!subRaceInWeek) return { ...week, subRace: undefined };
+
+          // サブレース日の曜日を計算（0=月〜6=日）
+          const srDate = new Date(subRaceInWeek.date);
+          const srDayOfWeek = (srDate.getDay() + 6) % 7;
+
+          const newDays = [...week.days];
+          // レース日をレースメニューに変更
+          if (newDays[srDayOfWeek] && newDays[srDayOfWeek]!.type !== 'rest') {
+            newDays[srDayOfWeek] = {
+              ...newDays[srDayOfWeek]!,
+              type: 'race' as const,
+              label: subRaceInWeek.name || 'レース',
+              isKey: true,
+              workoutId: undefined,
+              focusKey: undefined,
+              focusCategory: undefined,
+            };
+          }
+          // 前日の高強度を回避
+          const prevDay = (srDayOfWeek - 1 + 7) % 7;
+          const prevWorkout = newDays[prevDay];
+          if (prevWorkout && (prevWorkout.type === 'workout' || prevWorkout.isKey) && prevWorkout.type !== 'rest') {
+            newDays[prevDay] = {
+              ...prevWorkout,
+              type: 'easy',
+              label: 'イージー（レース前調整）',
+              isKey: false,
+              focusKey: 'aerobic',
+              focusCategory: '有酸素ベース',
+            };
+          }
+
+          return {
+            ...week,
+            subRace: subRaceInWeek,
+            days: newDays,
+            workouts: newDays.filter((d): d is NonNullable<typeof d> => d !== null),
+          };
         });
 
         set({

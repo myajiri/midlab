@@ -64,7 +64,7 @@ export default function WorkoutScreen() {
   const activePlan = usePlanStore((state) => state.activePlan);
   const replaceWorkoutInPlan = usePlanStore((state) => state.replaceWorkout);
   const addTrainingLog = useTrainingLogsStore((state) => state.addLog);
-  const params = useLocalSearchParams<{ category?: string; workoutId?: string; replaceWeek?: string; replaceDayId?: string; replaceDayLabel?: string; t?: string }>();
+  const params = useLocalSearchParams<{ category?: string; workoutId?: string; replaceWeek?: string; replaceDayId?: string; replaceDayLabel?: string; fromPlan?: string; t?: string }>();
   const [selectedCategory, setSelectedCategory] = useState<string>(params.category || 'all');
   const [selectedWorkout, setSelectedWorkout] = useState<WorkoutTemplate | null>(null);
   const setSubScreenOpen = useSetSubScreenOpen();
@@ -76,6 +76,7 @@ export default function WorkoutScreen() {
   const replaceWeek = params.replaceWeek ? parseInt(params.replaceWeek, 10) : 0;
   const replaceDayId = params.replaceDayId || '';
   const replaceDayLabel = params.replaceDayLabel || '';
+  const isFromPlan = params.fromPlan === 'true';
 
   // メニューを実施選択する
   const handleSelectForTraining = (workout: WorkoutTemplate) => {
@@ -147,13 +148,21 @@ export default function WorkoutScreen() {
   // 詳細画面
   if (selectedWorkout) {
     return (
-      <SwipeBackView onSwipeBack={() => setSelectedWorkout(null)}>
+      <SwipeBackView onSwipeBack={() => {
+        // スワイプバック: 計画タブからの遷移なら計画タブに戻る、それ以外は一覧に戻る
+        setSelectedWorkout(null);
+        if (isFromPlan) {
+          router.navigate('/(tabs)/plan');
+        }
+      }}>
         <WorkoutDetailScreen
           workout={selectedWorkout}
           etp={etp}
           limiter={limiter}
-          onBack={() => setSelectedWorkout(null)}
-          onStartTraining={handleSelectForTraining}
+          onBack={() => {
+            // 戻るボタン: 常にタブ内の一覧画面に戻る
+            setSelectedWorkout(null);
+          }}
           onReplaceWorkout={isReplaceMode ? handleReplaceWorkout : undefined}
           replaceDayLabel={replaceDayLabel}
         />
@@ -268,21 +277,13 @@ export default function WorkoutScreen() {
                       <Ionicons name="information-circle-outline" size={16} color={COLORS.text.secondary} />
                       <Text style={styles.workoutDetailButtonText}>詳細</Text>
                     </Pressable>
-                    {isReplaceMode ? (
+                    {isReplaceMode && (
                       <Pressable
                         style={styles.workoutReplaceButton}
                         onPress={() => handleReplaceWorkout(workout)}
                       >
                         <Ionicons name="swap-horizontal" size={16} color="#fff" />
                         <Text style={styles.workoutStartButtonText}>このメニューに変更</Text>
-                      </Pressable>
-                    ) : (
-                      <Pressable
-                        style={styles.workoutStartButton}
-                        onPress={() => handleSelectForTraining(workout)}
-                      >
-                        <Ionicons name="play-circle" size={16} color="#fff" />
-                        <Text style={styles.workoutStartButtonText}>このメニューを実施</Text>
                       </Pressable>
                     )}
                   </View>
@@ -458,18 +459,6 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining, o
           </SlideIn>
         )}
 
-        {/* このメニューを実施ボタン */}
-        {onStartTraining && (
-          <SlideIn delay={onReplaceWorkout ? 450 : 400} direction="up">
-            <Pressable
-              style={[styles.startTrainingButton, onReplaceWorkout && styles.startTrainingButtonSecondary]}
-              onPress={() => onStartTraining(workout)}
-            >
-              <Ionicons name="play-circle" size={20} color={onReplaceWorkout ? COLORS.text.secondary : '#fff'} />
-              <Text style={[styles.startTrainingButtonText, onReplaceWorkout && styles.startTrainingButtonTextSecondary]}>このメニューを実施</Text>
-            </Pressable>
-          </SlideIn>
-        )}
       </ScrollView>
     </SafeAreaView>
   );
