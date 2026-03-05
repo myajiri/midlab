@@ -155,7 +155,9 @@ export default function WorkoutScreen() {
           limiter={limiter}
           onBack={() => {
             if (isFromPlan) {
-              router.back();
+              // 計画タブに明示的に戻る（Material Top Tabsではrouter.back()だとホームに戻る問題の回避）
+              setSelectedWorkout(null);
+              router.navigate('/(tabs)/plan');
             } else {
               setSelectedWorkout(null);
             }
