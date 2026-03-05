@@ -50,10 +50,32 @@ import {
   FeelingLevel,
 } from '../../src/types';
 import { generatePlan } from '../../src/utils/planGenerator';
-import { getWeeklyPlanRationale } from '../../src/utils';
+import { getWeeklyPlanRationale, calculateTrainingAnalytics } from '../../src/utils';
+import { ZoneName } from '../../src/types';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
 import { useIsFocused } from '@react-navigation/native';
+
+// レース距離ラベル
+const RACE_DISTANCE_OPTIONS: { value: RaceDistance; label: string }[] = [
+  { value: 400, label: '400m' },
+  { value: 800, label: '800m' },
+  { value: 1500, label: '1500m' },
+  { value: 3000, label: '3000m' },
+  { value: 5000, label: '5000m' },
+  { value: 10000, label: '10000m' },
+  { value: 21097, label: 'ハーフ' },
+  { value: 42195, label: 'マラソン' },
+  { value: 'custom', label: '任意' },
+];
+
+// レース距離の表示ラベル
+function formatRaceDistance(distance: RaceDistance, customDistance?: number): string {
+  if (distance === 'custom') return customDistance ? `${customDistance}m` : '任意距離';
+  if (distance === 21097) return 'ハーフマラソン';
+  if (distance === 42195) return 'マラソン';
+  return `${distance}m`;
+}
 
 // ビュータイプ
 type ViewType = 'overview' | 'create' | 'weekly' | 'log';
@@ -175,6 +197,7 @@ export default function PlanScreen() {
   const [raceName, setRaceName] = useState('');
   const [raceDate, setRaceDate] = useState<Date | null>(null);
   const [distance, setDistance] = useState<RaceDistance>(1500);
+  const [customDistanceInput, setCustomDistanceInput] = useState<string>(''); // 任意距離入力
   const [restDay, setRestDay] = useState<number>(6); // 休養日: デフォルト日曜（6）
   const [restDayFrequency, setRestDayFrequency] = useState<RestDayFrequency>('auto'); // 休養日頻度
   const [keyDays, setKeyDays] = useState<number[]>([2, 5]); // Key曜日: デフォルト水・土
@@ -185,6 +208,7 @@ export default function PlanScreen() {
   const [subRaceName, setSubRaceName] = useState('');
   const [subRaceDate, setSubRaceDate] = useState<Date | null>(null);
   const [subRaceDistance, setSubRaceDistance] = useState<RaceDistance>(1500);
+  const [subRaceCustomDistance, setSubRaceCustomDistance] = useState<string>('');
   const [subRacePriority, setSubRacePriority] = useState<'high' | 'medium' | 'low'>('medium');
   const [showSubRaceDatePicker, setShowSubRaceDatePicker] = useState(false);
   const addSubRace = usePlanStore((state) => state.addSubRace);
@@ -233,8 +257,13 @@ export default function PlanScreen() {
       Alert.alert('エラー', '全ての項目を入力してください');
       return;
     }
+    if (distance === 'custom' && (!customDistanceInput || parseInt(customDistanceInput, 10) <= 0)) {
+      Alert.alert('エラー', '任意距離を入力してください');
+      return;
+    }
+    const customDist = distance === 'custom' ? parseInt(customDistanceInput, 10) : undefined;
     const plan = generatePlan({
-      race: { name: raceName, date: raceDate.toISOString(), distance },
+      race: { name: raceName, date: raceDate.toISOString(), distance, customDistance: customDist },
       baseline: { etp, limiterType: limiter },
       restDay,
       keyWorkoutDays: keyDays,
@@ -301,18 +330,28 @@ export default function PlanScreen() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>種目</Text>
                   <View style={styles.distanceSelector}>
-                    {([800, 1500, 3000, 5000] as RaceDistance[]).map((d) => (
+                    {RACE_DISTANCE_OPTIONS.map((opt) => (
                       <Pressable
-                        key={d}
-                        style={[styles.distanceOption, distance === d && styles.distanceOptionActive]}
-                        onPress={() => setDistance(d)}
+                        key={String(opt.value)}
+                        style={[styles.distanceOption, distance === opt.value && styles.distanceOptionActive]}
+                        onPress={() => setDistance(opt.value)}
                       >
-                        <Text style={[styles.distanceOptionText, distance === d && styles.distanceOptionTextActive]}>
-                          {d}m
+                        <Text style={[styles.distanceOptionText, distance === opt.value && styles.distanceOptionTextActive]}>
+                          {opt.label}
                         </Text>
                       </Pressable>
                     ))}
                   </View>
+                  {distance === 'custom' && (
+                    <TextInput
+                      style={[styles.input, { marginTop: 8 }]}
+                      value={customDistanceInput}
+                      onChangeText={setCustomDistanceInput}
+                      placeholder="距離をメートルで入力（例: 1000）"
+                      placeholderTextColor={COLORS.text.muted}
+                      keyboardType="numeric"
+                    />
+                  )}
                 </View>
 
                 {/* 休養日 */}
@@ -521,7 +560,16 @@ export default function PlanScreen() {
           <Pressable style={styles.backButton} onPress={() => setView('overview')}>
             <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
           </Pressable>
-          <Text style={styles.headerTitle}>第{weekPlan.weekNumber}週</Text>
+          <View>
+            <Text style={styles.headerTitle}>第{weekPlan.weekNumber}週</Text>
+            <Text style={styles.headerSubtitle}>
+              {(() => {
+                const s = new Date(weekPlan.startDate);
+                const e = new Date(weekPlan.endDate);
+                return `${s.getMonth() + 1}/${s.getDate()} - ${e.getMonth() + 1}/${e.getDate()}`;
+              })()}
+            </Text>
+          </View>
           <View style={{ width: 40 }} />
         </View>
 
@@ -577,7 +625,7 @@ export default function PlanScreen() {
                   <View style={styles.subRaceBadge}>
                     <Ionicons name="trophy" size={14} color="#F97316" />
                     <Text style={styles.subRaceBadgeText}>
-                      {weekPlan.subRace.name} ({weekPlan.subRace.distance}m)
+                      {weekPlan.subRace.name} ({formatRaceDistance(weekPlan.subRace.distance, weekPlan.subRace.customDistance)})
                     </Text>
                   </View>
                 )}
@@ -634,12 +682,13 @@ export default function PlanScreen() {
                       style={styles.dayContent}
                       onPress={() => {
                         // タップ: メニュー詳細を確認（差し替えモードではない）
-                        if (!isRestDay && day.type !== 'test') {
+                        if (!isRestDay && day.type !== 'test' && day.type !== 'race') {
                           router.push({
                             pathname: '/(tabs)/workout',
                             params: {
                               category: day.focusCategory || 'all',
                               ...(day.workoutId ? { workoutId: day.workoutId } : {}),
+                              fromPlan: 'true',
                               t: Date.now().toString(),
                             },
                           });
@@ -647,7 +696,16 @@ export default function PlanScreen() {
                       }}
                     >
                       <View style={styles.dayLeft}>
-                        <Text style={styles.dayName}>{dayNames[i]}</Text>
+                        <View style={styles.dayDateColumn}>
+                          <Text style={styles.dayName}>{dayNames[i]}</Text>
+                          <Text style={styles.dayDate}>
+                            {(() => {
+                              const d = new Date(weekPlan.startDate);
+                              d.setDate(d.getDate() + i);
+                              return `${d.getMonth() + 1}/${d.getDate()}`;
+                            })()}
+                          </Text>
+                        </View>
                         <View style={[styles.dayIcon, { backgroundColor: iconInfo.color + '20' }]}>
                           <Ionicons name={iconInfo.name as any} size={16} color={iconInfo.color} />
                         </View>
@@ -662,7 +720,7 @@ export default function PlanScreen() {
                         )}
                       </View>
                     </Pressable>
-                    {!isRestDay && day.type !== 'test' && (
+                    {!isRestDay && day.type !== 'test' && day.type !== 'race' && (
                       <Pressable
                         style={styles.dayReplaceButton}
                         onPress={() => {
@@ -682,18 +740,30 @@ export default function PlanScreen() {
                         <Ionicons name="swap-horizontal" size={16} color={COLORS.text.muted} />
                       </Pressable>
                     )}
-                    {!isRestDay && (
-                      <Pressable
-                        style={styles.checkButton}
-                        onPress={() => toggleWorkoutComplete(weekPlan.weekNumber, day.id)}
-                      >
-                        <Ionicons
-                          name={day.completed ? 'checkmark-circle' : 'ellipse-outline'}
-                          size={28}
-                          color={day.completed ? COLORS.success : COLORS.text.muted}
-                        />
-                      </Pressable>
-                    )}
+                    {!isRestDay && (() => {
+                      const dayDate = new Date(weekPlan.startDate);
+                      dayDate.setDate(dayDate.getDate() + i);
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const isFutureDay = dayDate > today;
+                      return (
+                        <Pressable
+                          style={[styles.checkButton, isFutureDay && styles.checkButtonDisabled]}
+                          onPress={() => {
+                            if (!isFutureDay) {
+                              toggleWorkoutComplete(weekPlan.weekNumber, day.id);
+                            }
+                          }}
+                          disabled={isFutureDay}
+                        >
+                          <Ionicons
+                            name={day.completed ? 'checkmark-circle' : 'ellipse-outline'}
+                            size={28}
+                            color={day.completed ? COLORS.success : isFutureDay ? 'rgba(255,255,255,0.1)' : COLORS.text.muted}
+                          />
+                        </Pressable>
+                      );
+                    })()}
                   </View>
                 </SlideIn>
               );
@@ -922,7 +992,7 @@ export default function PlanScreen() {
             </View>
             <Text style={styles.raceCountdown}>あと {daysUntilRace} 日</Text>
             <View style={styles.raceDetails}>
-              <Text style={styles.raceDetailText}>{activePlan.race.distance}m</Text>
+              <Text style={styles.raceDetailText}>{formatRaceDistance(activePlan.race.distance, activePlan.race.customDistance)}</Text>
             </View>
           </View>
         </FadeIn>
@@ -1024,6 +1094,71 @@ export default function PlanScreen() {
           </SlideIn>
         )}
 
+        {/* トレーニング分析ダッシュボード */}
+        {activePlan.weeklyPlans && (() => {
+          const analytics = calculateTrainingAnalytics(activePlan.weeklyPlans, activePlan.baseline.limiterType);
+          if (analytics.completedCount === 0) return null;
+
+          const ZONE_LABELS: Record<string, { label: string; color: string }> = {
+            jog: { label: 'Jog', color: '#6B7280' },
+            easy: { label: 'Easy', color: '#3B82F6' },
+            marathon: { label: 'Marathon', color: '#22C55E' },
+            threshold: { label: 'Threshold', color: '#EAB308' },
+            interval: { label: 'Interval', color: '#F97316' },
+            repetition: { label: 'Repetition', color: '#EF4444' },
+          };
+
+          return (
+            <SlideIn delay={230} direction="up">
+              <View style={styles.analyticsCard}>
+                <View style={styles.analyticsTitleRow}>
+                  <Ionicons name="stats-chart-outline" size={18} color={COLORS.primary} />
+                  <Text style={styles.analyticsTitle}>トレーニング分析</Text>
+                </View>
+
+                {/* 走行距離サマリー */}
+                <View style={styles.analyticsDistanceRow}>
+                  <View style={styles.analyticsDistanceItem}>
+                    <Text style={styles.analyticsDistanceValue}>{(analytics.weeklyDistance / 1000).toFixed(1)}</Text>
+                    <Text style={styles.analyticsDistanceLabel}>週間km</Text>
+                  </View>
+                  <View style={styles.analyticsDistanceDivider} />
+                  <View style={styles.analyticsDistanceItem}>
+                    <Text style={styles.analyticsDistanceValue}>{(analytics.monthlyDistance / 1000).toFixed(1)}</Text>
+                    <Text style={styles.analyticsDistanceLabel}>30日間km</Text>
+                  </View>
+                  <View style={styles.analyticsDistanceDivider} />
+                  <View style={styles.analyticsDistanceItem}>
+                    <Text style={styles.analyticsDistanceValue}>{analytics.completedCount}/{analytics.totalCount}</Text>
+                    <Text style={styles.analyticsDistanceLabel}>完了率</Text>
+                  </View>
+                </View>
+
+                {/* ゾーン別刺激バー */}
+                <Text style={styles.analyticsZoneTitle}>ゾーン別刺激量</Text>
+                {Object.entries(ZONE_LABELS).map(([zone, config]) => {
+                  const completed = analytics.completedZoneDistances[zone as ZoneName] || 0;
+                  const planned = analytics.plannedZoneDistances[zone as ZoneName] || 0;
+                  if (planned === 0 && completed === 0) return null;
+                  const ratio = planned > 0 ? Math.min(completed / planned, 1) : 0;
+                  return (
+                    <View key={zone} style={styles.analyticsZoneRow}>
+                      <View style={styles.analyticsZoneLabelBox}>
+                        <View style={[styles.analyticsZoneDot, { backgroundColor: config.color }]} />
+                        <Text style={styles.analyticsZoneLabel}>{config.label}</Text>
+                      </View>
+                      <View style={styles.analyticsZoneBarBg}>
+                        <View style={[styles.analyticsZoneBarFill, { width: `${ratio * 100}%`, backgroundColor: config.color }]} />
+                      </View>
+                      <Text style={styles.analyticsZoneValue}>{(completed / 1000).toFixed(1)}km</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </SlideIn>
+          );
+        })()}
+
         {/* トレーニング記録ボタン */}
         <SlideIn delay={250} direction="up">
           <Pressable
@@ -1087,7 +1222,7 @@ export default function PlanScreen() {
                         <View>
                           <Text style={styles.subRaceItemName}>{sr.name}</Text>
                           <Text style={styles.subRaceItemDetail}>
-                            {sr.distance}m
+                            {formatRaceDistance(sr.distance, sr.customDistance)}
                             {' '}·{' '}
                             {daysUntilSr > 0 ? `あと${daysUntilSr}日` : '終了'}
                             {' '}·{' '}
@@ -1223,18 +1358,28 @@ export default function PlanScreen() {
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>種目</Text>
                 <View style={styles.distanceSelector}>
-                  {([800, 1500, 3000, 5000] as RaceDistance[]).map((d) => (
+                  {RACE_DISTANCE_OPTIONS.map((opt) => (
                     <Pressable
-                      key={d}
-                      style={[styles.distanceOption, subRaceDistance === d && styles.distanceOptionActive]}
-                      onPress={() => setSubRaceDistance(d)}
+                      key={String(opt.value)}
+                      style={[styles.distanceOption, subRaceDistance === opt.value && styles.distanceOptionActive]}
+                      onPress={() => setSubRaceDistance(opt.value)}
                     >
-                      <Text style={[styles.distanceOptionText, subRaceDistance === d && styles.distanceOptionTextActive]}>
-                        {d}m
+                      <Text style={[styles.distanceOptionText, subRaceDistance === opt.value && styles.distanceOptionTextActive]}>
+                        {opt.label}
                       </Text>
                     </Pressable>
                   ))}
                 </View>
+                {subRaceDistance === 'custom' && (
+                  <TextInput
+                    style={[styles.input, { marginTop: 8 }]}
+                    value={subRaceCustomDistance}
+                    onChangeText={setSubRaceCustomDistance}
+                    placeholder="距離をメートルで入力（例: 1000）"
+                    placeholderTextColor={COLORS.text.muted}
+                    keyboardType="numeric"
+                  />
+                )}
               </View>
 
               {/* 重要度 */}
@@ -1278,11 +1423,17 @@ export default function PlanScreen() {
                   Alert.alert('エラー', 'ターゲットレース日以降の日付は設定できません');
                   return;
                 }
+                const subCustomDist = subRaceDistance === 'custom' ? parseInt(subRaceCustomDistance, 10) : undefined;
+                if (subRaceDistance === 'custom' && (!subRaceCustomDistance || !subCustomDist || subCustomDist <= 0)) {
+                  Alert.alert('エラー', '任意距離を入力してください');
+                  return;
+                }
                 addSubRace({
                   id: `sr-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
                   name: subRaceName,
                   date: srDateStr,
                   distance: subRaceDistance,
+                  customDistance: subCustomDist,
                   priority: subRacePriority,
                 });
                 setShowSubRaceModal(false);
@@ -1319,6 +1470,7 @@ function getWorkoutIconInfo(type: string): { name: string; color: string } {
     case 'recovery': return { name: 'leaf', color: '#9CA3AF' };
     case 'rest': return { name: 'moon', color: '#6B7280' };
     case 'test': return { name: 'analytics', color: '#8B5CF6' };
+    case 'race': return { name: 'trophy', color: '#EAB308' };
     default: return { name: 'fitness', color: '#F97316' };
   }
 }
@@ -1485,6 +1637,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text.primary,
   },
+  headerSubtitle: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    textAlign: 'center',
+  },
 
   // ページタイトル
   pageTitle: {
@@ -1557,15 +1714,18 @@ const styles = StyleSheet.create({
   // 種目セレクター
   distanceSelector: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 12,
     padding: 4,
+    gap: 4,
   },
   distanceOption: {
-    flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     alignItems: 'center',
     borderRadius: 10,
+    minWidth: '20%',
   },
   distanceOptionActive: {
     backgroundColor: COLORS.primary,
@@ -2188,13 +2348,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    width: 70,
+    width: 90,
+  },
+  dayDateColumn: {
+    alignItems: 'center',
+    width: 30,
   },
   dayName: {
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.text.secondary,
-    width: 20,
+  },
+  dayDate: {
+    fontSize: 10,
+    color: COLORS.text.muted,
+    marginTop: 1,
   },
   dayIcon: {
     width: 32,
@@ -2246,11 +2414,105 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  checkButtonDisabled: {
+    opacity: 0.3,
+  },
   completionHintText: {
     fontSize: 12,
     color: COLORS.text.muted,
     textAlign: 'center',
     opacity: 0.7,
+  },
+
+  // トレーニング分析ダッシュボード
+  analyticsCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
+  },
+  analyticsTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
+  },
+  analyticsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+  },
+  analyticsDistanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    marginBottom: 16,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    borderRadius: 12,
+  },
+  analyticsDistanceItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  analyticsDistanceValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  analyticsDistanceLabel: {
+    fontSize: 11,
+    color: COLORS.text.muted,
+    marginTop: 2,
+  },
+  analyticsDistanceDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  analyticsZoneTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.text.secondary,
+    marginBottom: 8,
+  },
+  analyticsZoneRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+    gap: 8,
+  },
+  analyticsZoneLabelBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    width: 85,
+  },
+  analyticsZoneDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  analyticsZoneLabel: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+  },
+  analyticsZoneBarBg: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    overflow: 'hidden',
+  },
+  analyticsZoneBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  analyticsZoneValue: {
+    fontSize: 11,
+    color: COLORS.text.muted,
+    width: 50,
+    textAlign: 'right',
   },
 
   // トレーニング記録ボタン（概要画面）

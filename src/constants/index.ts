@@ -737,18 +737,26 @@ export const WORKOUTS = [
 
 // イージー走距離目安（種目×フェーズ別）
 export const EASY_DISTANCE_BY_EVENT: Record<number, Record<PhaseType, number>> = {
+  400:  { base: 6000, build: 6000, peak: 4000, taper: 4000 },
   800:  { base: 6000, build: 6000, peak: 6000, taper: 4000 },
   1500: { base: 8000, build: 8000, peak: 6000, taper: 4000 },
   3000: { base: 8000, build: 10000, peak: 8000, taper: 6000 },
   5000: { base: 10000, build: 10000, peak: 8000, taper: 6000 },
+  10000: { base: 10000, build: 12000, peak: 10000, taper: 8000 },
+  21097: { base: 12000, build: 14000, peak: 12000, taper: 8000 },
+  42195: { base: 14000, build: 16000, peak: 14000, taper: 10000 },
 };
 
 // 週間距離目安（種目別）
-export const WEEKLY_DISTANCE_BY_EVENT = {
+export const WEEKLY_DISTANCE_BY_EVENT: Record<number, Record<PhaseType, number>> = {
+  400: { base: 30000, build: 35000, peak: 30000, taper: 18000 },
   800: { base: 35000, build: 40000, peak: 35000, taper: 20000 },
   1500: { base: 40000, build: 50000, peak: 45000, taper: 25000 },
   3000: { base: 50000, build: 60000, peak: 55000, taper: 30000 },
   5000: { base: 55000, build: 70000, peak: 60000, taper: 35000 },
+  10000: { base: 60000, build: 80000, peak: 70000, taper: 40000 },
+  21097: { base: 70000, build: 90000, peak: 80000, taper: 45000 },
+  42195: { base: 80000, build: 100000, peak: 90000, taper: 50000 },
 };
 
 // キーワークアウト（フェーズ別・デフォルト）
@@ -779,6 +787,11 @@ export const KEY_WORKOUTS_BY_PHASE: Record<PhaseType, { categories: string[]; fo
 // 種目別キーワークアウト配分
 // 800m/1500mではスピード・スプリントを2つのKey日の1つに昇格
 export const KEY_WORKOUTS_BY_DISTANCE: Record<number, Partial<Record<PhaseType, { focusKeys: string[] }>>> = {
+  400: {
+    base: { focusKeys: ['speed', 'threshold'] },       // 400m: スピード最優先
+    build: { focusKeys: ['speed', 'vo2max'] },
+    peak: { focusKeys: ['speed', 'vo2max'] },
+  },
   800: {
     base: { focusKeys: ['threshold', 'speed'] },       // 800m: 基礎期でもスピード刺激
     build: { focusKeys: ['vo2max', 'speed'] },          // 800m: スピードを2番手に昇格
@@ -789,6 +802,21 @@ export const KEY_WORKOUTS_BY_DISTANCE: Record<number, Partial<Record<PhaseType, 
     peak: { focusKeys: ['vo2max', 'speed'] },           // 1500m: スピードを2番手に
   },
   // 3000m, 5000mはデフォルト（KEY_WORKOUTS_BY_PHASE）をそのまま使用
+  10000: {
+    base: { focusKeys: ['aerobic', 'threshold'] },
+    build: { focusKeys: ['threshold', 'vo2max'] },
+    peak: { focusKeys: ['threshold', 'vo2max'] },
+  },
+  21097: {
+    base: { focusKeys: ['aerobic', 'threshold'] },
+    build: { focusKeys: ['threshold', 'aerobic'] },
+    peak: { focusKeys: ['threshold', 'vo2max'] },
+  },
+  42195: {
+    base: { focusKeys: ['aerobic', 'threshold'] },
+    build: { focusKeys: ['aerobic', 'threshold'] },
+    peak: { focusKeys: ['threshold', 'aerobic'] },
+  },
 };
 
 // 生理学的焦点カテゴリ
@@ -990,10 +1018,14 @@ export const TRAINING_PHILOSOPHY: Array<{
 // 月間走行距離からボリューム倍率を計算するための基準値（種目別・月間km）
 // WEEKLY_DISTANCE_BY_EVENT の build期 × 4.33 / 1000 で算出
 export const DEFAULT_MONTHLY_DISTANCE: Record<number, number> = {
+  400: 152,   // 35km/week × 4.33
   800: 173,   // 40km/week × 4.33
   1500: 216,  // 50km/week × 4.33
   3000: 260,  // 60km/week × 4.33
   5000: 303,  // 70km/week × 4.33
+  10000: 346, // 80km/week × 4.33
+  21097: 390, // 90km/week × 4.33
+  42195: 433, // 100km/week × 4.33
 };
 
 // ボリューム倍率の上限・下限

@@ -261,7 +261,7 @@ export default function HomeScreen() {
             >
               <Text style={styles.planName}>{activePlan.race.name}</Text>
               <Text style={styles.planMeta}>
-                {new Date(activePlan.race.date).toLocaleDateString('ja-JP')} | {activePlan.race.distance}m
+                {new Date(activePlan.race.date).toLocaleDateString('ja-JP')} | {activePlan.race.distance === 'custom' ? `${activePlan.race.customDistance || 0}m` : activePlan.race.distance === 21097 ? 'ハーフマラソン' : activePlan.race.distance === 42195 ? 'マラソン' : `${activePlan.race.distance}m`}
               </Text>
             </Pressable>
           </View>
