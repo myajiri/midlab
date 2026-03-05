@@ -148,19 +148,20 @@ export default function WorkoutScreen() {
   // 詳細画面
   if (selectedWorkout) {
     return (
-      <SwipeBackView onSwipeBack={() => setSelectedWorkout(null)}>
+      <SwipeBackView onSwipeBack={() => {
+        // スワイプバック: 計画タブからの遷移なら計画タブに戻る、それ以外は一覧に戻る
+        setSelectedWorkout(null);
+        if (isFromPlan) {
+          router.navigate('/(tabs)/plan');
+        }
+      }}>
         <WorkoutDetailScreen
           workout={selectedWorkout}
           etp={etp}
           limiter={limiter}
           onBack={() => {
-            if (isFromPlan) {
-              // 計画タブに明示的に戻る（Material Top Tabsではrouter.back()だとホームに戻る問題の回避）
-              setSelectedWorkout(null);
-              router.navigate('/(tabs)/plan');
-            } else {
-              setSelectedWorkout(null);
-            }
+            // 戻るボタン: 常にタブ内の一覧画面に戻る
+            setSelectedWorkout(null);
           }}
           onReplaceWorkout={isReplaceMode ? handleReplaceWorkout : undefined}
           replaceDayLabel={replaceDayLabel}
