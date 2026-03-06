@@ -370,9 +370,9 @@ export default function SettingsScreen() {
               </View>
             </View>
 
-            {/* 月間走行距離 */}
+            {/* 月間上限走行距離 */}
             <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>月間走行距離（km）</Text>
+              <Text style={styles.fieldLabel}>月間上限走行距離（km）</Text>
               <TextInput
                 style={styles.mileageInput}
                 value={profile.monthlyMileage ? String(profile.monthlyMileage) : ''}

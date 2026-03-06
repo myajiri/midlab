@@ -268,10 +268,10 @@ export default function OnboardingMain() {
           </View>
         </SlideIn>
 
-        {/* 月間走行距離（任意） */}
+        {/* 月間上限走行距離（任意） */}
         <SlideIn delay={400} direction="up">
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>月間走行距離（任意）</Text>
+            <Text style={styles.sectionLabel}>月間上限走行距離（任意）</Text>
             <TextInput
               style={styles.mileageInput}
               value={monthlyMileage}
@@ -281,7 +281,7 @@ export default function OnboardingMain() {
               keyboardType="numeric"
             />
             <Text style={styles.mileageHint}>
-              月間の目標走行距離（km）を入力すると、メニューのボリュームが自動調整されます
+              ターゲットレースまでの期間で可能な月間走行距離の上限（km）を入力してください。メニューはこの上限を超えないよう生成されます。基礎構築期は上限付近のボリュームとなり、そこから徐々に調整されます。
             </Text>
           </View>
         </SlideIn>

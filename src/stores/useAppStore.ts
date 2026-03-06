@@ -20,6 +20,7 @@ import {
   Experience,
   PBs,
   TrainingZones,
+  CustomWorkout,
 } from '../types';
 
 import { STORAGE_KEYS } from '../constants';
@@ -236,6 +237,8 @@ interface PlanState {
   regeneratePlan: (profile: Profile, testResults: TestResult[]) => void;
   // 特定日のワークアウトを別のメニューに差し替える
   replaceWorkout: (weekNumber: number, dayId: string, newWorkoutId: string, newWorkoutName: string, newWorkoutCategory: string) => void;
+  // 実績データを更新（事後記録: 完了状態にし、ゾーン別実績距離等を記録）
+  updateActualData: (weekNumber: number, dayId: string, actualData: { distance?: number; duration?: number; notes?: string; zoneDistances?: Partial<Record<string, number>> }) => void;
 }
 
 export const usePlanStore = create<PlanState>()(
@@ -408,6 +411,31 @@ export const usePlanStore = create<PlanState>()(
             workouts: week.workouts.map((w) => {
               if (w.id !== dayId) return w;
               return { ...w, workoutId: newWorkoutId, label: newWorkoutName, focusCategory: newWorkoutCategory };
+            }),
+          };
+        });
+
+        set({
+          activePlan: { ...plan, weeklyPlans: updatedWeeklyPlans },
+        });
+      },
+
+      // 実績データを更新（事後記録: 完了状態にし、ゾーン別実績距離等を記録）
+      updateActualData: (weekNumber, dayId, actualData) => {
+        const plan = get().activePlan;
+        if (!plan) return;
+
+        const updatedWeeklyPlans = plan.weeklyPlans.map((week) => {
+          if (week.weekNumber !== weekNumber) return week;
+          return {
+            ...week,
+            days: week.days.map((d) => {
+              if (!d || d.id !== dayId) return d;
+              return { ...d, completed: true, actualData };
+            }),
+            workouts: week.workouts.map((w) => {
+              if (w.id !== dayId) return w;
+              return { ...w, completed: true, actualData };
             }),
           };
         });
@@ -653,6 +681,45 @@ export const useTrainingZones = (): TrainingZones => {
   const { etp, limiter } = useEffectiveValues();
   return calculateZonesV3(etp, limiter);
 };
+
+// ============================================
+// Custom Workouts Store（オリジナルメニュー）
+// ============================================
+
+interface CustomWorkoutsState {
+  customWorkouts: CustomWorkout[];
+  addCustomWorkout: (workout: CustomWorkout) => void;
+  updateCustomWorkout: (id: string, updates: Partial<Omit<CustomWorkout, 'id' | 'createdAt'>>) => void;
+  deleteCustomWorkout: (id: string) => void;
+}
+
+export const useCustomWorkoutsStore = create<CustomWorkoutsState>()(
+  persist(
+    (set, get) => ({
+      customWorkouts: [],
+
+      addCustomWorkout: (workout) => {
+        set({ customWorkouts: [...get().customWorkouts, workout] });
+      },
+
+      updateCustomWorkout: (id, updates) => {
+        set({
+          customWorkouts: get().customWorkouts.map((w) =>
+            w.id === id ? { ...w, ...updates, updatedAt: new Date().toISOString() } : w
+          ),
+        });
+      },
+
+      deleteCustomWorkout: (id) => {
+        set({ customWorkouts: get().customWorkouts.filter((w) => w.id !== id) });
+      },
+    }),
+    {
+      name: STORAGE_KEYS.customWorkouts,
+      storage: createJSONStorage(() => AsyncStorage),
+    }
+  )
+);
 
 // ============================================
 // プロフィール変更時の計画自動同期
