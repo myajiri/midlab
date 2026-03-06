@@ -844,12 +844,23 @@ export default function PlanScreen() {
                 {(['jog', 'easy', 'marathon', 'threshold', 'interval', 'repetition'] as const).map((zone) => {
                   const zoneInfo = ZONE_COEFFICIENTS_V3[zone];
                   const planned = actualDataTarget?.zoneDistances?.[zone];
+                  const actualVal = parseInt(actualZoneInputs[zone] || '', 10);
+                  const hasDiff = planned && !isNaN(actualVal) && actualVal > 0;
+                  const diffPct = hasDiff ? Math.round(((actualVal - planned) / planned) * 100) : 0;
+                  const diffColor = hasDiff
+                    ? Math.abs(diffPct) > 20 ? '#FF4444' : Math.abs(diffPct) > 10 ? '#FF8800' : COLORS.text.muted
+                    : COLORS.text.muted;
                   return (
                     <View key={zone} style={styles.actualDataZoneRow}>
                       <View style={styles.actualDataZoneLabel}>
                         <View style={[styles.actualDataZoneDot, { backgroundColor: zoneInfo.color }]} />
                         <Text style={styles.actualDataZoneName}>{zoneInfo.name}</Text>
                         {planned ? <Text style={styles.actualDataZonePlanned}>予定: {planned}m</Text> : null}
+                        {hasDiff ? (
+                          <Text style={[styles.actualDataZonePlanned, { color: diffColor, fontWeight: '600' }]}>
+                            {diffPct >= 0 ? '+' : ''}{diffPct}%
+                          </Text>
+                        ) : null}
                       </View>
                       <TextInput
                         style={styles.actualDataZoneInput}

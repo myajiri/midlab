@@ -105,7 +105,7 @@ export function calculateVolumeScale(monthlyMileage: number | undefined, raceDis
   if (!monthlyMileage || monthlyMileage <= 0) return 1.0;
   const lookupDist = typeof raceDistance === 'string' ? 1500 : raceDistance;
   // 種目別内部上限でキャップ（過剰なボリュームを防止）
-  const cap = MAX_MONTHLY_DISTANCE_CAP[lookupDist] || 999;
+  const cap = MAX_MONTHLY_DISTANCE_CAP[lookupDist] || monthlyMileage;
   const effectiveMileage = Math.min(monthlyMileage, cap);
   const defaultMonthly = DEFAULT_MONTHLY_DISTANCE[lookupDist] || DEFAULT_MONTHLY_DISTANCE[1500];
   const scale = effectiveMileage / defaultMonthly;

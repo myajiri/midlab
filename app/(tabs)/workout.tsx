@@ -161,7 +161,7 @@ export default function WorkoutScreen() {
         setSelectedWorkout(workout as WorkoutTemplate);
       }
     }
-  }, [params.workoutId, params.t, isFocused]);
+  }, [params.workoutId, params.t, isFocused, customWorkoutsAsTemplates]);
 
   // カスタムワークアウトをWorkoutTemplate形式に変換
   const customWorkoutsAsTemplates = useMemo(() => {
