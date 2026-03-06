@@ -24,6 +24,7 @@ import {
   useEffectiveValues,
   useTrainingLogsStore,
   useTestResultsStore,
+  useCustomWorkoutsStore,
 } from '../../src/stores/useAppStore';
 import { Card, Button, DatePickerModal } from '../../src/components/ui';
 import { FadeIn, SlideIn, AnimatedPressable } from '../../src/components/ui/Animated';
@@ -104,6 +105,7 @@ export default function PlanScreen() {
   const { etp, limiter } = useEffectiveValues();
   const profile = useProfileStore((state) => state.profile);
   const testResults = useTestResultsStore((state) => state.results);
+  const customWorkouts = useCustomWorkoutsStore((state) => state.customWorkouts);
 
   // メニュー更新通知の非表示フラグ
   const [updateBannerDismissed, setUpdateBannerDismissed] = useState(false);
@@ -777,8 +779,10 @@ export default function PlanScreen() {
                                 toggleWorkoutComplete(weekPlan.weekNumber, day.id);
                               } else {
                                 // 未完了→完了: 事後記録モーダルを表示
-                                // ワークアウトのゾーン別予定距離を取得
-                                const workout = day.workoutId ? WORKOUTS.find(w => w.id === day.workoutId) : null;
+                                // ワークアウトのゾーン別予定距離を取得（プリセット＋カスタム両方を検索）
+                                const workout = day.workoutId
+                                  ? WORKOUTS.find(w => w.id === day.workoutId) || customWorkouts.find(w => w.id === day.workoutId)
+                                  : null;
                                 const plannedZones: Record<string, number> = {};
                                 if (workout) {
                                   for (const seg of workout.segments) {
