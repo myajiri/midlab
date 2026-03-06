@@ -134,6 +134,7 @@ export const STORAGE_KEYS = {
   trainingLogs: 'midlab_trainingLogs',
   settings: 'midlab_settings',
   onboardingComplete: 'midlab_onboardingComplete',
+  customWorkouts: 'midlab_customWorkouts',
 };
 
 // 旧ストレージキー（移行用）
@@ -733,6 +734,94 @@ export const WORKOUTS = [
       balanced: { note: '標準で実施' },
     },
   },
+  // 800m・400-800タイプ向け追加メニュー
+  {
+    id: 'speed-500x5',
+    name: '500m×5スピード持久力',
+    category: 'スピード・スプリント',
+    description: '800m選手の特異的トレーニング。400mより長く乳酸耐性を鍛え、600mより短く1本あたりの質を維持できる。800mレースの前半〜中盤のペース感覚を養成。',
+    selectionGuide: '800m選手のメインメニューの一つ。400m×6では短すぎてレース後半の乳酸耐性が鍛えにくく、600m×4ではペースが落ちやすい場合に最適。レースペースの95-100%で走り、残り100mでフォームが崩れないよう意識する。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
+      { zone: 'repetition' as ZoneName, distance: 500, label: 'R 500m', reps: 5, recoveryDistance: 400 },
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'C-down 3周' },
+    ],
+    limiterVariants: {
+      cardio: { reps: 4, recoveryDistance: 500, note: '4本に減、回復500m' },
+      muscular: { reps: 6, recoveryDistance: 300, note: '6本に増、回復300m' },
+      balanced: { reps: 5, recoveryDistance: 400, note: '標準で実施' },
+    },
+  },
+  {
+    id: 'speed-600x4',
+    name: '600m×4レースモデル',
+    category: 'スピード・スプリント',
+    description: '800mの3/4距離でのレースペース走。レース中盤の苦しい場面でのペース維持能力とメンタル強化に。800m選手のレースシミュレーションとして効果的。',
+    selectionGuide: '800mレースの75%距離で実施するため、レースペースに近い強度で質の高い練習ができる。500m×5よりもレースに近い距離感で走れるため、試合前のシミュレーション練習に最適。最後の200mでのペースアップを意識する。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
+      { zone: 'interval' as ZoneName, distance: 600, label: 'I 600m', reps: 4, recoveryDistance: 600 },
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'C-down 3周' },
+    ],
+    limiterVariants: {
+      cardio: { reps: 3, recoveryDistance: 800, note: '3本に減、回復800m' },
+      muscular: { reps: 5, recoveryDistance: 400, note: '5本に増、回復400m' },
+      balanced: { reps: 4, recoveryDistance: 600, note: '標準で実施' },
+    },
+  },
+  {
+    id: 'set-200-400-200',
+    name: '(200+400+200)m×3セットインターバル',
+    category: 'スピード・スプリント',
+    description: '変化走形式のセットインターバル。200m-400m-200mを1セットとし、800mのレースで起きるペース変化に対応する力を養成。400-800タイプの選手に特に効果的。',
+    selectionGuide: '単一距離の反復では得られない、ペースの切り替え能力を鍛えるメニュー。スタートダッシュ(200m)→中盤の維持(400m)→ラストスパート(200m)という800mレースの展開をシミュレーション。各セット間は十分な回復を取り、質を維持する。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
+      { zone: 'repetition' as ZoneName, distance: 200, label: 'R 200m', reps: 3, recoveryDistance: 200 },
+      { zone: 'interval' as ZoneName, distance: 400, label: 'I 400m', reps: 3, recoveryDistance: 200 },
+      { zone: 'repetition' as ZoneName, distance: 200, label: 'R 200m', reps: 3, recoveryDistance: 400 },
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'C-down 3周' },
+    ],
+    limiterVariants: {
+      cardio: { reps: 2, recoveryDistance: 400, note: '2セットに減、セット間回復400m' },
+      muscular: { reps: 4, recoveryDistance: 200, note: '4セットに増' },
+      balanced: { reps: 3, recoveryDistance: 400, note: '標準で実施' },
+    },
+  },
+  {
+    id: 'speed-350x6',
+    name: '350m×6スピード持久力',
+    category: 'スピード・スプリント',
+    description: '400-800タイプ向けのショートインターバル。400mより少し短い距離でレペティションペース以上の強度を維持。スプリント持久力の向上に特化。',
+    selectionGuide: '300m×8と400m×6の間に位置するメニュー。300mでは少し短くて乳酸が十分溜まらず、400mではペースが落ちる選手に最適。400m的なスプリント持久力と800m的な乳酸耐性の両方を鍛えられる。意識すべきは「最後の50mまでフォームを崩さない」こと。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
+      { zone: 'repetition' as ZoneName, distance: 350, label: 'R 350m', reps: 6, recoveryDistance: 350 },
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'C-down 3周' },
+    ],
+    limiterVariants: {
+      cardio: { reps: 5, recoveryDistance: 500, note: '5本に減、回復500m' },
+      muscular: { reps: 8, recoveryDistance: 250, note: '8本に増、回復250m' },
+      balanced: { reps: 6, recoveryDistance: 350, note: '標準で実施' },
+    },
+  },
+  {
+    id: 'sprint-150x10',
+    name: '150m×10ウインドスプリント',
+    category: 'スピード・スプリント',
+    description: '最大スピードに近い短距離スプリントを10本。神経筋系の活性化と最大スピードの向上に特化。800m選手のトップスピード向上とラストスパート強化に効果的。',
+    selectionGuide: '150m×8より本数を増やしたバージョン。トップスピードの絶対値を引き上げたい800m選手に推奨。力まずリラックスしたフォームで走ることが重要。2本目以降タイムが落ちるようなら回復を延長する。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up 4周' },
+      { zone: 'repetition' as ZoneName, distance: 150, label: 'Sprint 150m', reps: 10, recoveryDistance: 250 },
+      { zone: 'jog' as ZoneName, distance: 1200, label: 'C-down 3周' },
+    ],
+    limiterVariants: {
+      cardio: { reps: 8, recoveryDistance: 350, note: '8本に減、回復350m' },
+      muscular: { reps: 12, recoveryDistance: 200, note: '12本に増、回復200m' },
+      balanced: { reps: 10, recoveryDistance: 250, note: '標準で実施' },
+    },
+  },
 ];
 
 // イージー走距離目安（種目×フェーズ別）
@@ -1032,6 +1121,20 @@ export const DEFAULT_MONTHLY_DISTANCE: Record<number, number> = {
 export const VOLUME_SCALE_LIMITS = {
   min: 0.6,  // 最低60%（初心者・故障明け向け）
   max: 2.5,  // 最大250%（エリート向け）
+};
+
+// 種目別月間走行距離の内部上限（km）
+// ターゲットレースの距離に対して適切なボリュームのメニューを生成するため、
+// ユーザー入力値がこれを超える場合は内部的にキャップする
+export const MAX_MONTHLY_DISTANCE_CAP: Record<number, number> = {
+  400: 250,
+  800: 350,
+  1500: 550,
+  3000: 650,
+  5000: 700,
+  10000: 800,
+  21097: 900,
+  42195: 1000,
 };
 
 // イージー走距離の選択テーブル（ボリュームスケール後の距離からワークアウトIDを選択）

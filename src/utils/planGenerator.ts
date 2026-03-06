@@ -38,6 +38,8 @@ import {
   WORKOUT_REPS_SCALING,
   INTENSITY_DISTRIBUTION_BY_EXPERIENCE,
   PLAN_VERSION,
+  WORKOUTS,
+  MAX_MONTHLY_DISTANCE_CAP,
 } from '../constants';
 import { selectWorkoutForCategory } from './workoutSelector';
 
@@ -102,8 +104,11 @@ export function determineRestDayFrequency(
 export function calculateVolumeScale(monthlyMileage: number | undefined, raceDistance: RaceDistance | number): number {
   if (!monthlyMileage || monthlyMileage <= 0) return 1.0;
   const lookupDist = typeof raceDistance === 'string' ? 1500 : raceDistance;
+  // 種目別内部上限でキャップ（過剰なボリュームを防止）
+  const cap = MAX_MONTHLY_DISTANCE_CAP[lookupDist] || monthlyMileage;
+  const effectiveMileage = Math.min(monthlyMileage, cap);
   const defaultMonthly = DEFAULT_MONTHLY_DISTANCE[lookupDist] || DEFAULT_MONTHLY_DISTANCE[1500];
-  const scale = monthlyMileage / defaultMonthly;
+  const scale = effectiveMileage / defaultMonthly;
   return Math.max(VOLUME_SCALE_LIMITS.min, Math.min(VOLUME_SCALE_LIMITS.max, scale));
 }
 
@@ -205,7 +210,7 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
   });
 
   const rampTestWeeks: number[] = [];
-  const testInterval = 4;
+  const testInterval = 8;
   for (let w = testInterval; w <= weeksUntilRace && w < 20; w += testInterval) {
     const weekPhase = phases.find(p => w >= p.startWeek && w <= p.endWeek);
     if (weekPhase && weekPhase.type !== 'taper') rampTestWeeks.push(w);
@@ -461,7 +466,9 @@ function generateWeeklySchedule(
       const focus = idx === 0 ? primary : secondary;
       const focusKey = idx === 0 ? primaryFocus : secondaryFocus;
       const workoutId = selectWorkoutForCategory(focus?.menuCategory || '', etp);
-      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'workout', label: focus?.name || 'ポイント練習', isKey: true, completed: false, focusKey, focusCategory: focus?.menuCategory, workoutId });
+      // workoutIdから具体的なワークアウト名を取得して表示
+      const workoutName = workoutId ? WORKOUTS.find(w => w.id === workoutId)?.name : null;
+      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'workout', label: workoutName || focus?.name || 'ポイント練習', isKey: true, completed: false, focusKey, focusCategory: focus?.menuCategory, workoutId });
     } else if (d === longRunDay && !isRampTestWeek) {
       const longSelection = selectLongRunWorkout(volumeScale);
       days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'long', label: `ロング ${longSelection.distance / 1000}km`, isKey: !isRecoveryWeek, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース', workoutId: longSelection.workoutId });

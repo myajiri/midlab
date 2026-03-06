@@ -3,7 +3,7 @@
 // ============================================
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   View,
   Text,
@@ -24,6 +24,7 @@ import {
   useEffectiveValues,
   useTrainingLogsStore,
   useTestResultsStore,
+  useCustomWorkoutsStore,
 } from '../../src/stores/useAppStore';
 import { Card, Button, DatePickerModal } from '../../src/components/ui';
 import { FadeIn, SlideIn, AnimatedPressable } from '../../src/components/ui/Animated';
@@ -39,6 +40,8 @@ import {
   PHYSIOLOGICAL_FOCUS_CATEGORIES,
   REST_DAY_FREQUENCY_CONFIG,
   PLAN_VERSION,
+  WORKOUTS,
+  ZONE_COEFFICIENTS_V3,
 } from '../../src/constants';
 import {
   RacePlan,
@@ -91,15 +94,18 @@ const FEELING_CONFIG: Record<FeelingLevel, { label: string; icon: string; color:
 
 export default function PlanScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ view?: string; weekNumber?: string; t?: string }>();
   const isPremium = useIsPremium();
   const activePlan = usePlanStore((state) => state.activePlan);
   const setPlan = usePlanStore((state) => state.setPlan);
   const clearPlan = usePlanStore((state) => state.clearPlan);
   const toggleWorkoutComplete = usePlanStore((state) => state.toggleWorkoutComplete);
+  const updateActualData = usePlanStore((state) => state.updateActualData);
   const regeneratePlan = usePlanStore((state) => state.regeneratePlan);
   const { etp, limiter } = useEffectiveValues();
   const profile = useProfileStore((state) => state.profile);
   const testResults = useTestResultsStore((state) => state.results);
+  const customWorkouts = useCustomWorkoutsStore((state) => state.customWorkouts);
 
   // メニュー更新通知の非表示フラグ
   const [updateBannerDismissed, setUpdateBannerDismissed] = useState(false);
@@ -140,6 +146,23 @@ export default function PlanScreen() {
   const [recordDuration, setRecordDuration] = useState('');
   const [recordFeeling, setRecordFeeling] = useState<FeelingLevel>('normal');
   const [recordNotes, setRecordNotes] = useState('');
+
+  // 事後記録モーダル（完了時のゾーン別実績距離入力）
+  const [actualDataModalVisible, setActualDataModalVisible] = useState(false);
+  const [actualDataTarget, setActualDataTarget] = useState<{ weekNumber: number; dayId: string; label: string; zoneDistances?: Record<string, number> } | null>(null);
+  const [actualZoneInputs, setActualZoneInputs] = useState<Record<string, string>>({});
+  const [actualNotes, setActualNotes] = useState('');
+
+  // 他画面からのパラメータ変更に対応（メニュー変更後の遷移など）
+  useEffect(() => {
+    if (isFocused && params.view === 'weekly' && activePlan) {
+      setView('weekly');
+      if (params.weekNumber) {
+        const wn = parseInt(params.weekNumber, 10);
+        if (!isNaN(wn) && wn >= 1) setSelectedWeek(wn);
+      }
+    }
+  }, [params.view, params.weekNumber, params.t, isFocused]);
 
   // フォーカス中のタブのみフラグを制御（タブ間の競合を防止）
   useEffect(() => {
@@ -751,7 +774,32 @@ export default function PlanScreen() {
                           style={[styles.checkButton, isFutureDay && styles.checkButtonDisabled]}
                           onPress={() => {
                             if (!isFutureDay) {
-                              toggleWorkoutComplete(weekPlan.weekNumber, day.id);
+                              if (day.completed) {
+                                // 完了→未完了: トグルのみ
+                                toggleWorkoutComplete(weekPlan.weekNumber, day.id);
+                              } else {
+                                // 未完了→完了: 事後記録モーダルを表示
+                                // ワークアウトのゾーン別予定距離を取得（プリセット＋カスタム両方を検索）
+                                const workout = day.workoutId
+                                  ? WORKOUTS.find(w => w.id === day.workoutId) || customWorkouts.find(w => w.id === day.workoutId)
+                                  : null;
+                                const plannedZones: Record<string, number> = {};
+                                if (workout) {
+                                  for (const seg of workout.segments) {
+                                    const dist = (seg.reps || 1) * seg.distance;
+                                    plannedZones[seg.zone] = (plannedZones[seg.zone] || 0) + dist;
+                                  }
+                                }
+                                setActualDataTarget({
+                                  weekNumber: weekPlan.weekNumber,
+                                  dayId: day.id,
+                                  label: day.label,
+                                  zoneDistances: Object.keys(plannedZones).length > 0 ? plannedZones : undefined,
+                                });
+                                setActualZoneInputs({});
+                                setActualNotes('');
+                                setActualDataModalVisible(true);
+                              }
                             }
                           }}
                           disabled={isFutureDay}
@@ -774,6 +822,117 @@ export default function PlanScreen() {
             <Text style={styles.completionHintText}>タップで詳細確認 ・ ⇄で変更 ・ ○で完了</Text>
           </FadeIn>
         </ScrollView>
+
+        {/* 事後記録モーダル */}
+        <Modal
+          visible={actualDataModalVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setActualDataModalVisible(false)}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.actualDataModalOverlay}
+          >
+            <View style={styles.actualDataModalContent}>
+              <View style={styles.actualDataModalHeader}>
+                <Text style={styles.actualDataModalTitle}>トレーニング記録</Text>
+                <Pressable onPress={() => setActualDataModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={COLORS.text.primary} />
+                </Pressable>
+              </View>
+              <Text style={styles.actualDataModalSubtitle}>{actualDataTarget?.label || ''}</Text>
+              <Text style={styles.actualDataModalHint}>実際に走った各ゾーンの距離（m）を入力してください。アップ・ダウンジョグも含めて記録できます。</Text>
+
+              <ScrollView style={styles.actualDataZoneList}>
+                {(['jog', 'easy', 'marathon', 'threshold', 'interval', 'repetition'] as const).map((zone) => {
+                  const zoneInfo = ZONE_COEFFICIENTS_V3[zone];
+                  const planned = actualDataTarget?.zoneDistances?.[zone];
+                  const actualVal = parseInt(actualZoneInputs[zone] || '', 10);
+                  const hasDiff = planned && !isNaN(actualVal) && actualVal > 0;
+                  const diffPct = hasDiff ? Math.round(((actualVal - planned) / planned) * 100) : 0;
+                  const diffColor = hasDiff
+                    ? Math.abs(diffPct) > 20 ? '#FF4444' : Math.abs(diffPct) > 10 ? '#FF8800' : COLORS.text.muted
+                    : COLORS.text.muted;
+                  return (
+                    <View key={zone} style={styles.actualDataZoneRow}>
+                      <View style={styles.actualDataZoneLabel}>
+                        <View style={[styles.actualDataZoneDot, { backgroundColor: zoneInfo.color }]} />
+                        <Text style={styles.actualDataZoneName}>{zoneInfo.name}</Text>
+                        {planned ? <Text style={styles.actualDataZonePlanned}>予定: {planned}m</Text> : null}
+                        {hasDiff ? (
+                          <Text style={[styles.actualDataZonePlanned, { color: diffColor, fontWeight: '600' }]}>
+                            {diffPct >= 0 ? '+' : ''}{diffPct}%
+                          </Text>
+                        ) : null}
+                      </View>
+                      <TextInput
+                        style={styles.actualDataZoneInput}
+                        value={actualZoneInputs[zone] || ''}
+                        onChangeText={(text) => setActualZoneInputs(prev => ({ ...prev, [zone]: text }))}
+                        placeholder={planned ? String(planned) : '0'}
+                        placeholderTextColor={COLORS.text.muted}
+                        keyboardType="numeric"
+                      />
+                    </View>
+                  );
+                })}
+
+                <View style={styles.actualDataNotesSection}>
+                  <Text style={styles.actualDataNotesLabel}>メモ</Text>
+                  <TextInput
+                    style={styles.actualDataNotesInput}
+                    value={actualNotes}
+                    onChangeText={setActualNotes}
+                    placeholder="体調やペースの感想など"
+                    placeholderTextColor={COLORS.text.muted}
+                    multiline
+                  />
+                </View>
+              </ScrollView>
+
+              <View style={styles.actualDataModalButtons}>
+                <Pressable
+                  style={styles.actualDataSkipButton}
+                  onPress={() => {
+                    // 記録なしで完了
+                    if (actualDataTarget) {
+                      toggleWorkoutComplete(actualDataTarget.weekNumber, actualDataTarget.dayId);
+                    }
+                    setActualDataModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.actualDataSkipButtonText}>記録せず完了</Text>
+                </Pressable>
+                <Pressable
+                  style={styles.actualDataSaveButton}
+                  onPress={() => {
+                    if (actualDataTarget) {
+                      // ゾーン距離を数値に変換
+                      const zoneDistances: Record<string, number> = {};
+                      let totalDistance = 0;
+                      for (const [zone, val] of Object.entries(actualZoneInputs)) {
+                        const num = parseInt(val, 10);
+                        if (!isNaN(num) && num > 0) {
+                          zoneDistances[zone] = num;
+                          totalDistance += num;
+                        }
+                      }
+                      updateActualData(actualDataTarget.weekNumber, actualDataTarget.dayId, {
+                        distance: totalDistance > 0 ? totalDistance : undefined,
+                        notes: actualNotes || undefined,
+                        zoneDistances: Object.keys(zoneDistances).length > 0 ? zoneDistances : undefined,
+                      });
+                    }
+                    setActualDataModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.actualDataSaveButtonText}>記録して完了</Text>
+                </Pressable>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
       </SafeAreaView>
       </SwipeBackView>
     );
@@ -2888,5 +3047,129 @@ const styles = StyleSheet.create({
   updateBannerDismissText: {
     fontSize: 14,
     color: COLORS.text.muted,
+  },
+
+  // 事後記録モーダル
+  actualDataModalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  actualDataModalContent: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '85%',
+  },
+  actualDataModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  actualDataModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  actualDataModalSubtitle: {
+    fontSize: 14,
+    color: COLORS.primary,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  actualDataModalHint: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  actualDataZoneList: {
+    maxHeight: 320,
+  },
+  actualDataZoneRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  actualDataZoneLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 8,
+  },
+  actualDataZoneDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  actualDataZoneName: {
+    fontSize: 14,
+    color: COLORS.text.primary,
+    fontWeight: '500',
+  },
+  actualDataZonePlanned: {
+    fontSize: 11,
+    color: COLORS.text.muted,
+  },
+  actualDataZoneInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    width: 100,
+    fontSize: 14,
+    color: COLORS.text.primary,
+    textAlign: 'right',
+  },
+  actualDataNotesSection: {
+    marginTop: 16,
+  },
+  actualDataNotesLabel: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+    marginBottom: 6,
+  },
+  actualDataNotesInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 14,
+    color: COLORS.text.primary,
+    minHeight: 60,
+    textAlignVertical: 'top',
+  },
+  actualDataModalButtons: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  actualDataSkipButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+  },
+  actualDataSkipButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.muted,
+  },
+  actualDataSaveButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+  },
+  actualDataSaveButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#fff',
   },
 });

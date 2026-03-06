@@ -234,6 +234,17 @@ export interface WorkoutTemplate {
   limiterVariants: Record<LimiterType, LimiterVariant>;
 }
 
+// カスタムワークアウト（ユーザー作成メニュー）
+export interface CustomWorkout {
+  id: string;           // 'custom-' prefix
+  name: string;
+  description: string;
+  category: string;     // 既存カテゴリ or 'オリジナル'
+  segments: WorkoutSegment[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ワークアウトログ
 export interface WorkoutLog {
   id: string;
