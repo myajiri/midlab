@@ -28,6 +28,7 @@ import {
 } from '../../src/stores/useAppStore';
 import { Card, Button, DatePickerModal } from '../../src/components/ui';
 import { FadeIn, SlideIn, AnimatedPressable } from '../../src/components/ui/Animated';
+import { useToast } from '../../src/components/ui/Toast';
 import { PremiumGate } from '../../components/PremiumGate';
 import { useIsPremium } from '../../store/useSubscriptionStore';
 import {
@@ -51,9 +52,10 @@ import {
   SubRace,
   TrainingLog,
   FeelingLevel,
+  WorkoutTemplate,
 } from '../../src/types';
 import { generatePlan } from '../../src/utils/planGenerator';
-import { getWeeklyPlanRationale, calculateTrainingAnalytics } from '../../src/utils';
+import { getWeeklyPlanRationale, calculateTrainingAnalytics, getWorkoutZoneDistances } from '../../src/utils';
 import { ZoneName } from '../../src/types';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
@@ -96,6 +98,7 @@ export default function PlanScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ view?: string; weekNumber?: string; t?: string }>();
   const isPremium = useIsPremium();
+  const { showToast } = useToast();
   const activePlan = usePlanStore((state) => state.activePlan);
   const setPlan = usePlanStore((state) => state.setPlan);
   const clearPlan = usePlanStore((state) => state.clearPlan);
@@ -106,6 +109,22 @@ export default function PlanScreen() {
   const profile = useProfileStore((state) => state.profile);
   const testResults = useTestResultsStore((state) => state.results);
   const customWorkouts = useCustomWorkoutsStore((state) => state.customWorkouts);
+
+  // カスタムワークアウトをWorkoutTemplate形式に変換
+  const customWorkoutsAsTemplates = useMemo(() => {
+    return customWorkouts.map((cw): WorkoutTemplate => ({
+      id: cw.id,
+      name: cw.name,
+      category: cw.category,
+      description: cw.description,
+      segments: cw.segments,
+      limiterVariants: {
+        cardio: { note: 'カスタムメニュー' },
+        muscular: { note: 'カスタムメニュー' },
+        balanced: { note: 'カスタムメニュー' },
+      },
+    }));
+  }, [customWorkouts]);
 
   // メニュー更新通知の非表示フラグ
   const [updateBannerDismissed, setUpdateBannerDismissed] = useState(false);
@@ -131,6 +150,7 @@ export default function PlanScreen() {
 
   // トレーニングログ
   const trainingLogs = useTrainingLogsStore((state) => state.logs);
+  const addTrainingLog = useTrainingLogsStore((state) => state.addLog);
   const completeTrainingLog = useTrainingLogsStore((state) => state.completeLog);
   const skipTrainingLog = useTrainingLogsStore((state) => state.skipLog);
   const deleteTrainingLog = useTrainingLogsStore((state) => state.deleteLog);
@@ -152,6 +172,41 @@ export default function PlanScreen() {
   const [actualDataTarget, setActualDataTarget] = useState<{ weekNumber: number; dayId: string; label: string; zoneDistances?: Record<string, number> } | null>(null);
   const [actualZoneInputs, setActualZoneInputs] = useState<Record<string, string>>({});
   const [actualNotes, setActualNotes] = useState('');
+
+  // メニュー追加モーダル
+  const [menuSelectModalVisible, setMenuSelectModalVisible] = useState(false);
+  const [menuSelectDate, setMenuSelectDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [menuSelectCategory, setMenuSelectCategory] = useState('all');
+
+  // メニュー追加用の全ワークアウトリスト
+  const allWorkouts = useMemo(() => {
+    return [...WORKOUTS, ...customWorkoutsAsTemplates] as WorkoutTemplate[];
+  }, [customWorkoutsAsTemplates]);
+
+  const menuCategories = useMemo(() => {
+    const cats = new Set(allWorkouts.map((w) => w.category));
+    return ['all', ...Array.from(cats)];
+  }, [allWorkouts]);
+
+  const filteredMenuWorkouts = useMemo(() => {
+    if (menuSelectCategory === 'all') return allWorkouts;
+    return allWorkouts.filter((w) => w.category === menuSelectCategory);
+  }, [allWorkouts, menuSelectCategory]);
+
+  const handleAddMenuToDate = (workout: WorkoutTemplate) => {
+    const log: TrainingLog = {
+      id: `tl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      date: menuSelectDate,
+      workoutId: workout.id,
+      workoutName: workout.name,
+      workoutCategory: workout.category,
+      status: 'planned',
+      planId: activePlan?.id,
+    };
+    addTrainingLog(log);
+    setMenuSelectModalVisible(false);
+    showToast('メニューを追加しました', 'success');
+  };
 
   // 他画面からのパラメータ変更に対応（メニュー変更後の遷移など）
   useEffect(() => {
@@ -779,17 +834,10 @@ export default function PlanScreen() {
                                 toggleWorkoutComplete(weekPlan.weekNumber, day.id);
                               } else {
                                 // 未完了→完了: 事後記録モーダルを表示
-                                // ワークアウトのゾーン別予定距離を取得（プリセット＋カスタム両方を検索）
-                                const workout = day.workoutId
-                                  ? WORKOUTS.find(w => w.id === day.workoutId) || customWorkouts.find(w => w.id === day.workoutId)
-                                  : null;
-                                const plannedZones: Record<string, number> = {};
-                                if (workout) {
-                                  for (const seg of workout.segments) {
-                                    const dist = (seg.reps || 1) * seg.distance;
-                                    plannedZones[seg.zone] = (plannedZones[seg.zone] || 0) + dist;
-                                  }
-                                }
+                                // ワークアウトのゾーン別予定距離を取得（レスト距離含む）
+                                const plannedZones = day.workoutId
+                                  ? getWorkoutZoneDistances(day.workoutId, limiter, customWorkoutsAsTemplates)
+                                  : {};
                                 setActualDataTarget({
                                   weekNumber: weekPlan.weekNumber,
                                   dayId: day.id,
@@ -1001,6 +1049,21 @@ export default function PlanScreen() {
               </FadeIn>
             )}
 
+            {/* メニュー追加ボタン */}
+            <FadeIn delay={50}>
+              <Pressable
+                style={styles.addMenuButton}
+                onPress={() => {
+                  setMenuSelectDate(todayStr);
+                  setMenuSelectCategory('all');
+                  setMenuSelectModalVisible(true);
+                }}
+              >
+                <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
+                <Text style={styles.addMenuButtonText}>メニューを追加</Text>
+              </Pressable>
+            </FadeIn>
+
             {/* 時系列記録 */}
             <SlideIn delay={100} direction="up">
               <Text style={styles.sectionLabel}>
@@ -1126,6 +1189,68 @@ export default function PlanScreen() {
             notes={recordNotes}
             setNotes={setRecordNotes}
           />
+
+          {/* メニュー追加モーダル */}
+          <Modal
+            visible={menuSelectModalVisible}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setMenuSelectModalVisible(false)}
+          >
+            <Pressable
+              style={styles.menuSelectOverlay}
+              onPress={() => setMenuSelectModalVisible(false)}
+            >
+              <Pressable style={styles.menuSelectContent} onPress={(e) => e.stopPropagation()}>
+                <View style={styles.menuSelectHeader}>
+                  <Text style={styles.menuSelectTitle}>メニューを追加</Text>
+                  <Pressable onPress={() => setMenuSelectModalVisible(false)}>
+                    <Ionicons name="close" size={24} color={COLORS.text.primary} />
+                  </Pressable>
+                </View>
+
+                {/* カテゴリフィルタ */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.menuSelectCategoryScroll}>
+                  {menuCategories.map((cat) => (
+                    <Pressable
+                      key={cat}
+                      style={[
+                        styles.menuSelectCategoryChip,
+                        menuSelectCategory === cat && styles.menuSelectCategoryChipActive,
+                      ]}
+                      onPress={() => setMenuSelectCategory(cat)}
+                    >
+                      <Text
+                        style={[
+                          styles.menuSelectCategoryChipText,
+                          menuSelectCategory === cat && styles.menuSelectCategoryChipTextActive,
+                        ]}
+                      >
+                        {cat === 'all' ? 'すべて' : cat}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+
+                {/* メニュー一覧 */}
+                <ScrollView style={styles.menuSelectList}>
+                  {filteredMenuWorkouts.map((workout) => (
+                    <Pressable
+                      key={workout.id}
+                      style={styles.menuSelectItem}
+                      onPress={() => handleAddMenuToDate(workout)}
+                    >
+                      <View style={styles.menuSelectItemInfo}>
+                        <Text style={styles.menuSelectItemName}>{workout.name}</Text>
+                        <Text style={styles.menuSelectItemCategory}>{workout.category}</Text>
+                      </View>
+                      <Ionicons name="add-circle" size={24} color={COLORS.primary} />
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              </Pressable>
+            </Pressable>
+          </Modal>
         </SafeAreaView>
       </SwipeBackView>
     );
@@ -3053,7 +3178,7 @@ const styles = StyleSheet.create({
   actualDataModalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: '#1a1a1a',
   },
   actualDataModalContent: {
     backgroundColor: COLORS.background,
@@ -3171,5 +3296,98 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#fff',
+  },
+
+  // メニュー追加ボタン
+  addMenuButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    marginBottom: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(45, 159, 45, 0.3)',
+    borderStyle: 'dashed',
+    backgroundColor: 'rgba(45, 159, 45, 0.05)',
+  },
+  addMenuButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.primary,
+  },
+
+  // メニュー選択モーダル
+  menuSelectOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: '#1a1a1a',
+  },
+  menuSelectContent: {
+    backgroundColor: COLORS.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    height: '75%',
+  },
+  menuSelectHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  menuSelectTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+  },
+  menuSelectCategoryScroll: {
+    marginBottom: 12,
+    maxHeight: 36,
+  },
+  menuSelectCategoryChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    marginRight: 8,
+  },
+  menuSelectCategoryChipActive: {
+    backgroundColor: COLORS.primary,
+  },
+  menuSelectCategoryChipText: {
+    fontSize: 13,
+    color: COLORS.text.secondary,
+  },
+  menuSelectCategoryChipTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  menuSelectList: {
+    flex: 1,
+  },
+  menuSelectItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  menuSelectItemInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  menuSelectItemName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.text.primary,
+    marginBottom: 2,
+  },
+  menuSelectItemCategory: {
+    fontSize: 12,
+    color: COLORS.text.muted,
   },
 });

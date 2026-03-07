@@ -735,8 +735,9 @@ export const getWeeklyPlanRationale = (
 /**
  * ワークアウトIDからゾーン別距離（m）を計算
  */
-export const getWorkoutZoneDistances = (workoutId: string, limiterType?: LimiterType): ZoneDistances => {
-  const workout = WORKOUTS.find((w: WorkoutTemplate) => w.id === workoutId);
+export const getWorkoutZoneDistances = (workoutId: string, limiterType?: LimiterType, additionalWorkouts?: WorkoutTemplate[]): ZoneDistances => {
+  const workout = WORKOUTS.find((w: WorkoutTemplate) => w.id === workoutId)
+    || additionalWorkouts?.find((w) => w.id === workoutId);
   if (!workout) return {};
   const zones: ZoneDistances = {};
   const variant = limiterType ? workout.limiterVariants?.[limiterType] : undefined;

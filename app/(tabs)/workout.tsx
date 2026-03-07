@@ -1457,7 +1457,7 @@ const styles = StyleSheet.create({
   createModalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: '#1a1a1a',
   },
   createModalContent: {
     backgroundColor: COLORS.background,
