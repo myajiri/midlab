@@ -3178,7 +3178,7 @@ const styles = StyleSheet.create({
   actualDataModalOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: '#1a1a1a',
   },
   actualDataModalContent: {
     backgroundColor: COLORS.background,
@@ -3322,7 +3322,7 @@ const styles = StyleSheet.create({
   menuSelectOverlay: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    backgroundColor: '#1a1a1a',
   },
   menuSelectContent: {
     backgroundColor: COLORS.background,
