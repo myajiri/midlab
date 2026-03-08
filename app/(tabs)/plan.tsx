@@ -3649,7 +3649,7 @@ const styles = StyleSheet.create({
     padding: 24,
     width: '92%',
     maxWidth: 400,
-    maxHeight: '75%',
+    height: '70%',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
