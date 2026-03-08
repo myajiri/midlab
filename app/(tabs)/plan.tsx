@@ -1049,9 +1049,14 @@ export default function PlanScreen() {
                 <Pressable
                   style={styles.actualDataSkipButton}
                   onPress={() => {
-                    // 記録なしで完了
+                    // 記録なしで完了（計画値を実績としてセット）
                     if (actualDataTarget) {
-                      toggleWorkoutComplete(actualDataTarget.weekNumber, actualDataTarget.dayId);
+                      const plannedZones = actualDataTarget.zoneDistances || {};
+                      const plannedTotal = Object.values(plannedZones).reduce((s, d) => s + (d || 0), 0);
+                      updateActualData(actualDataTarget.weekNumber, actualDataTarget.dayId, {
+                        distance: plannedTotal > 0 ? plannedTotal : undefined,
+                        zoneDistances: Object.keys(plannedZones).length > 0 ? plannedZones : undefined,
+                      });
                       // TrainingLogにも記録を追加
                       const wp = activePlan?.weeklyPlans.find(w => w.weekNumber === actualDataTarget.weekNumber);
                       const dayData = wp?.days.find(d => d?.id === actualDataTarget.dayId);
@@ -1080,14 +1085,22 @@ export default function PlanScreen() {
                   style={styles.actualDataSaveButton}
                   onPress={() => {
                     if (actualDataTarget) {
-                      // ゾーン距離を数値に変換
+                      // ゾーン距離を数値に変換（入力がなければ計画値を使用）
                       const zoneDistances: Record<string, number> = {};
                       let totalDistance = 0;
-                      for (const [zone, val] of Object.entries(actualZoneInputs)) {
-                        const num = parseInt(val, 10);
+                      const plannedZones = actualDataTarget.zoneDistances || {};
+                      for (const zone of ['jog', 'easy', 'marathon', 'threshold', 'interval', 'repetition']) {
+                        const inputVal = actualZoneInputs[zone];
+                        const num = inputVal ? parseInt(inputVal, 10) : NaN;
+                        const planned = plannedZones[zone] || 0;
                         if (!isNaN(num) && num > 0) {
+                          // ユーザーが入力した値を使用
                           zoneDistances[zone] = num;
                           totalDistance += num;
+                        } else if (planned > 0) {
+                          // 入力なしの場合は計画値をデフォルトで使用
+                          zoneDistances[zone] = planned;
+                          totalDistance += planned;
                         }
                       }
                       updateActualData(actualDataTarget.weekNumber, actualDataTarget.dayId, {

@@ -823,11 +823,9 @@ export const calculateTrainingAnalytics = (
         ? getWorkoutZoneDistances(day.workoutId, limiterType)
         : {};
 
-      // 計画されたゾーン距離を集計（過去の日のみ）
-      if (dayDate <= now) {
-        for (const [zone, dist] of Object.entries(zones)) {
-          plannedZoneDistances[zone as ZoneName] = (plannedZoneDistances[zone as ZoneName] || 0) + (dist || 0);
-        }
+      // 計画されたゾーン距離を集計（全期間の目標合計）
+      for (const [zone, dist] of Object.entries(zones)) {
+        plannedZoneDistances[zone as ZoneName] = (plannedZoneDistances[zone as ZoneName] || 0) + (dist || 0);
       }
 
       if (day.completed) {
@@ -866,12 +864,8 @@ export const calculateTrainingAnalytics = (
       // ワークアウトのゾーン別距離を取得
       const zones = getWorkoutZoneDistances(log.workoutId, limiterType);
 
-      // 計画ゾーン距離にも追加
-      for (const [zone, dist] of Object.entries(zones)) {
-        plannedZoneDistances[zone as ZoneName] = (plannedZoneDistances[zone as ZoneName] || 0) + (dist || 0);
-      }
-
-      // 実績：結果の距離があればゾーン距離から按分、なければゾーン距離をそのまま使用
+      // 計画外のワークアウトは実績のみ加算（planned には追加しない）
+      // → 計画外の追加トレーニングがcompletedを押し上げて100%超えを実現
       for (const [zone, dist] of Object.entries(zones)) {
         completedZoneDistances[zone as ZoneName] = (completedZoneDistances[zone as ZoneName] || 0) + (dist || 0);
       }
