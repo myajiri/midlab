@@ -226,8 +226,11 @@ export default function WorkoutScreen() {
           etp={etp}
           limiter={limiter}
           onBack={() => {
-            // 戻るボタン: 常にタブ内の一覧画面に戻る
+            // 戻るボタン: 計画タブからの遷移なら計画タブに戻る、それ以外は一覧に戻る
             setSelectedWorkout(null);
+            if (isFromPlan) {
+              router.navigate('/(tabs)/plan');
+            }
           }}
           onReplaceWorkout={isReplaceMode ? handleReplaceWorkout : undefined}
           replaceDayLabel={replaceDayLabel}
