@@ -1414,7 +1414,10 @@ export default function PlanScreen() {
                 {/* 日付選択 */}
                 <Pressable
                   style={styles.menuSelectDateRow}
-                  onPress={() => setMenuDatePickerVisible(true)}
+                  onPress={() => {
+                    setMenuSelectModalVisible(false);
+                    setTimeout(() => setMenuDatePickerVisible(true), 300);
+                  }}
                 >
                   <View style={styles.menuSelectDateLeft}>
                     <Ionicons name="calendar-outline" size={18} color={COLORS.primary} />
@@ -1479,10 +1482,14 @@ export default function PlanScreen() {
           {/* メニュー追加用の日付選択モーダル */}
           <DatePickerModal
             visible={menuDatePickerVisible}
-            onClose={() => setMenuDatePickerVisible(false)}
+            onClose={() => {
+              setMenuDatePickerVisible(false);
+              setTimeout(() => setMenuSelectModalVisible(true), 300);
+            }}
             onSelect={(date) => {
               setMenuSelectDate(date.toISOString().split('T')[0]);
               setMenuDatePickerVisible(false);
+              setTimeout(() => setMenuSelectModalVisible(true), 300);
             }}
             value={new Date(menuSelectDate + 'T00:00:00')}
             maxDate={new Date()}
