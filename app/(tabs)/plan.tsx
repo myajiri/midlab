@@ -208,6 +208,30 @@ export default function PlanScreen() {
     showToast('記録を更新しました', 'success');
   };
 
+  // 記録を削除して未完了に戻す
+  const handleDeleteRecord = () => {
+    if (!editingLogId) return;
+    const log = trainingLogs.find((l) => l.id === editingLogId);
+    if (log) {
+      // 計画内の完了状態も未完了に戻す
+      if (log.weekNumber != null && log.planId === activePlan?.id) {
+        const wp = activePlan?.weeklyPlans.find((w) => w.weekNumber === log.weekNumber);
+        if (wp) {
+          const dayData = wp.days.find(
+            (d) => d && (d.workoutId === log.workoutId || d.id === log.workoutId)
+          );
+          if (dayData && dayData.completed) {
+            toggleWorkoutComplete(log.weekNumber, dayData.id);
+          }
+        }
+      }
+      deleteTrainingLog(log.id);
+    }
+    setEditModalVisible(false);
+    setEditingLogId(null);
+    showToast('記録を削除しました', 'success');
+  };
+
   // メニュー追加モーダル
   const [menuSelectModalVisible, setMenuSelectModalVisible] = useState(false);
   const [menuSelectDate, setMenuSelectDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -1338,6 +1362,7 @@ export default function PlanScreen() {
             visible={editModalVisible}
             onClose={() => setEditModalVisible(false)}
             onSave={handleSaveEdit}
+            onDelete={handleDeleteRecord}
             distance={editDistance}
             setDistance={setEditDistance}
             duration={editDuration}
@@ -1873,6 +1898,7 @@ interface RecordResultModalProps {
   notes: string;
   setNotes: (v: string) => void;
   title?: string;
+  onDelete?: () => void;
 }
 
 function RecordResultModal({
@@ -1882,6 +1908,7 @@ function RecordResultModal({
   feeling, setFeeling,
   notes, setNotes,
   title,
+  onDelete,
 }: RecordResultModalProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -1974,6 +2001,24 @@ function RecordResultModal({
                 <Text style={styles.modalSaveButtonText}>保存</Text>
               </Pressable>
             </View>
+            {onDelete && (
+              <Pressable
+                style={styles.modalDeleteButton}
+                onPress={() => {
+                  Alert.alert(
+                    '記録を削除',
+                    'この記録を削除して未完了に戻しますか？',
+                    [
+                      { text: 'キャンセル', style: 'cancel' },
+                      { text: '削除', style: 'destructive', onPress: onDelete },
+                    ],
+                  );
+                }}
+              >
+                <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                <Text style={styles.modalDeleteButtonText}>記録を削除して未完了に戻す</Text>
+              </Pressable>
+            )}
           </Pressable>
         </Pressable>
       </KeyboardAvoidingView>
@@ -3228,6 +3273,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
+  },
+  modalDeleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  modalDeleteButtonText: {
+    fontSize: 13,
+    color: '#EF4444',
+    fontWeight: '500',
   },
 
   // メニュー更新通知バナー
