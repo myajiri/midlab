@@ -979,20 +979,21 @@ export default function PlanScreen() {
         <Modal
           visible={actualDataModalVisible}
           transparent
-          animationType="slide"
+          animationType="fade"
           onRequestClose={() => setActualDataModalVisible(false)}
         >
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.actualDataModalOverlay}
           >
-            <View style={styles.actualDataModalContent}>
-              <View style={styles.actualDataModalHeader}>
-                <Text style={styles.actualDataModalTitle}>トレーニング記録</Text>
-                <Pressable onPress={() => setActualDataModalVisible(false)}>
-                  <Ionicons name="close" size={24} color={COLORS.text.primary} />
-                </Pressable>
-              </View>
+            <Pressable style={styles.actualDataModalOverlayPress} onPress={() => setActualDataModalVisible(false)}>
+              <Pressable style={styles.actualDataModalContent} onPress={(e) => e.stopPropagation()}>
+                <View style={styles.actualDataModalHeader}>
+                  <Text style={styles.actualDataModalTitle}>トレーニング記録</Text>
+                  <Pressable onPress={() => setActualDataModalVisible(false)}>
+                    <Ionicons name="close" size={24} color={COLORS.text.secondary} />
+                  </Pressable>
+                </View>
               <Text style={styles.actualDataModalSubtitle}>{actualDataTarget?.label || ''}</Text>
               <Text style={styles.actualDataModalHint}>実際に走った各ゾーンの距離（m）を入力してください。アップ・ダウンジョグも含めて記録できます。</Text>
 
@@ -1122,7 +1123,8 @@ export default function PlanScreen() {
                   <Text style={styles.actualDataSaveButtonText}>記録して完了</Text>
                 </Pressable>
               </View>
-            </View>
+              </Pressable>
+            </Pressable>
           </KeyboardAvoidingView>
         </Modal>
       </SafeAreaView>
@@ -1393,7 +1395,7 @@ export default function PlanScreen() {
           <Modal
             visible={menuSelectModalVisible}
             transparent
-            animationType="slide"
+            animationType="fade"
             onRequestClose={() => setMenuSelectModalVisible(false)}
           >
             <Pressable
@@ -1404,7 +1406,7 @@ export default function PlanScreen() {
                 <View style={styles.menuSelectHeader}>
                   <Text style={styles.menuSelectTitle}>メニューを追加</Text>
                   <Pressable onPress={() => setMenuSelectModalVisible(false)}>
-                    <Ionicons name="close" size={24} color={COLORS.text.primary} />
+                    <Ionicons name="close" size={24} color={COLORS.text.secondary} />
                   </Pressable>
                 </View>
 
@@ -3486,15 +3488,22 @@ const styles = StyleSheet.create({
   // 事後記録モーダル
   actualDataModalOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  actualDataModalOverlayPress: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   actualDataModalContent: {
-    backgroundColor: COLORS.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
+    backgroundColor: COLORS.background.dark,
+    borderRadius: 20,
+    padding: 24,
+    width: '92%',
+    maxWidth: 400,
     maxHeight: '85%',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   actualDataModalHeader: {
     flexDirection: 'row',
@@ -3503,7 +3512,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   actualDataModalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
   },
@@ -3630,24 +3639,28 @@ const styles = StyleSheet.create({
   // メニュー選択モーダル
   menuSelectOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: '#1a1a1a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
   menuSelectContent: {
-    backgroundColor: COLORS.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    height: '75%',
+    backgroundColor: COLORS.background.dark,
+    borderRadius: 20,
+    padding: 24,
+    width: '92%',
+    maxWidth: 400,
+    maxHeight: '75%',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   menuSelectHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   menuSelectTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
   },

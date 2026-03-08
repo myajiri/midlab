@@ -435,22 +435,23 @@ export default function WorkoutScreen() {
       <Modal
         visible={createModalVisible}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setCreateModalVisible(false)}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.createModalOverlay}
         >
-          <View style={styles.createModalContent}>
-            <View style={styles.createModalHeader}>
-              <Text style={styles.createModalTitle}>{editingCustomId ? 'メニューを編集' : '新規メニュー作成'}</Text>
-              <Pressable onPress={() => setCreateModalVisible(false)}>
-                <Ionicons name="close" size={24} color={COLORS.text.primary} />
-              </Pressable>
-            </View>
+          <Pressable style={styles.createModalOverlayPress} onPress={() => setCreateModalVisible(false)}>
+            <Pressable style={styles.createModalContent} onPress={(e) => e.stopPropagation()}>
+              <View style={styles.createModalHeader}>
+                <Text style={styles.createModalTitle}>{editingCustomId ? 'メニューを編集' : '新規メニュー作成'}</Text>
+                <Pressable onPress={() => setCreateModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={COLORS.text.secondary} />
+                </Pressable>
+              </View>
 
-            <ScrollView style={styles.createModalScroll} showsVerticalScrollIndicator={false}>
+              <ScrollView style={styles.createModalScroll} showsVerticalScrollIndicator={false}>
               {/* メニュー名 */}
               <Text style={styles.createFieldLabel}>メニュー名</Text>
               <TextInput
@@ -614,7 +615,8 @@ export default function WorkoutScreen() {
             >
               <Text style={styles.createSaveButtonText}>{editingCustomId ? '更新' : '作成'}</Text>
             </Pressable>
-          </View>
+            </Pressable>
+          </Pressable>
         </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
@@ -1463,24 +1465,31 @@ const styles = StyleSheet.create({
   // 作成モーダル
   createModalOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  createModalOverlayPress: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   createModalContent: {
-    backgroundColor: COLORS.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '90%',
+    backgroundColor: COLORS.background.dark,
+    borderRadius: 20,
+    padding: 24,
+    width: '92%',
+    maxWidth: 400,
+    maxHeight: '85%',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   createModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   createModalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
   },
@@ -1495,12 +1504,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   createFieldInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 10,
-    padding: 12,
-    fontSize: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    fontSize: 15,
     color: COLORS.text.primary,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   createCategoryChip: {
     paddingVertical: 6,
