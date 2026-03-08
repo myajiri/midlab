@@ -164,7 +164,8 @@ export default function PlanScreen() {
   const [recordModalVisible, setRecordModalVisible] = useState(false);
   const [recordingLogId, setRecordingLogId] = useState<string | null>(null);
   const [recordDistance, setRecordDistance] = useState('');
-  const [recordDuration, setRecordDuration] = useState('');
+  const [recordDurationMin, setRecordDurationMin] = useState('');
+  const [recordDurationSec, setRecordDurationSec] = useState('');
   const [recordFeeling, setRecordFeeling] = useState<FeelingLevel>('normal');
   const [recordNotes, setRecordNotes] = useState('');
 
@@ -178,7 +179,8 @@ export default function PlanScreen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingLogId, setEditingLogId] = useState<string | null>(null);
   const [editDistance, setEditDistance] = useState('');
-  const [editDuration, setEditDuration] = useState('');
+  const [editDurationMin, setEditDurationMin] = useState('');
+  const [editDurationSec, setEditDurationSec] = useState('');
   const [editFeeling, setEditFeeling] = useState<FeelingLevel>('normal');
   const [editNotes, setEditNotes] = useState('');
 
@@ -186,7 +188,14 @@ export default function PlanScreen() {
   const openEditModal = (log: TrainingLog) => {
     setEditingLogId(log.id);
     setEditDistance(log.result?.distance != null ? String(log.result.distance) : '');
-    setEditDuration(log.result?.duration != null ? String(log.result.duration) : '');
+    // 秒を分:秒に分解してセット
+    if (log.result?.duration != null) {
+      setEditDurationMin(String(Math.floor(log.result.duration / 60)));
+      setEditDurationSec(String(log.result.duration % 60));
+    } else {
+      setEditDurationMin('');
+      setEditDurationSec('');
+    }
     setEditFeeling(log.result?.feeling || 'normal');
     setEditNotes(log.result?.notes || '');
     setEditModalVisible(true);
@@ -195,10 +204,13 @@ export default function PlanScreen() {
   // 編集を保存
   const handleSaveEdit = () => {
     if (!editingLogId) return;
+    const min = editDurationMin ? parseInt(editDurationMin, 10) : 0;
+    const sec = editDurationSec ? parseInt(editDurationSec, 10) : 0;
+    const totalSec = min * 60 + sec;
     updateTrainingLog(editingLogId, {
       result: {
         distance: editDistance ? parseInt(editDistance, 10) : undefined,
-        duration: editDuration ? parseInt(editDuration, 10) : undefined,
+        duration: totalSec > 0 ? totalSec : undefined,
         feeling: editFeeling,
         notes: editNotes || undefined,
       },
@@ -305,17 +317,25 @@ export default function PlanScreen() {
         const totalDistance = Object.values(zoneDistances).reduce((sum, d) => sum + (d || 0), 0);
         setRecordDistance(totalDistance > 0 ? String(totalDistance) : '');
 
-        // ゾーン別タイムの合計（秒→分に変換）
+        // ゾーン別タイムの合計（秒→分:秒に変換）
         const zoneTimes = calculateZoneTimes(zoneDistances, etp, limiter);
-        const totalSeconds = Object.values(zoneTimes).reduce((sum, t) => sum + (t || 0), 0);
-        setRecordDuration(totalSeconds > 0 ? String(Math.round(totalSeconds / 60)) : '');
+        const totalSeconds = Math.round(Object.values(zoneTimes).reduce((sum, t) => sum + (t || 0), 0));
+        if (totalSeconds > 0) {
+          setRecordDurationMin(String(Math.floor(totalSeconds / 60)));
+          setRecordDurationSec(String(totalSeconds % 60));
+        } else {
+          setRecordDurationMin('');
+          setRecordDurationSec('');
+        }
       } else {
         setRecordDistance('');
-        setRecordDuration('');
+        setRecordDurationMin('');
+        setRecordDurationSec('');
       }
     } else {
       setRecordDistance('');
-      setRecordDuration('');
+      setRecordDurationMin('');
+      setRecordDurationSec('');
     }
 
     setRecordModalVisible(true);
@@ -324,9 +344,13 @@ export default function PlanScreen() {
   // 結果を保存
   const handleSaveRecord = () => {
     if (!recordingLogId) return;
+    // 分と秒を合算して秒で保存
+    const min = recordDurationMin ? parseInt(recordDurationMin, 10) : 0;
+    const sec = recordDurationSec ? parseInt(recordDurationSec, 10) : 0;
+    const totalSec = min * 60 + sec;
     completeTrainingLog(recordingLogId, {
       distance: recordDistance ? parseInt(recordDistance, 10) : undefined,
-      duration: recordDuration ? parseInt(recordDuration, 10) : undefined,
+      duration: totalSec > 0 ? totalSec : undefined,
       feeling: recordFeeling,
       notes: recordNotes || undefined,
     });
@@ -1355,8 +1379,10 @@ export default function PlanScreen() {
             onSave={handleSaveRecord}
             distance={recordDistance}
             setDistance={setRecordDistance}
-            duration={recordDuration}
-            setDuration={setRecordDuration}
+            durationMin={recordDurationMin}
+            setDurationMin={setRecordDurationMin}
+            durationSec={recordDurationSec}
+            setDurationSec={setRecordDurationSec}
             feeling={recordFeeling}
             setFeeling={setRecordFeeling}
             notes={recordNotes}
@@ -1433,8 +1459,10 @@ export default function PlanScreen() {
             onDelete={handleDeleteRecord}
             distance={editDistance}
             setDistance={setEditDistance}
-            duration={editDuration}
-            setDuration={setEditDuration}
+            durationMin={editDurationMin}
+            setDurationMin={setEditDurationMin}
+            durationSec={editDurationSec}
+            setDurationSec={setEditDurationSec}
             feeling={editFeeling}
             setFeeling={setEditFeeling}
             notes={editNotes}
@@ -1959,8 +1987,10 @@ interface RecordResultModalProps {
   onSave: () => void;
   distance: string;
   setDistance: (v: string) => void;
-  duration: string;
-  setDuration: (v: string) => void;
+  durationMin: string;
+  setDurationMin: (v: string) => void;
+  durationSec: string;
+  setDurationSec: (v: string) => void;
   feeling: FeelingLevel;
   setFeeling: (v: FeelingLevel) => void;
   notes: string;
@@ -1972,7 +2002,8 @@ interface RecordResultModalProps {
 function RecordResultModal({
   visible, onClose, onSave,
   distance, setDistance,
-  duration, setDuration,
+  durationMin, setDurationMin,
+  durationSec, setDurationSec,
   feeling, setFeeling,
   notes, setNotes,
   title,
@@ -2008,17 +2039,37 @@ function RecordResultModal({
                 />
               </View>
 
-              {/* 所要時間 */}
+              {/* 所要時間（分:秒） */}
               <View style={styles.modalInputGroup}>
-                <Text style={styles.modalInputLabel}>所要時間（分）</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  value={duration}
-                  onChangeText={setDuration}
-                  placeholder="例: 25"
-                  placeholderTextColor={COLORS.text.muted}
-                  keyboardType="numeric"
-                />
+                <Text style={styles.modalInputLabel}>所要時間</Text>
+                <View style={styles.durationPickerRow}>
+                  <TextInput
+                    style={styles.durationPickerInput}
+                    value={durationMin}
+                    onChangeText={(text) => setDurationMin(text.replace(/[^0-9]/g, ''))}
+                    placeholder="0"
+                    placeholderTextColor={COLORS.text.muted}
+                    keyboardType="numeric"
+                    maxLength={3}
+                  />
+                  <Text style={styles.durationPickerLabel}>分</Text>
+                  <TextInput
+                    style={styles.durationPickerInput}
+                    value={durationSec}
+                    onChangeText={(text) => {
+                      const num = text.replace(/[^0-9]/g, '');
+                      // 59秒を超えないように制限
+                      if (num === '' || parseInt(num, 10) <= 59) {
+                        setDurationSec(num);
+                      }
+                    }}
+                    placeholder="00"
+                    placeholderTextColor={COLORS.text.muted}
+                    keyboardType="numeric"
+                    maxLength={2}
+                  />
+                  <Text style={styles.durationPickerLabel}>秒</Text>
+                </View>
               </View>
 
               {/* 体感 */}
@@ -3286,6 +3337,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     fontSize: 15,
     color: COLORS.text.primary,
+  },
+  durationPickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  durationPickerInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    fontSize: 15,
+    color: COLORS.text.primary,
+    width: 70,
+    textAlign: 'center',
+  },
+  durationPickerLabel: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
   },
   modalInputMultiline: {
     minHeight: 80,
