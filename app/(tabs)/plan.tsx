@@ -217,9 +217,14 @@ export default function PlanScreen() {
       if (log.weekNumber != null && log.planId === activePlan?.id) {
         const wp = activePlan?.weeklyPlans.find((w) => w.weekNumber === log.weekNumber);
         if (wp) {
-          const dayData = wp.days.find(
-            (d) => d && (d.workoutId === log.workoutId || d.id === log.workoutId)
-          );
+          // 日付とworkoutIdの両方でマッチングして正確に特定する
+          const dayData = wp.days.find((d) => {
+            if (!d) return false;
+            const dayDate = new Date(wp.startDate);
+            dayDate.setDate(dayDate.getDate() + d.dayOfWeek);
+            const dateStr = dayDate.toISOString().split('T')[0];
+            return dateStr === log.date && (d.workoutId === log.workoutId || d.id === log.workoutId);
+          });
           if (dayData && dayData.completed) {
             toggleWorkoutComplete(log.weekNumber, dayData.id);
           }
@@ -1236,14 +1241,56 @@ export default function PlanScreen() {
                               {log.result?.notes && (
                                 <Text style={styles.logResultNotes}>{log.result.notes}</Text>
                               )}
-                              {log.status === 'completed' && (
+                              {(log.status === 'completed' || log.status === 'skipped') && (
                                 <View style={styles.logCardActions}>
+                                  {log.status === 'completed' && (
+                                    <Pressable
+                                      style={styles.logEditButton}
+                                      onPress={() => openEditModal(log)}
+                                    >
+                                      <Ionicons name="pencil-outline" size={14} color={COLORS.primary} />
+                                      <Text style={styles.logEditButtonText}>編集</Text>
+                                    </Pressable>
+                                  )}
                                   <Pressable
-                                    style={styles.logEditButton}
-                                    onPress={() => openEditModal(log)}
+                                    style={styles.logDeleteButton}
+                                    onPress={() => {
+                                      Alert.alert(
+                                        '記録を削除',
+                                        log.status === 'completed'
+                                          ? 'この記録を削除して未完了に戻しますか？'
+                                          : 'この記録を削除しますか？',
+                                        [
+                                          { text: 'キャンセル', style: 'cancel' },
+                                          {
+                                            text: '削除',
+                                            style: 'destructive',
+                                            onPress: () => {
+                                              // 完了済みの場合は計画の完了状態も戻す
+                                              if (log.status === 'completed' && log.weekNumber != null && log.planId === activePlan?.id) {
+                                                const wp = activePlan?.weeklyPlans.find((w) => w.weekNumber === log.weekNumber);
+                                                if (wp) {
+                                                  const dayData = wp.days.find((d) => {
+                                                    if (!d) return false;
+                                                    const dayDate = new Date(wp.startDate);
+                                                    dayDate.setDate(dayDate.getDate() + d.dayOfWeek);
+                                                    const dateStr = dayDate.toISOString().split('T')[0];
+                                                    return dateStr === log.date && (d.workoutId === log.workoutId || d.id === log.workoutId);
+                                                  });
+                                                  if (dayData && dayData.completed) {
+                                                    toggleWorkoutComplete(log.weekNumber, dayData.id);
+                                                  }
+                                                }
+                                              }
+                                              deleteTrainingLog(log.id);
+                                              showToast('記録を削除しました', 'success');
+                                            },
+                                          },
+                                        ],
+                                      );
+                                    }}
                                   >
-                                    <Ionicons name="pencil-outline" size={14} color={COLORS.primary} />
-                                    <Text style={styles.logEditButtonText}>編集</Text>
+                                    <Ionicons name="trash-outline" size={14} color="#EF4444" />
                                   </Pressable>
                                 </View>
                               )}
