@@ -154,6 +154,7 @@ export default function PlanScreen() {
   const completeTrainingLog = useTrainingLogsStore((state) => state.completeLog);
   const skipTrainingLog = useTrainingLogsStore((state) => state.skipLog);
   const deleteTrainingLog = useTrainingLogsStore((state) => state.deleteLog);
+  const updateTrainingLog = useTrainingLogsStore((state) => state.updateLog);
 
   const [view, setView] = useState<ViewType>(activePlan ? 'overview' : 'create');
   const setSubScreenOpen = useSetSubScreenOpen();
@@ -172,6 +173,40 @@ export default function PlanScreen() {
   const [actualDataTarget, setActualDataTarget] = useState<{ weekNumber: number; dayId: string; label: string; zoneDistances?: Record<string, number> } | null>(null);
   const [actualZoneInputs, setActualZoneInputs] = useState<Record<string, string>>({});
   const [actualNotes, setActualNotes] = useState('');
+
+  // 記録編集モーダル
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  const [editDistance, setEditDistance] = useState('');
+  const [editDuration, setEditDuration] = useState('');
+  const [editFeeling, setEditFeeling] = useState<FeelingLevel>('normal');
+  const [editNotes, setEditNotes] = useState('');
+
+  // 記録編集モーダルを開く
+  const openEditModal = (log: TrainingLog) => {
+    setEditingLogId(log.id);
+    setEditDistance(log.result?.distance != null ? String(log.result.distance) : '');
+    setEditDuration(log.result?.duration != null ? String(log.result.duration) : '');
+    setEditFeeling(log.result?.feeling || 'normal');
+    setEditNotes(log.result?.notes || '');
+    setEditModalVisible(true);
+  };
+
+  // 編集を保存
+  const handleSaveEdit = () => {
+    if (!editingLogId) return;
+    updateTrainingLog(editingLogId, {
+      result: {
+        distance: editDistance ? parseInt(editDistance, 10) : undefined,
+        duration: editDuration ? parseInt(editDuration, 10) : undefined,
+        feeling: editFeeling,
+        notes: editNotes || undefined,
+      },
+    });
+    setEditModalVisible(false);
+    setEditingLogId(null);
+    showToast('記録を更新しました', 'success');
+  };
 
   // メニュー追加モーダル
   const [menuSelectModalVisible, setMenuSelectModalVisible] = useState(false);
@@ -826,41 +861,26 @@ export default function PlanScreen() {
                       const isFutureDay = dayDate > today;
                       return (
                         <Pressable
-                          style={[styles.checkButton, isFutureDay && styles.checkButtonDisabled]}
+                          style={[styles.checkButton, (isFutureDay || day.completed) && styles.checkButtonDisabled]}
                           onPress={() => {
-                            if (!isFutureDay) {
-                              if (day.completed) {
-                                // 完了→未完了: トグル＋対応するTrainingLogも削除
-                                toggleWorkoutComplete(weekPlan.weekNumber, day.id);
-                                // この日のワークアウトに対応するTrainingLogを削除
-                                const dayDate = new Date(weekPlan.startDate);
-                                dayDate.setDate(dayDate.getDate() + i);
-                                const dateStr = dayDate.toISOString().split('T')[0];
-                                const matchingLog = trainingLogs.find(
-                                  (l) => l.date === dateStr && l.weekNumber === weekPlan.weekNumber && l.planId === activePlan?.id
-                                );
-                                if (matchingLog) {
-                                  deleteTrainingLog(matchingLog.id);
-                                }
-                              } else {
-                                // 未完了→完了: 事後記録モーダルを表示
-                                // ワークアウトのゾーン別予定距離を取得（レスト距離含む）
-                                const plannedZones = day.workoutId
-                                  ? getWorkoutZoneDistances(day.workoutId, limiter, customWorkoutsAsTemplates)
-                                  : {};
-                                setActualDataTarget({
-                                  weekNumber: weekPlan.weekNumber,
-                                  dayId: day.id,
-                                  label: day.label,
-                                  zoneDistances: Object.keys(plannedZones).length > 0 ? plannedZones : undefined,
-                                });
-                                setActualZoneInputs({});
-                                setActualNotes('');
-                                setActualDataModalVisible(true);
-                              }
+                            if (!isFutureDay && !day.completed) {
+                              // 未完了→完了: 事後記録モーダルを表示
+                              // ワークアウトのゾーン別予定距離を取得（レスト距離含む）
+                              const plannedZones = day.workoutId
+                                ? getWorkoutZoneDistances(day.workoutId, limiter, customWorkoutsAsTemplates)
+                                : {};
+                              setActualDataTarget({
+                                weekNumber: weekPlan.weekNumber,
+                                dayId: day.id,
+                                label: day.label,
+                                zoneDistances: Object.keys(plannedZones).length > 0 ? plannedZones : undefined,
+                              });
+                              setActualZoneInputs({});
+                              setActualNotes('');
+                              setActualDataModalVisible(true);
                             }
                           }}
-                          disabled={isFutureDay}
+                          disabled={isFutureDay || day.completed}
                         >
                           <Ionicons
                             name={day.completed ? 'checkmark-circle' : 'ellipse-outline'}
@@ -1192,6 +1212,17 @@ export default function PlanScreen() {
                               {log.result?.notes && (
                                 <Text style={styles.logResultNotes}>{log.result.notes}</Text>
                               )}
+                              {log.status === 'completed' && (
+                                <View style={styles.logCardActions}>
+                                  <Pressable
+                                    style={styles.logEditButton}
+                                    onPress={() => openEditModal(log)}
+                                  >
+                                    <Ionicons name="pencil-outline" size={14} color={COLORS.primary} />
+                                    <Text style={styles.logEditButtonText}>編集</Text>
+                                  </Pressable>
+                                </View>
+                              )}
                               {log.status === 'planned' && (
                                 <View style={styles.logCardActions}>
                                   <Pressable
@@ -1301,6 +1332,22 @@ export default function PlanScreen() {
               </Pressable>
             </Pressable>
           </Modal>
+
+          {/* 記録編集モーダル */}
+          <RecordResultModal
+            visible={editModalVisible}
+            onClose={() => setEditModalVisible(false)}
+            onSave={handleSaveEdit}
+            distance={editDistance}
+            setDistance={setEditDistance}
+            duration={editDuration}
+            setDuration={setEditDuration}
+            feeling={editFeeling}
+            setFeeling={setEditFeeling}
+            notes={editNotes}
+            setNotes={setEditNotes}
+            title="記録を編集"
+          />
         </SafeAreaView>
       </SwipeBackView>
     );
@@ -1825,6 +1872,7 @@ interface RecordResultModalProps {
   setFeeling: (v: FeelingLevel) => void;
   notes: string;
   setNotes: (v: string) => void;
+  title?: string;
 }
 
 function RecordResultModal({
@@ -1833,6 +1881,7 @@ function RecordResultModal({
   duration, setDuration,
   feeling, setFeeling,
   notes, setNotes,
+  title,
 }: RecordResultModalProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -1844,7 +1893,7 @@ function RecordResultModal({
           <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
             {/* ヘッダー */}
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>結果を記録</Text>
+              <Text style={styles.modalTitle}>{title || '結果を記録'}</Text>
               <Pressable onPress={onClose}>
                 <Ionicons name="close" size={24} color={COLORS.text.secondary} />
               </Pressable>
@@ -2939,6 +2988,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderRadius: 10,
+  },
+  logEditButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderRadius: 8,
+  },
+  logEditButtonText: {
+    fontSize: 12,
+    color: COLORS.primary,
+    fontWeight: '600',
   },
 
   // ステータスバッジ
