@@ -55,7 +55,7 @@ import {
   WorkoutTemplate,
 } from '../../src/types';
 import { generatePlan } from '../../src/utils/planGenerator';
-import { getWeeklyPlanRationale, calculateTrainingAnalytics, getWorkoutZoneDistances } from '../../src/utils';
+import { getWeeklyPlanRationale, calculateTrainingAnalytics, getWorkoutZoneDistances, calculateZoneTimes } from '../../src/utils';
 import { ZoneName } from '../../src/types';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
@@ -290,13 +290,34 @@ export default function PlanScreen() {
     }
   }, [view, isFocused, setSubScreenOpen]);
 
-  // 結果記録モーダルを開く
+  // 結果記録モーダルを開く（ゾーン距離から距離・タイムを自動算出）
   const openRecordModal = (logId: string) => {
     setRecordingLogId(logId);
-    setRecordDistance('');
-    setRecordDuration('');
     setRecordFeeling('normal');
     setRecordNotes('');
+
+    // ワークアウトのゾーン別距離から合計距離と推定タイムを算出
+    const log = trainingLogs.find((l) => l.id === logId);
+    if (log?.workoutId && etp) {
+      const zoneDistances = getWorkoutZoneDistances(log.workoutId, limiter, customWorkoutsAsTemplates);
+      if (Object.keys(zoneDistances).length > 0) {
+        // 合計距離
+        const totalDistance = Object.values(zoneDistances).reduce((sum, d) => sum + (d || 0), 0);
+        setRecordDistance(totalDistance > 0 ? String(totalDistance) : '');
+
+        // ゾーン別タイムの合計（秒→分に変換）
+        const zoneTimes = calculateZoneTimes(zoneDistances, etp, limiter);
+        const totalSeconds = Object.values(zoneTimes).reduce((sum, t) => sum + (t || 0), 0);
+        setRecordDuration(totalSeconds > 0 ? String(Math.round(totalSeconds / 60)) : '');
+      } else {
+        setRecordDistance('');
+        setRecordDuration('');
+      }
+    } else {
+      setRecordDistance('');
+      setRecordDuration('');
+    }
+
     setRecordModalVisible(true);
   };
 
