@@ -253,6 +253,7 @@ export default function PlanScreen() {
   const [menuSelectModalVisible, setMenuSelectModalVisible] = useState(false);
   const [menuSelectDate, setMenuSelectDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [menuSelectCategory, setMenuSelectCategory] = useState('all');
+  const [menuDatePickerVisible, setMenuDatePickerVisible] = useState(false);
 
   // メニュー追加用の全ワークアウトリスト
   const allWorkouts = useMemo(() => {
@@ -1410,6 +1411,28 @@ export default function PlanScreen() {
                   </Pressable>
                 </View>
 
+                {/* 日付選択 */}
+                <Pressable
+                  style={styles.menuSelectDateRow}
+                  onPress={() => setMenuDatePickerVisible(true)}
+                >
+                  <View style={styles.menuSelectDateLeft}>
+                    <Ionicons name="calendar-outline" size={18} color={COLORS.primary} />
+                    <Text style={styles.menuSelectDateLabel}>日付</Text>
+                  </View>
+                  <View style={styles.menuSelectDateRight}>
+                    <Text style={styles.menuSelectDateValue}>
+                      {(() => {
+                        const d = new Date(menuSelectDate + 'T00:00:00');
+                        const todayStr = new Date().toISOString().split('T')[0];
+                        const dateStr = `${d.getFullYear()}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}`;
+                        return menuSelectDate === todayStr ? `${dateStr}（今日）` : dateStr;
+                      })()}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={16} color={COLORS.text.muted} />
+                  </View>
+                </Pressable>
+
                 {/* カテゴリフィルタ */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.menuSelectCategoryScroll}>
                   {menuCategories.map((cat) => (
@@ -1452,6 +1475,19 @@ export default function PlanScreen() {
               </Pressable>
             </Pressable>
           </Modal>
+
+          {/* メニュー追加用の日付選択モーダル */}
+          <DatePickerModal
+            visible={menuDatePickerVisible}
+            onClose={() => setMenuDatePickerVisible(false)}
+            onSelect={(date) => {
+              setMenuSelectDate(date.toISOString().split('T')[0]);
+              setMenuDatePickerVisible(false);
+            }}
+            value={new Date(menuSelectDate + 'T00:00:00')}
+            maxDate={new Date()}
+            title="記録日を選択"
+          />
 
           {/* 記録編集モーダル */}
           <RecordResultModal
@@ -3663,6 +3699,37 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
+  },
+  menuSelectDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  menuSelectDateLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  menuSelectDateLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+  },
+  menuSelectDateRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  menuSelectDateValue: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
   },
   menuSelectCategoryScroll: {
     marginBottom: 12,
