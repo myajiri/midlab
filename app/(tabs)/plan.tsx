@@ -1655,6 +1655,20 @@ export default function PlanScreen() {
             repetition: { label: 'Repetition', color: '#EF4444' },
           };
 
+          // ゾーン別データを計算
+          const zoneData = Object.entries(ZONE_LABELS).map(([zone, config]) => {
+            const completed = analytics.completedZoneDistances[zone as ZoneName] || 0;
+            const planned = analytics.plannedZoneDistances[zone as ZoneName] || 0;
+            const ratio = planned > 0 ? completed / planned : 0;
+            return { zone, config, completed, planned, ratio };
+          }).filter(d => d.planned > 0 || d.completed > 0);
+
+          // 全ゾーン中の最大距離（バーの最大幅計算用）
+          const maxDistance = Math.max(...zoneData.map(d => Math.max(d.completed, d.planned)), 1);
+
+          // 消化率用の合計距離
+          const totalCompleted = zoneData.reduce((s, d) => s + d.completed, 0);
+
           return (
             <SlideIn delay={230} direction="up">
               <View style={styles.analyticsCard}>
@@ -1681,26 +1695,107 @@ export default function PlanScreen() {
                   </View>
                 </View>
 
-                {/* ゾーン別刺激バー */}
+                {/* ゾーン別達成率テーブル */}
+                <View style={styles.azTable}>
+                  <View style={styles.azTableHeader}>
+                    <Text style={[styles.azTableHeaderCell, { flex: 1.2 }]}>ゾーン</Text>
+                    <Text style={[styles.azTableHeaderCell, { flex: 1 }]}>達成率</Text>
+                    <Text style={[styles.azTableHeaderCell, { flex: 1 }]}>距離</Text>
+                  </View>
+                  {zoneData.map(({ zone, config, completed, planned, ratio }) => {
+                    const isOver = ratio > 1;
+                    const pct = Math.round(ratio * 100);
+                    return (
+                      <View
+                        key={zone}
+                        style={[styles.azTableRow, isOver && styles.azTableRowOver]}
+                      >
+                        <View style={[styles.azTableCell, { flex: 1.2, flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+                          <View style={[styles.analyticsZoneDot, { backgroundColor: config.color }]} />
+                          <Text style={[styles.azTableCellText, isOver && styles.azTableCellTextOver]}>
+                            {config.label}
+                          </Text>
+                        </View>
+                        <View style={[styles.azTableCell, { flex: 1 }]}>
+                          <Text style={[styles.azTableCellText, isOver && styles.azTableCellTextOver, { fontWeight: '700' }]}>
+                            {pct}%
+                          </Text>
+                        </View>
+                        <View style={[styles.azTableCell, { flex: 1 }]}>
+                          <Text style={[styles.azTableCellText, isOver && styles.azTableCellTextOver]}>
+                            {(completed / 1000).toFixed(1)}km
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+
+                {/* ゾーン別横棒グラフ（100%ライン付き） */}
                 <Text style={styles.analyticsZoneTitle}>ゾーン別刺激量</Text>
-                {Object.entries(ZONE_LABELS).map(([zone, config]) => {
-                  const completed = analytics.completedZoneDistances[zone as ZoneName] || 0;
-                  const planned = analytics.plannedZoneDistances[zone as ZoneName] || 0;
-                  if (planned === 0 && completed === 0) return null;
-                  const ratio = planned > 0 ? Math.min(completed / planned, 1) : 0;
-                  return (
-                    <View key={zone} style={styles.analyticsZoneRow}>
-                      <View style={styles.analyticsZoneLabelBox}>
-                        <View style={[styles.analyticsZoneDot, { backgroundColor: config.color }]} />
-                        <Text style={styles.analyticsZoneLabel}>{config.label}</Text>
+                <View style={styles.azBarChartWrap}>
+                  {/* 100%ライン（目標線） */}
+                  {(() => {
+                    // 100%ラインの位置 = 各ゾーンの planned / maxDistance の中で最大の planned を基準
+                    // ただしグラフ幅は maxDistance が 100% なので、各ゾーンの planned の位置はバラバラ
+                    // 各バー個別に100%マーカーを表示する
+                    return null;
+                  })()}
+                  {zoneData.map(({ zone, config, completed, planned, ratio }) => {
+                    const barWidth = Math.min((completed / maxDistance) * 100, 100);
+                    const targetPos = (planned / maxDistance) * 100;
+                    return (
+                      <View key={zone} style={styles.azBarRow}>
+                        <View style={styles.azBarTrack}>
+                          {/* 実績バー */}
+                          <View
+                            style={[
+                              styles.azBarFill,
+                              {
+                                width: `${barWidth}%`,
+                                backgroundColor: config.color,
+                              },
+                            ]}
+                          />
+                          {/* 100%ターゲットライン */}
+                          <View style={[styles.azBarTarget, { left: `${targetPos}%` }]} />
+                        </View>
+                        <Text style={styles.azBarLabel}>{(completed / 1000).toFixed(0)}km</Text>
                       </View>
-                      <View style={styles.analyticsZoneBarBg}>
-                        <View style={[styles.analyticsZoneBarFill, { width: `${ratio * 100}%`, backgroundColor: config.color }]} />
-                      </View>
-                      <Text style={styles.analyticsZoneValue}>{(completed / 1000).toFixed(1)}km</Text>
+                    );
+                  })}
+                  <Text style={styles.azBarTargetLabel}>--- 100%ライン</Text>
+                </View>
+
+                {/* ゾーン比率（消化率・積み上げバー） */}
+                <Text style={styles.analyticsZoneTitle}>ゾーン比率（消化率）</Text>
+                {totalCompleted > 0 && (
+                  <View style={styles.azRatioWrap}>
+                    <View style={styles.azRatioBar}>
+                      {zoneData.map(({ zone, config, completed }) => {
+                        const pct = (completed / totalCompleted) * 100;
+                        if (pct < 1) return null;
+                        return (
+                          <View
+                            key={zone}
+                            style={[styles.azRatioSegment, { width: `${pct}%`, backgroundColor: config.color }]}
+                          />
+                        );
+                      })}
                     </View>
-                  );
-                })}
+                    <View style={styles.azRatioLabels}>
+                      {zoneData.map(({ zone, config, completed }) => {
+                        const pct = (completed / totalCompleted) * 100;
+                        if (pct < 3) return null;
+                        return (
+                          <View key={zone} style={[styles.azRatioLabelItem, { width: `${pct}%` }]}>
+                            <Text style={styles.azRatioLabelText}>{Math.round(pct)}%</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
               </View>
             </SlideIn>
           );
@@ -3067,44 +3162,118 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text.secondary,
     marginBottom: 8,
-  },
-  analyticsZoneRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-    gap: 8,
-  },
-  analyticsZoneLabelBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    width: 85,
+    marginTop: 12,
   },
   analyticsZoneDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
   },
-  analyticsZoneLabel: {
-    fontSize: 12,
-    color: COLORS.text.secondary,
-  },
-  analyticsZoneBarBg: {
-    flex: 1,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+
+  // ゾーン別達成率テーブル
+  azTable: {
+    borderRadius: 10,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  analyticsZoneBarFill: {
+  azTableHeader: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  azTableHeaderCell: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.text.muted,
+  },
+  azTableRow: {
+    flexDirection: 'row',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  azTableRowOver: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+  },
+  azTableCell: {
+    justifyContent: 'center',
+  },
+  azTableCellText: {
+    fontSize: 13,
+    color: COLORS.text.primary,
+  },
+  azTableCellTextOver: {
+    color: '#EF4444',
+    fontWeight: '600',
+  },
+
+  // ゾーン別横棒グラフ
+  azBarChartWrap: {
+    gap: 6,
+  },
+  azBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  azBarTrack: {
+    flex: 1,
+    height: 16,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    overflow: 'visible',
+    position: 'relative',
+  },
+  azBarFill: {
     height: '100%',
     borderRadius: 4,
   },
-  analyticsZoneValue: {
+  azBarTarget: {
+    position: 'absolute',
+    top: -3,
+    width: 2,
+    height: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    borderStyle: 'dashed',
+  },
+  azBarLabel: {
     fontSize: 11,
     color: COLORS.text.muted,
-    width: 50,
+    width: 40,
     textAlign: 'right',
+  },
+  azBarTargetLabel: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.4)',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+
+  // ゾーン比率（消化率）積み上げバー
+  azRatioWrap: {
+    gap: 4,
+  },
+  azRatioBar: {
+    flexDirection: 'row',
+    height: 22,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  azRatioSegment: {
+    height: '100%',
+  },
+  azRatioLabels: {
+    flexDirection: 'row',
+  },
+  azRatioLabelItem: {
+    alignItems: 'center',
+  },
+  azRatioLabelText: {
+    fontSize: 10,
+    color: COLORS.text.muted,
   },
 
   // トレーニング記録ボタン（概要画面）
