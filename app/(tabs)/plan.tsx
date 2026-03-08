@@ -1654,6 +1654,25 @@ export default function PlanScreen() {
           </SlideIn>
         )}
 
+        {/* トレーニング記録ボタン */}
+        <SlideIn delay={230} direction="up">
+          <Pressable
+            style={styles.logEntryButton}
+            onPress={() => setView('log')}
+          >
+            <View style={styles.logEntryButtonLeft}>
+              <Ionicons name="book-outline" size={20} color={COLORS.primary} />
+              <View>
+                <Text style={styles.logEntryButtonTitle}>トレーニング記録</Text>
+                <Text style={styles.logEntryButtonSubtitle}>
+                  {trainingLogs.filter((l) => l.status === 'completed').length}件の記録
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
+          </Pressable>
+        </SlideIn>
+
         {/* トレーニング分析ダッシュボード */}
         {activePlan.weeklyPlans && (() => {
           const analytics = calculateTrainingAnalytics(activePlan.weeklyPlans, activePlan.baseline.limiterType, trainingLogs);
@@ -1790,25 +1809,6 @@ export default function PlanScreen() {
             </SlideIn>
           );
         })()}
-
-        {/* トレーニング記録ボタン */}
-        <SlideIn delay={250} direction="up">
-          <Pressable
-            style={styles.logEntryButton}
-            onPress={() => setView('log')}
-          >
-            <View style={styles.logEntryButtonLeft}>
-              <Ionicons name="book-outline" size={20} color={COLORS.primary} />
-              <View>
-                <Text style={styles.logEntryButtonTitle}>トレーニング記録</Text>
-                <Text style={styles.logEntryButtonSubtitle}>
-                  {trainingLogs.filter((l) => l.status === 'completed').length}件の記録
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
-          </Pressable>
-        </SlideIn>
 
         {/* サブレース（予定レース） */}
         <SlideIn delay={280} direction="up">
