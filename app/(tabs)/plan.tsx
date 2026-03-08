@@ -1600,7 +1600,7 @@ export default function PlanScreen() {
 
         {/* トレーニング分析ダッシュボード */}
         {activePlan.weeklyPlans && (() => {
-          const analytics = calculateTrainingAnalytics(activePlan.weeklyPlans, activePlan.baseline.limiterType);
+          const analytics = calculateTrainingAnalytics(activePlan.weeklyPlans, activePlan.baseline.limiterType, trainingLogs);
           if (analytics.completedCount === 0) return null;
 
           const ZONE_LABELS: Record<string, { label: string; color: string }> = {
