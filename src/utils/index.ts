@@ -27,6 +27,7 @@ import {
   ZoneDistances,
   WorkoutTemplate,
   WeeklyPlan,
+  TrainingLog,
 } from '../types';
 
 import {
@@ -790,6 +791,7 @@ export interface TrainingAnalytics {
 export const calculateTrainingAnalytics = (
   weeklyPlans: WeeklyPlan[],
   limiterType: LimiterType,
+  trainingLogs?: TrainingLog[],
 ): TrainingAnalytics => {
   const completedZoneDistances: ZoneDistances = {};
   const plannedZoneDistances: ZoneDistances = {};
@@ -803,6 +805,9 @@ export const calculateTrainingAnalytics = (
   weekAgo.setDate(weekAgo.getDate() - 7);
   const monthAgo = new Date(now);
   monthAgo.setDate(monthAgo.getDate() - 30);
+
+  // weeklyPlansの完了済みワークアウトIDを追跡（重複防止）
+  const planCompletedWorkoutKeys = new Set<string>();
 
   for (const week of weeklyPlans) {
     for (let i = 0; i < week.days.length; i++) {
@@ -818,15 +823,16 @@ export const calculateTrainingAnalytics = (
         ? getWorkoutZoneDistances(day.workoutId, limiterType)
         : {};
 
-      // 計画されたゾーン距離を集計（過去の日のみ）
-      if (dayDate <= now) {
-        for (const [zone, dist] of Object.entries(zones)) {
-          plannedZoneDistances[zone as ZoneName] = (plannedZoneDistances[zone as ZoneName] || 0) + (dist || 0);
-        }
+      // 計画されたゾーン距離を集計（全期間の目標合計）
+      for (const [zone, dist] of Object.entries(zones)) {
+        plannedZoneDistances[zone as ZoneName] = (plannedZoneDistances[zone as ZoneName] || 0) + (dist || 0);
       }
 
       if (day.completed) {
         completedCount++;
+        const dateStr = dayDate.toISOString().split('T')[0];
+        planCompletedWorkoutKeys.add(`${dateStr}_${day.workoutId || day.id}`);
+
         // 実績ゾーン距離がある場合はそれを使用、なければ計画値
         const actualZones = day.actualData?.zoneDistances || zones;
         for (const [zone, dist] of Object.entries(actualZones)) {
@@ -838,6 +844,36 @@ export const calculateTrainingAnalytics = (
         if (dayDate >= weekAgo) weeklyDistance += totalDist;
         if (dayDate >= monthAgo) monthlyDistance += totalDist;
       }
+    }
+  }
+
+  // trainingLogsから、weeklyPlansに含まれない完了済み記録を集計
+  if (trainingLogs) {
+    for (const log of trainingLogs) {
+      if (log.status !== 'completed') continue;
+
+      // weeklyPlansで既にカウント済みの記録はスキップ
+      const key = `${log.date}_${log.workoutId}`;
+      if (planCompletedWorkoutKeys.has(key)) continue;
+
+      completedCount++;
+      totalCount++;
+
+      const logDate = new Date(log.date);
+
+      // ワークアウトのゾーン別距離を取得
+      const zones = getWorkoutZoneDistances(log.workoutId, limiterType);
+
+      // 計画外のワークアウトは実績のみ加算（planned には追加しない）
+      // → 計画外の追加トレーニングがcompletedを押し上げて100%超えを実現
+      for (const [zone, dist] of Object.entries(zones)) {
+        completedZoneDistances[zone as ZoneName] = (completedZoneDistances[zone as ZoneName] || 0) + (dist || 0);
+      }
+
+      // 総距離の計算
+      const totalDist = log.result?.distance || Object.values(zones).reduce((s, d) => s + (d || 0), 0);
+      if (logDate >= weekAgo) weeklyDistance += totalDist;
+      if (logDate >= monthAgo) monthlyDistance += totalDist;
     }
   }
 

@@ -55,7 +55,7 @@ import {
   WorkoutTemplate,
 } from '../../src/types';
 import { generatePlan } from '../../src/utils/planGenerator';
-import { getWeeklyPlanRationale, calculateTrainingAnalytics, getWorkoutZoneDistances } from '../../src/utils';
+import { getWeeklyPlanRationale, calculateTrainingAnalytics, getWorkoutZoneDistances, calculateZoneTimes } from '../../src/utils';
 import { ZoneName } from '../../src/types';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
@@ -154,6 +154,7 @@ export default function PlanScreen() {
   const completeTrainingLog = useTrainingLogsStore((state) => state.completeLog);
   const skipTrainingLog = useTrainingLogsStore((state) => state.skipLog);
   const deleteTrainingLog = useTrainingLogsStore((state) => state.deleteLog);
+  const updateTrainingLog = useTrainingLogsStore((state) => state.updateLog);
 
   const [view, setView] = useState<ViewType>(activePlan ? 'overview' : 'create');
   const setSubScreenOpen = useSetSubScreenOpen();
@@ -163,7 +164,8 @@ export default function PlanScreen() {
   const [recordModalVisible, setRecordModalVisible] = useState(false);
   const [recordingLogId, setRecordingLogId] = useState<string | null>(null);
   const [recordDistance, setRecordDistance] = useState('');
-  const [recordDuration, setRecordDuration] = useState('');
+  const [recordDurationMin, setRecordDurationMin] = useState('');
+  const [recordDurationSec, setRecordDurationSec] = useState('');
   const [recordFeeling, setRecordFeeling] = useState<FeelingLevel>('normal');
   const [recordNotes, setRecordNotes] = useState('');
 
@@ -173,10 +175,85 @@ export default function PlanScreen() {
   const [actualZoneInputs, setActualZoneInputs] = useState<Record<string, string>>({});
   const [actualNotes, setActualNotes] = useState('');
 
+  // 記録編集モーダル
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingLogId, setEditingLogId] = useState<string | null>(null);
+  const [editDistance, setEditDistance] = useState('');
+  const [editDurationMin, setEditDurationMin] = useState('');
+  const [editDurationSec, setEditDurationSec] = useState('');
+  const [editFeeling, setEditFeeling] = useState<FeelingLevel>('normal');
+  const [editNotes, setEditNotes] = useState('');
+
+  // 記録編集モーダルを開く
+  const openEditModal = (log: TrainingLog) => {
+    setEditingLogId(log.id);
+    setEditDistance(log.result?.distance != null ? String(log.result.distance) : '');
+    // 秒を分:秒に分解してセット
+    if (log.result?.duration != null) {
+      setEditDurationMin(String(Math.floor(log.result.duration / 60)));
+      setEditDurationSec(String(log.result.duration % 60));
+    } else {
+      setEditDurationMin('');
+      setEditDurationSec('');
+    }
+    setEditFeeling(log.result?.feeling || 'normal');
+    setEditNotes(log.result?.notes || '');
+    setEditModalVisible(true);
+  };
+
+  // 編集を保存
+  const handleSaveEdit = () => {
+    if (!editingLogId) return;
+    const min = editDurationMin ? parseInt(editDurationMin, 10) : 0;
+    const sec = editDurationSec ? parseInt(editDurationSec, 10) : 0;
+    const totalSec = min * 60 + sec;
+    updateTrainingLog(editingLogId, {
+      result: {
+        distance: editDistance ? parseInt(editDistance, 10) : undefined,
+        duration: totalSec > 0 ? totalSec : undefined,
+        feeling: editFeeling,
+        notes: editNotes || undefined,
+      },
+    });
+    setEditModalVisible(false);
+    setEditingLogId(null);
+    showToast('記録を更新しました', 'success');
+  };
+
+  // 記録を削除して未完了に戻す
+  const handleDeleteRecord = () => {
+    if (!editingLogId) return;
+    const log = trainingLogs.find((l) => l.id === editingLogId);
+    if (log) {
+      // 計画内の完了状態も未完了に戻す
+      if (log.weekNumber != null && log.planId === activePlan?.id) {
+        const wp = activePlan?.weeklyPlans.find((w) => w.weekNumber === log.weekNumber);
+        if (wp) {
+          // 日付とworkoutIdの両方でマッチングして正確に特定する
+          const dayData = wp.days.find((d) => {
+            if (!d) return false;
+            const dayDate = new Date(wp.startDate);
+            dayDate.setDate(dayDate.getDate() + d.dayOfWeek);
+            const dateStr = dayDate.toISOString().split('T')[0];
+            return dateStr === log.date && (d.workoutId === log.workoutId || d.id === log.workoutId);
+          });
+          if (dayData && dayData.completed) {
+            toggleWorkoutComplete(log.weekNumber, dayData.id);
+          }
+        }
+      }
+      deleteTrainingLog(log.id);
+    }
+    setEditModalVisible(false);
+    setEditingLogId(null);
+    showToast('記録を削除しました', 'success');
+  };
+
   // メニュー追加モーダル
   const [menuSelectModalVisible, setMenuSelectModalVisible] = useState(false);
   const [menuSelectDate, setMenuSelectDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [menuSelectCategory, setMenuSelectCategory] = useState('all');
+  const [menuDatePickerVisible, setMenuDatePickerVisible] = useState(false);
 
   // メニュー追加用の全ワークアウトリスト
   const allWorkouts = useMemo(() => {
@@ -226,22 +303,55 @@ export default function PlanScreen() {
     }
   }, [view, isFocused, setSubScreenOpen]);
 
-  // 結果記録モーダルを開く
+  // 結果記録モーダルを開く（ゾーン距離から距離・タイムを自動算出）
   const openRecordModal = (logId: string) => {
     setRecordingLogId(logId);
-    setRecordDistance('');
-    setRecordDuration('');
     setRecordFeeling('normal');
     setRecordNotes('');
+
+    // ワークアウトのゾーン別距離から合計距離と推定タイムを算出
+    const log = trainingLogs.find((l) => l.id === logId);
+    if (log?.workoutId && etp) {
+      const zoneDistances = getWorkoutZoneDistances(log.workoutId, limiter, customWorkoutsAsTemplates);
+      if (Object.keys(zoneDistances).length > 0) {
+        // 合計距離
+        const totalDistance = Object.values(zoneDistances).reduce((sum, d) => sum + (d || 0), 0);
+        setRecordDistance(totalDistance > 0 ? String(totalDistance) : '');
+
+        // ゾーン別タイムの合計（秒→分:秒に変換）
+        const zoneTimes = calculateZoneTimes(zoneDistances, etp, limiter);
+        const totalSeconds = Math.round(Object.values(zoneTimes).reduce((sum, t) => sum + (t || 0), 0));
+        if (totalSeconds > 0) {
+          setRecordDurationMin(String(Math.floor(totalSeconds / 60)));
+          setRecordDurationSec(String(totalSeconds % 60));
+        } else {
+          setRecordDurationMin('');
+          setRecordDurationSec('');
+        }
+      } else {
+        setRecordDistance('');
+        setRecordDurationMin('');
+        setRecordDurationSec('');
+      }
+    } else {
+      setRecordDistance('');
+      setRecordDurationMin('');
+      setRecordDurationSec('');
+    }
+
     setRecordModalVisible(true);
   };
 
   // 結果を保存
   const handleSaveRecord = () => {
     if (!recordingLogId) return;
+    // 分と秒を合算して秒で保存
+    const min = recordDurationMin ? parseInt(recordDurationMin, 10) : 0;
+    const sec = recordDurationSec ? parseInt(recordDurationSec, 10) : 0;
+    const totalSec = min * 60 + sec;
     completeTrainingLog(recordingLogId, {
       distance: recordDistance ? parseInt(recordDistance, 10) : undefined,
-      duration: recordDuration ? parseInt(recordDuration, 10) : undefined,
+      duration: totalSec > 0 ? totalSec : undefined,
       feeling: recordFeeling,
       notes: recordNotes || undefined,
     });
@@ -826,31 +936,26 @@ export default function PlanScreen() {
                       const isFutureDay = dayDate > today;
                       return (
                         <Pressable
-                          style={[styles.checkButton, isFutureDay && styles.checkButtonDisabled]}
+                          style={[styles.checkButton, (isFutureDay || day.completed) && styles.checkButtonDisabled]}
                           onPress={() => {
-                            if (!isFutureDay) {
-                              if (day.completed) {
-                                // 完了→未完了: トグルのみ
-                                toggleWorkoutComplete(weekPlan.weekNumber, day.id);
-                              } else {
-                                // 未完了→完了: 事後記録モーダルを表示
-                                // ワークアウトのゾーン別予定距離を取得（レスト距離含む）
-                                const plannedZones = day.workoutId
-                                  ? getWorkoutZoneDistances(day.workoutId, limiter, customWorkoutsAsTemplates)
-                                  : {};
-                                setActualDataTarget({
-                                  weekNumber: weekPlan.weekNumber,
-                                  dayId: day.id,
-                                  label: day.label,
-                                  zoneDistances: Object.keys(plannedZones).length > 0 ? plannedZones : undefined,
-                                });
-                                setActualZoneInputs({});
-                                setActualNotes('');
-                                setActualDataModalVisible(true);
-                              }
+                            if (!isFutureDay && !day.completed) {
+                              // 未完了→完了: 事後記録モーダルを表示
+                              // ワークアウトのゾーン別予定距離を取得（レスト距離含む）
+                              const plannedZones = day.workoutId
+                                ? getWorkoutZoneDistances(day.workoutId, limiter, customWorkoutsAsTemplates)
+                                : {};
+                              setActualDataTarget({
+                                weekNumber: weekPlan.weekNumber,
+                                dayId: day.id,
+                                label: day.label,
+                                zoneDistances: Object.keys(plannedZones).length > 0 ? plannedZones : undefined,
+                              });
+                              setActualZoneInputs({});
+                              setActualNotes('');
+                              setActualDataModalVisible(true);
                             }
                           }}
-                          disabled={isFutureDay}
+                          disabled={isFutureDay || day.completed}
                         >
                           <Ionicons
                             name={day.completed ? 'checkmark-circle' : 'ellipse-outline'}
@@ -875,20 +980,21 @@ export default function PlanScreen() {
         <Modal
           visible={actualDataModalVisible}
           transparent
-          animationType="slide"
+          animationType="fade"
           onRequestClose={() => setActualDataModalVisible(false)}
         >
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.actualDataModalOverlay}
           >
-            <View style={styles.actualDataModalContent}>
-              <View style={styles.actualDataModalHeader}>
-                <Text style={styles.actualDataModalTitle}>トレーニング記録</Text>
-                <Pressable onPress={() => setActualDataModalVisible(false)}>
-                  <Ionicons name="close" size={24} color={COLORS.text.primary} />
-                </Pressable>
-              </View>
+            <Pressable style={styles.actualDataModalOverlayPress} onPress={() => setActualDataModalVisible(false)}>
+              <Pressable style={styles.actualDataModalContent} onPress={(e) => e.stopPropagation()}>
+                <View style={styles.actualDataModalHeader}>
+                  <Text style={styles.actualDataModalTitle}>トレーニング記録</Text>
+                  <Pressable onPress={() => setActualDataModalVisible(false)}>
+                    <Ionicons name="close" size={24} color={COLORS.text.secondary} />
+                  </Pressable>
+                </View>
               <Text style={styles.actualDataModalSubtitle}>{actualDataTarget?.label || ''}</Text>
               <Text style={styles.actualDataModalHint}>実際に走った各ゾーンの距離（m）を入力してください。アップ・ダウンジョグも含めて記録できます。</Text>
 
@@ -943,9 +1049,32 @@ export default function PlanScreen() {
                 <Pressable
                   style={styles.actualDataSkipButton}
                   onPress={() => {
-                    // 記録なしで完了
+                    // 記録なしで完了（計画値を実績としてセット）
                     if (actualDataTarget) {
-                      toggleWorkoutComplete(actualDataTarget.weekNumber, actualDataTarget.dayId);
+                      const plannedZones = actualDataTarget.zoneDistances || {};
+                      const plannedTotal = Object.values(plannedZones).reduce((s, d) => s + (d || 0), 0);
+                      updateActualData(actualDataTarget.weekNumber, actualDataTarget.dayId, {
+                        distance: plannedTotal > 0 ? plannedTotal : undefined,
+                        zoneDistances: Object.keys(plannedZones).length > 0 ? plannedZones : undefined,
+                      });
+                      // TrainingLogにも記録を追加
+                      const wp = activePlan?.weeklyPlans.find(w => w.weekNumber === actualDataTarget.weekNumber);
+                      const dayData = wp?.days.find(d => d?.id === actualDataTarget.dayId);
+                      if (dayData && wp) {
+                        const dayDate = new Date(wp.startDate);
+                        dayDate.setDate(dayDate.getDate() + dayData.dayOfWeek);
+                        addTrainingLog({
+                          id: `tl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                          date: dayDate.toISOString().split('T')[0],
+                          workoutId: dayData.workoutId || dayData.id,
+                          workoutName: dayData.label,
+                          workoutCategory: dayData.focusCategory || dayData.type,
+                          status: 'completed',
+                          planId: activePlan?.id,
+                          weekNumber: actualDataTarget.weekNumber,
+                          completedAt: new Date().toISOString(),
+                        });
+                      }
                     }
                     setActualDataModalVisible(false);
                   }}
@@ -956,14 +1085,22 @@ export default function PlanScreen() {
                   style={styles.actualDataSaveButton}
                   onPress={() => {
                     if (actualDataTarget) {
-                      // ゾーン距離を数値に変換
+                      // ゾーン距離を数値に変換（入力がなければ計画値を使用）
                       const zoneDistances: Record<string, number> = {};
                       let totalDistance = 0;
-                      for (const [zone, val] of Object.entries(actualZoneInputs)) {
-                        const num = parseInt(val, 10);
+                      const plannedZones = actualDataTarget.zoneDistances || {};
+                      for (const zone of ['jog', 'easy', 'marathon', 'threshold', 'interval', 'repetition']) {
+                        const inputVal = actualZoneInputs[zone];
+                        const num = inputVal ? parseInt(inputVal, 10) : NaN;
+                        const planned = plannedZones[zone] || 0;
                         if (!isNaN(num) && num > 0) {
+                          // ユーザーが入力した値を使用
                           zoneDistances[zone] = num;
                           totalDistance += num;
+                        } else if (planned > 0) {
+                          // 入力なしの場合は計画値をデフォルトで使用
+                          zoneDistances[zone] = planned;
+                          totalDistance += planned;
                         }
                       }
                       updateActualData(actualDataTarget.weekNumber, actualDataTarget.dayId, {
@@ -971,6 +1108,28 @@ export default function PlanScreen() {
                         notes: actualNotes || undefined,
                         zoneDistances: Object.keys(zoneDistances).length > 0 ? zoneDistances : undefined,
                       });
+                      // TrainingLogにも記録を追加
+                      const wp = activePlan?.weeklyPlans.find(w => w.weekNumber === actualDataTarget.weekNumber);
+                      const dayData = wp?.days.find(d => d?.id === actualDataTarget.dayId);
+                      if (dayData && wp) {
+                        const dayDate = new Date(wp.startDate);
+                        dayDate.setDate(dayDate.getDate() + dayData.dayOfWeek);
+                        addTrainingLog({
+                          id: `tl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                          date: dayDate.toISOString().split('T')[0],
+                          workoutId: dayData.workoutId || dayData.id,
+                          workoutName: dayData.label,
+                          workoutCategory: dayData.focusCategory || dayData.type,
+                          status: 'completed',
+                          planId: activePlan?.id,
+                          weekNumber: actualDataTarget.weekNumber,
+                          result: {
+                            distance: totalDistance > 0 ? totalDistance : undefined,
+                            notes: actualNotes || undefined,
+                          },
+                          completedAt: new Date().toISOString(),
+                        });
+                      }
                     }
                     setActualDataModalVisible(false);
                   }}
@@ -978,7 +1137,8 @@ export default function PlanScreen() {
                   <Text style={styles.actualDataSaveButtonText}>記録して完了</Text>
                 </Pressable>
               </View>
-            </View>
+              </Pressable>
+            </Pressable>
           </KeyboardAvoidingView>
         </Modal>
       </SafeAreaView>
@@ -1142,6 +1302,59 @@ export default function PlanScreen() {
                               {log.result?.notes && (
                                 <Text style={styles.logResultNotes}>{log.result.notes}</Text>
                               )}
+                              {(log.status === 'completed' || log.status === 'skipped') && (
+                                <View style={styles.logCardActions}>
+                                  {log.status === 'completed' && (
+                                    <Pressable
+                                      style={styles.logEditButton}
+                                      onPress={() => openEditModal(log)}
+                                    >
+                                      <Ionicons name="pencil-outline" size={14} color={COLORS.primary} />
+                                      <Text style={styles.logEditButtonText}>編集</Text>
+                                    </Pressable>
+                                  )}
+                                  <Pressable
+                                    style={styles.logDeleteButton}
+                                    onPress={() => {
+                                      Alert.alert(
+                                        '記録を削除',
+                                        log.status === 'completed'
+                                          ? 'この記録を削除して未完了に戻しますか？'
+                                          : 'この記録を削除しますか？',
+                                        [
+                                          { text: 'キャンセル', style: 'cancel' },
+                                          {
+                                            text: '削除',
+                                            style: 'destructive',
+                                            onPress: () => {
+                                              // 完了済みの場合は計画の完了状態も戻す
+                                              if (log.status === 'completed' && log.weekNumber != null && log.planId === activePlan?.id) {
+                                                const wp = activePlan?.weeklyPlans.find((w) => w.weekNumber === log.weekNumber);
+                                                if (wp) {
+                                                  const dayData = wp.days.find((d) => {
+                                                    if (!d) return false;
+                                                    const dayDate = new Date(wp.startDate);
+                                                    dayDate.setDate(dayDate.getDate() + d.dayOfWeek);
+                                                    const dateStr = dayDate.toISOString().split('T')[0];
+                                                    return dateStr === log.date && (d.workoutId === log.workoutId || d.id === log.workoutId);
+                                                  });
+                                                  if (dayData && dayData.completed) {
+                                                    toggleWorkoutComplete(log.weekNumber, dayData.id);
+                                                  }
+                                                }
+                                              }
+                                              deleteTrainingLog(log.id);
+                                              showToast('記録を削除しました', 'success');
+                                            },
+                                          },
+                                        ],
+                                      );
+                                    }}
+                                  >
+                                    <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                                  </Pressable>
+                                </View>
+                              )}
                               {log.status === 'planned' && (
                                 <View style={styles.logCardActions}>
                                   <Pressable
@@ -1182,8 +1395,10 @@ export default function PlanScreen() {
             onSave={handleSaveRecord}
             distance={recordDistance}
             setDistance={setRecordDistance}
-            duration={recordDuration}
-            setDuration={setRecordDuration}
+            durationMin={recordDurationMin}
+            setDurationMin={setRecordDurationMin}
+            durationSec={recordDurationSec}
+            setDurationSec={setRecordDurationSec}
             feeling={recordFeeling}
             setFeeling={setRecordFeeling}
             notes={recordNotes}
@@ -1194,7 +1409,7 @@ export default function PlanScreen() {
           <Modal
             visible={menuSelectModalVisible}
             transparent
-            animationType="slide"
+            animationType="fade"
             onRequestClose={() => setMenuSelectModalVisible(false)}
           >
             <Pressable
@@ -1205,9 +1420,34 @@ export default function PlanScreen() {
                 <View style={styles.menuSelectHeader}>
                   <Text style={styles.menuSelectTitle}>メニューを追加</Text>
                   <Pressable onPress={() => setMenuSelectModalVisible(false)}>
-                    <Ionicons name="close" size={24} color={COLORS.text.primary} />
+                    <Ionicons name="close" size={24} color={COLORS.text.secondary} />
                   </Pressable>
                 </View>
+
+                {/* 日付選択 */}
+                <Pressable
+                  style={styles.menuSelectDateRow}
+                  onPress={() => {
+                    setMenuSelectModalVisible(false);
+                    setTimeout(() => setMenuDatePickerVisible(true), 300);
+                  }}
+                >
+                  <View style={styles.menuSelectDateLeft}>
+                    <Ionicons name="calendar-outline" size={18} color={COLORS.primary} />
+                    <Text style={styles.menuSelectDateLabel}>日付</Text>
+                  </View>
+                  <View style={styles.menuSelectDateRight}>
+                    <Text style={styles.menuSelectDateValue}>
+                      {(() => {
+                        const d = new Date(menuSelectDate + 'T00:00:00');
+                        const todayStr = new Date().toISOString().split('T')[0];
+                        const dateStr = `${d.getFullYear()}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}`;
+                        return menuSelectDate === todayStr ? `${dateStr}（今日）` : dateStr;
+                      })()}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={16} color={COLORS.text.muted} />
+                  </View>
+                </Pressable>
 
                 {/* カテゴリフィルタ */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.menuSelectCategoryScroll}>
@@ -1251,6 +1491,42 @@ export default function PlanScreen() {
               </Pressable>
             </Pressable>
           </Modal>
+
+          {/* メニュー追加用の日付選択モーダル */}
+          <DatePickerModal
+            visible={menuDatePickerVisible}
+            onClose={() => {
+              setMenuDatePickerVisible(false);
+              setTimeout(() => setMenuSelectModalVisible(true), 300);
+            }}
+            onSelect={(date) => {
+              setMenuSelectDate(date.toISOString().split('T')[0]);
+              setMenuDatePickerVisible(false);
+              setTimeout(() => setMenuSelectModalVisible(true), 300);
+            }}
+            value={new Date(menuSelectDate + 'T00:00:00')}
+            maxDate={new Date()}
+            title="記録日を選択"
+          />
+
+          {/* 記録編集モーダル */}
+          <RecordResultModal
+            visible={editModalVisible}
+            onClose={() => setEditModalVisible(false)}
+            onSave={handleSaveEdit}
+            onDelete={handleDeleteRecord}
+            distance={editDistance}
+            setDistance={setEditDistance}
+            durationMin={editDurationMin}
+            setDurationMin={setEditDurationMin}
+            durationSec={editDurationSec}
+            setDurationSec={setEditDurationSec}
+            feeling={editFeeling}
+            setFeeling={setEditFeeling}
+            notes={editNotes}
+            setNotes={setEditNotes}
+            title="記録を編集"
+          />
         </SafeAreaView>
       </SwipeBackView>
     );
@@ -1378,9 +1654,28 @@ export default function PlanScreen() {
           </SlideIn>
         )}
 
+        {/* トレーニング記録ボタン */}
+        <SlideIn delay={230} direction="up">
+          <Pressable
+            style={styles.logEntryButton}
+            onPress={() => setView('log')}
+          >
+            <View style={styles.logEntryButtonLeft}>
+              <Ionicons name="book-outline" size={20} color={COLORS.primary} />
+              <View>
+                <Text style={styles.logEntryButtonTitle}>トレーニング記録</Text>
+                <Text style={styles.logEntryButtonSubtitle}>
+                  {trainingLogs.filter((l) => l.status === 'completed').length}件の記録
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
+          </Pressable>
+        </SlideIn>
+
         {/* トレーニング分析ダッシュボード */}
         {activePlan.weeklyPlans && (() => {
-          const analytics = calculateTrainingAnalytics(activePlan.weeklyPlans, activePlan.baseline.limiterType);
+          const analytics = calculateTrainingAnalytics(activePlan.weeklyPlans, activePlan.baseline.limiterType, trainingLogs);
           if (analytics.completedCount === 0) return null;
 
           const ZONE_LABELS: Record<string, { label: string; color: string }> = {
@@ -1391,6 +1686,20 @@ export default function PlanScreen() {
             interval: { label: 'Interval', color: '#F97316' },
             repetition: { label: 'Repetition', color: '#EF4444' },
           };
+
+          // ゾーン別データを計算
+          const zoneData = Object.entries(ZONE_LABELS).map(([zone, config]) => {
+            const completed = analytics.completedZoneDistances[zone as ZoneName] || 0;
+            const planned = analytics.plannedZoneDistances[zone as ZoneName] || 0;
+            const ratio = planned > 0 ? completed / planned : 0;
+            return { zone, config, completed, planned, ratio };
+          }).filter(d => d.planned > 0 || d.completed > 0);
+
+          // 全ゾーン中の最大距離（バーの最大幅計算用）
+          const maxDistance = Math.max(...zoneData.map(d => Math.max(d.completed, d.planned)), 1);
+
+          // 消化率用の合計距離
+          const totalCompleted = zoneData.reduce((s, d) => s + d.completed, 0);
 
           return (
             <SlideIn delay={230} direction="up">
@@ -1418,49 +1727,88 @@ export default function PlanScreen() {
                   </View>
                 </View>
 
-                {/* ゾーン別刺激バー */}
-                <Text style={styles.analyticsZoneTitle}>ゾーン別刺激量</Text>
-                {Object.entries(ZONE_LABELS).map(([zone, config]) => {
-                  const completed = analytics.completedZoneDistances[zone as ZoneName] || 0;
-                  const planned = analytics.plannedZoneDistances[zone as ZoneName] || 0;
-                  if (planned === 0 && completed === 0) return null;
-                  const ratio = planned > 0 ? Math.min(completed / planned, 1) : 0;
-                  return (
-                    <View key={zone} style={styles.analyticsZoneRow}>
-                      <View style={styles.analyticsZoneLabelBox}>
-                        <View style={[styles.analyticsZoneDot, { backgroundColor: config.color }]} />
-                        <Text style={styles.analyticsZoneLabel}>{config.label}</Text>
-                      </View>
-                      <View style={styles.analyticsZoneBarBg}>
-                        <View style={[styles.analyticsZoneBarFill, { width: `${ratio * 100}%`, backgroundColor: config.color }]} />
-                      </View>
-                      <Text style={styles.analyticsZoneValue}>{(completed / 1000).toFixed(1)}km</Text>
+                {/* ゾーン凡例 */}
+                <View style={styles.azLegend}>
+                  {zoneData.map(({ zone, config }) => (
+                    <View key={zone} style={styles.azLegendItem}>
+                      <View style={[styles.azLegendDot, { backgroundColor: config.color }]} />
+                      <Text style={styles.azLegendText}>{config.label}</Text>
                     </View>
-                  );
-                })}
+                  ))}
+                </View>
+
+                {/* ゾーン別横棒グラフ + 達成率・距離（一体型） */}
+                <Text style={styles.analyticsZoneTitle}>ゾーン別刺激量</Text>
+                <View style={styles.azBarChartWrap}>
+                  {zoneData.map(({ zone, config, completed, planned, ratio }) => {
+                    const barWidth = Math.min((completed / maxDistance) * 100, 100);
+                    const targetPos = (planned / maxDistance) * 100;
+                    const isOver = ratio > 1;
+                    const pct = Math.round(ratio * 100);
+                    return (
+                      <View
+                        key={zone}
+                        style={[styles.azBarRow, isOver && styles.azBarRowOver]}
+                      >
+                        <View style={styles.azBarTrack}>
+                          {/* 実績バー */}
+                          <View
+                            style={[
+                              styles.azBarFill,
+                              {
+                                width: `${barWidth}%`,
+                                backgroundColor: config.color,
+                              },
+                            ]}
+                          />
+                          {/* 100%ターゲットライン */}
+                          <View style={[styles.azBarTarget, { left: `${targetPos}%` }]} />
+                        </View>
+                        {/* 達成率 + 距離 */}
+                        <Text style={[styles.azBarPct, isOver && styles.azBarTextOver]}>{pct}%</Text>
+                        <Text style={[styles.azBarDist, isOver && styles.azBarTextOver]}>{(completed / 1000).toFixed(0)}km</Text>
+                      </View>
+                    );
+                  })}
+                  <Text style={styles.azBarTargetLabel}>--- 100%ライン</Text>
+                </View>
+
+                {/* ゾーン比率（消化率・積み上げバー） */}
+                <Text style={styles.analyticsZoneTitle}>ゾーン比率（全体を100として）</Text>
+                {totalCompleted > 0 && (
+                  <View style={styles.azRatioWrap}>
+                    {/* パーセンテージラベル（バーの上） */}
+                    <View style={styles.azRatioLabels}>
+                      {zoneData.map(({ zone, completed }) => {
+                        const pct = (completed / totalCompleted) * 100;
+                        if (pct < 3) return null;
+                        return (
+                          <View key={zone} style={[styles.azRatioLabelItem, { width: `${pct}%` }]}>
+                            <Text style={styles.azRatioLabelText}>{Math.round(pct)}%</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                    {/* 積み上げバー */}
+                    <View style={styles.azRatioBar}>
+                      {zoneData.map(({ zone, config, completed }) => {
+                        const pct = (completed / totalCompleted) * 100;
+                        if (pct < 1) return null;
+                        return (
+                          <View
+                            key={zone}
+                            style={[styles.azRatioSegment, { width: `${pct}%`, backgroundColor: config.color }]}
+                          />
+                        );
+                      })}
+                    </View>
+                    <Text style={styles.azRatioCaption}>消化率</Text>
+                  </View>
+                )}
               </View>
             </SlideIn>
           );
         })()}
-
-        {/* トレーニング記録ボタン */}
-        <SlideIn delay={250} direction="up">
-          <Pressable
-            style={styles.logEntryButton}
-            onPress={() => setView('log')}
-          >
-            <View style={styles.logEntryButtonLeft}>
-              <Ionicons name="book-outline" size={20} color={COLORS.primary} />
-              <View>
-                <Text style={styles.logEntryButtonTitle}>トレーニング記録</Text>
-                <Text style={styles.logEntryButtonSubtitle}>
-                  {trainingLogs.filter((l) => l.status === 'completed').length}件の記録
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
-          </Pressable>
-        </SlideIn>
 
         {/* サブレース（予定レース） */}
         <SlideIn delay={280} direction="up">
@@ -1769,20 +2117,27 @@ interface RecordResultModalProps {
   onSave: () => void;
   distance: string;
   setDistance: (v: string) => void;
-  duration: string;
-  setDuration: (v: string) => void;
+  durationMin: string;
+  setDurationMin: (v: string) => void;
+  durationSec: string;
+  setDurationSec: (v: string) => void;
   feeling: FeelingLevel;
   setFeeling: (v: FeelingLevel) => void;
   notes: string;
   setNotes: (v: string) => void;
+  title?: string;
+  onDelete?: () => void;
 }
 
 function RecordResultModal({
   visible, onClose, onSave,
   distance, setDistance,
-  duration, setDuration,
+  durationMin, setDurationMin,
+  durationSec, setDurationSec,
   feeling, setFeeling,
   notes, setNotes,
+  title,
+  onDelete,
 }: RecordResultModalProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
@@ -1794,7 +2149,7 @@ function RecordResultModal({
           <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
             {/* ヘッダー */}
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>結果を記録</Text>
+              <Text style={styles.modalTitle}>{title || '結果を記録'}</Text>
               <Pressable onPress={onClose}>
                 <Ionicons name="close" size={24} color={COLORS.text.secondary} />
               </Pressable>
@@ -1814,17 +2169,37 @@ function RecordResultModal({
                 />
               </View>
 
-              {/* 所要時間 */}
+              {/* 所要時間（分:秒） */}
               <View style={styles.modalInputGroup}>
-                <Text style={styles.modalInputLabel}>所要時間（分）</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  value={duration}
-                  onChangeText={setDuration}
-                  placeholder="例: 25"
-                  placeholderTextColor={COLORS.text.muted}
-                  keyboardType="numeric"
-                />
+                <Text style={styles.modalInputLabel}>所要時間</Text>
+                <View style={styles.durationPickerRow}>
+                  <TextInput
+                    style={styles.durationPickerInput}
+                    value={durationMin}
+                    onChangeText={(text) => setDurationMin(text.replace(/[^0-9]/g, ''))}
+                    placeholder="0"
+                    placeholderTextColor={COLORS.text.muted}
+                    keyboardType="numeric"
+                    maxLength={3}
+                  />
+                  <Text style={styles.durationPickerLabel}>分</Text>
+                  <TextInput
+                    style={styles.durationPickerInput}
+                    value={durationSec}
+                    onChangeText={(text) => {
+                      const num = text.replace(/[^0-9]/g, '');
+                      // 59秒を超えないように制限
+                      if (num === '' || parseInt(num, 10) <= 59) {
+                        setDurationSec(num);
+                      }
+                    }}
+                    placeholder="00"
+                    placeholderTextColor={COLORS.text.muted}
+                    keyboardType="numeric"
+                    maxLength={2}
+                  />
+                  <Text style={styles.durationPickerLabel}>秒</Text>
+                </View>
               </View>
 
               {/* 体感 */}
@@ -1875,6 +2250,24 @@ function RecordResultModal({
                 <Text style={styles.modalSaveButtonText}>保存</Text>
               </Pressable>
             </View>
+            {onDelete && (
+              <Pressable
+                style={styles.modalDeleteButton}
+                onPress={() => {
+                  Alert.alert(
+                    '記録を削除',
+                    'この記録を削除して未完了に戻しますか？',
+                    [
+                      { text: 'キャンセル', style: 'cancel' },
+                      { text: '削除', style: 'destructive', onPress: onDelete },
+                    ],
+                  );
+                }}
+              >
+                <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                <Text style={styles.modalDeleteButtonText}>記録を削除して未完了に戻す</Text>
+              </Pressable>
+            )}
           </Pressable>
         </Pressable>
       </KeyboardAvoidingView>
@@ -2759,44 +3152,124 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.text.secondary,
     marginBottom: 8,
-  },
-  analyticsZoneRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-    gap: 8,
-  },
-  analyticsZoneLabelBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    width: 85,
+    marginTop: 12,
   },
   analyticsZoneDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
   },
-  analyticsZoneLabel: {
-    fontSize: 12,
+
+  // ゾーン凡例
+  azLegend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    rowGap: 6,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  azLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginRight: 8,
+  },
+  azLegendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  azLegendText: {
+    fontSize: 11,
     color: COLORS.text.secondary,
   },
-  analyticsZoneBarBg: {
-    flex: 1,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    overflow: 'hidden',
+
+  // ゾーン別横棒グラフ（達成率・距離一体型）
+  azBarChartWrap: {
+    gap: 5,
   },
-  analyticsZoneBarFill: {
+  azBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+    borderRadius: 6,
+  },
+  azBarRowOver: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+  },
+  azBarTrack: {
+    flex: 1,
+    height: 18,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    overflow: 'visible',
+    position: 'relative',
+  },
+  azBarFill: {
     height: '100%',
     borderRadius: 4,
   },
-  analyticsZoneValue: {
+  azBarTarget: {
+    position: 'absolute',
+    top: -3,
+    width: 2,
+    height: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  azBarPct: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    width: 38,
+    textAlign: 'right',
+  },
+  azBarDist: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    width: 42,
+    textAlign: 'right',
+  },
+  azBarTextOver: {
+    color: '#EF4444',
+  },
+  azBarTargetLabel: {
+    fontSize: 10,
+    color: 'rgba(255, 255, 255, 0.4)',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+
+  // ゾーン比率（消化率）積み上げバー
+  azRatioWrap: {
+    gap: 4,
+  },
+  azRatioBar: {
+    flexDirection: 'row',
+    height: 22,
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  azRatioSegment: {
+    height: '100%',
+  },
+  azRatioLabels: {
+    flexDirection: 'row',
+  },
+  azRatioLabelItem: {
+    alignItems: 'center',
+  },
+  azRatioLabelText: {
+    fontSize: 10,
+    color: COLORS.text.muted,
+  },
+  azRatioCaption: {
     fontSize: 11,
     color: COLORS.text.muted,
-    width: 50,
-    textAlign: 'right',
+    textAlign: 'center',
+    marginTop: 2,
   },
 
   // トレーニング記録ボタン（概要画面）
@@ -2889,6 +3362,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderRadius: 10,
+  },
+  logEditButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderRadius: 8,
+  },
+  logEditButtonText: {
+    fontSize: 12,
+    color: COLORS.primary,
+    fontWeight: '600',
   },
 
   // ステータスバッジ
@@ -3061,6 +3548,25 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: COLORS.text.primary,
   },
+  durationPickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  durationPickerInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    fontSize: 15,
+    color: COLORS.text.primary,
+    width: 70,
+    textAlign: 'center',
+  },
+  durationPickerLabel: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
+  },
   modalInputMultiline: {
     minHeight: 80,
     textAlignVertical: 'top',
@@ -3115,6 +3621,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
+  },
+  modalDeleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    marginTop: 8,
+  },
+  modalDeleteButtonText: {
+    fontSize: 13,
+    color: '#EF4444',
+    fontWeight: '500',
   },
 
   // メニュー更新通知バナー
@@ -3177,15 +3696,22 @@ const styles = StyleSheet.create({
   // 事後記録モーダル
   actualDataModalOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  actualDataModalOverlayPress: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   actualDataModalContent: {
-    backgroundColor: COLORS.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
+    backgroundColor: COLORS.background.dark,
+    borderRadius: 20,
+    padding: 24,
+    width: '92%',
+    maxWidth: 400,
     maxHeight: '85%',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   actualDataModalHeader: {
     flexDirection: 'row',
@@ -3194,7 +3720,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   actualDataModalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
   },
@@ -3321,26 +3847,61 @@ const styles = StyleSheet.create({
   // メニュー選択モーダル
   menuSelectOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: '#1a1a1a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
   menuSelectContent: {
-    backgroundColor: COLORS.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    height: '75%',
+    backgroundColor: COLORS.background.dark,
+    borderRadius: 20,
+    padding: 24,
+    width: '92%',
+    maxWidth: 400,
+    height: '70%',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   menuSelectHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   menuSelectTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
+  },
+  menuSelectDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  menuSelectDateLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  menuSelectDateLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text.primary,
+  },
+  menuSelectDateRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  menuSelectDateValue: {
+    fontSize: 14,
+    color: COLORS.text.secondary,
   },
   menuSelectCategoryScroll: {
     marginBottom: 12,

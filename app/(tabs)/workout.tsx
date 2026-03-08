@@ -108,6 +108,9 @@ export default function WorkoutScreen() {
   const replaceDayLabel = params.replaceDayLabel || '';
   const isFromPlan = params.fromPlan === 'true';
 
+  // 処理済みのパラメータタイムスタンプを記録（タブ切り替え時の再適用を防止）
+  const [lastProcessedT, setLastProcessedT] = useState<string | null>(null);
+
   // メニューを実施選択する
   const handleSelectForTraining = (workout: WorkoutTemplate) => {
     const log: TrainingLog = {
@@ -153,15 +156,16 @@ export default function WorkoutScreen() {
   }, [params.category, params.t, isFocused]);
 
   // workoutIdパラメータが渡された場合、該当メニューの詳細画面を自動表示
-  // isFocusedを依存に含め、タブ切り替え時にもパラメータを検出する
+  // タブ切り替え時の再適用を防止するため、処理済みのtを記録する
   useEffect(() => {
-    if (isFocused && params.workoutId) {
+    if (isFocused && params.workoutId && params.t && params.t !== lastProcessedT) {
       const workout = WORKOUTS.find((w) => w.id === params.workoutId) || customWorkoutsAsTemplates.find((w) => w.id === params.workoutId);
       if (workout) {
         setSelectedWorkout(workout as WorkoutTemplate);
       }
+      setLastProcessedT(params.t);
     }
-  }, [params.workoutId, params.t, isFocused, customWorkoutsAsTemplates]);
+  }, [params.workoutId, params.t, isFocused, customWorkoutsAsTemplates, lastProcessedT]);
 
   // カスタムワークアウトをWorkoutTemplate形式に変換
   const customWorkoutsAsTemplates = useMemo(() => {
@@ -222,8 +226,11 @@ export default function WorkoutScreen() {
           etp={etp}
           limiter={limiter}
           onBack={() => {
-            // 戻るボタン: 常にタブ内の一覧画面に戻る
+            // 戻るボタン: 計画タブからの遷移なら計画タブに戻る、それ以外は一覧に戻る
             setSelectedWorkout(null);
+            if (isFromPlan) {
+              router.navigate('/(tabs)/plan');
+            }
           }}
           onReplaceWorkout={isReplaceMode ? handleReplaceWorkout : undefined}
           replaceDayLabel={replaceDayLabel}
@@ -428,22 +435,23 @@ export default function WorkoutScreen() {
       <Modal
         visible={createModalVisible}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setCreateModalVisible(false)}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.createModalOverlay}
         >
-          <View style={styles.createModalContent}>
-            <View style={styles.createModalHeader}>
-              <Text style={styles.createModalTitle}>{editingCustomId ? 'メニューを編集' : '新規メニュー作成'}</Text>
-              <Pressable onPress={() => setCreateModalVisible(false)}>
-                <Ionicons name="close" size={24} color={COLORS.text.primary} />
-              </Pressable>
-            </View>
+          <Pressable style={styles.createModalOverlayPress} onPress={() => setCreateModalVisible(false)}>
+            <Pressable style={styles.createModalContent} onPress={(e) => e.stopPropagation()}>
+              <View style={styles.createModalHeader}>
+                <Text style={styles.createModalTitle}>{editingCustomId ? 'メニューを編集' : '新規メニュー作成'}</Text>
+                <Pressable onPress={() => setCreateModalVisible(false)}>
+                  <Ionicons name="close" size={24} color={COLORS.text.secondary} />
+                </Pressable>
+              </View>
 
-            <ScrollView style={styles.createModalScroll} showsVerticalScrollIndicator={false}>
+              <ScrollView style={styles.createModalScroll} showsVerticalScrollIndicator={false}>
               {/* メニュー名 */}
               <Text style={styles.createFieldLabel}>メニュー名</Text>
               <TextInput
@@ -607,7 +615,8 @@ export default function WorkoutScreen() {
             >
               <Text style={styles.createSaveButtonText}>{editingCustomId ? '更新' : '作成'}</Text>
             </Pressable>
-          </View>
+            </Pressable>
+          </Pressable>
         </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
@@ -1456,24 +1465,31 @@ const styles = StyleSheet.create({
   // 作成モーダル
   createModalOverlay: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  },
+  createModalOverlayPress: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   createModalContent: {
-    backgroundColor: COLORS.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '90%',
+    backgroundColor: COLORS.background.dark,
+    borderRadius: 20,
+    padding: 24,
+    width: '92%',
+    maxWidth: 400,
+    maxHeight: '85%',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   createModalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   createModalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: COLORS.text.primary,
   },
@@ -1488,12 +1504,15 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   createFieldInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
     borderRadius: 10,
-    padding: 12,
-    fontSize: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    fontSize: 15,
     color: COLORS.text.primary,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   createCategoryChip: {
     paddingVertical: 6,
