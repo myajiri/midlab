@@ -1695,57 +1695,19 @@ export default function PlanScreen() {
                   </View>
                 </View>
 
-                {/* ゾーン別達成率テーブル */}
-                <View style={styles.azTable}>
-                  <View style={styles.azTableHeader}>
-                    <Text style={[styles.azTableHeaderCell, { flex: 1.2 }]}>ゾーン</Text>
-                    <Text style={[styles.azTableHeaderCell, { flex: 1 }]}>達成率</Text>
-                    <Text style={[styles.azTableHeaderCell, { flex: 1 }]}>距離</Text>
-                  </View>
+                {/* ゾーン別横棒グラフ + 達成率・距離（一体型） */}
+                <Text style={styles.analyticsZoneTitle}>ゾーン別刺激量</Text>
+                <View style={styles.azBarChartWrap}>
                   {zoneData.map(({ zone, config, completed, planned, ratio }) => {
+                    const barWidth = Math.min((completed / maxDistance) * 100, 100);
+                    const targetPos = (planned / maxDistance) * 100;
                     const isOver = ratio > 1;
                     const pct = Math.round(ratio * 100);
                     return (
                       <View
                         key={zone}
-                        style={[styles.azTableRow, isOver && styles.azTableRowOver]}
+                        style={[styles.azBarRow, isOver && styles.azBarRowOver]}
                       >
-                        <View style={[styles.azTableCell, { flex: 1.2, flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
-                          <View style={[styles.analyticsZoneDot, { backgroundColor: config.color }]} />
-                          <Text style={[styles.azTableCellText, isOver && styles.azTableCellTextOver]}>
-                            {config.label}
-                          </Text>
-                        </View>
-                        <View style={[styles.azTableCell, { flex: 1 }]}>
-                          <Text style={[styles.azTableCellText, isOver && styles.azTableCellTextOver, { fontWeight: '700' }]}>
-                            {pct}%
-                          </Text>
-                        </View>
-                        <View style={[styles.azTableCell, { flex: 1 }]}>
-                          <Text style={[styles.azTableCellText, isOver && styles.azTableCellTextOver]}>
-                            {(completed / 1000).toFixed(1)}km
-                          </Text>
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-
-                {/* ゾーン別横棒グラフ（100%ライン付き） */}
-                <Text style={styles.analyticsZoneTitle}>ゾーン別刺激量</Text>
-                <View style={styles.azBarChartWrap}>
-                  {/* 100%ライン（目標線） */}
-                  {(() => {
-                    // 100%ラインの位置 = 各ゾーンの planned / maxDistance の中で最大の planned を基準
-                    // ただしグラフ幅は maxDistance が 100% なので、各ゾーンの planned の位置はバラバラ
-                    // 各バー個別に100%マーカーを表示する
-                    return null;
-                  })()}
-                  {zoneData.map(({ zone, config, completed, planned, ratio }) => {
-                    const barWidth = Math.min((completed / maxDistance) * 100, 100);
-                    const targetPos = (planned / maxDistance) * 100;
-                    return (
-                      <View key={zone} style={styles.azBarRow}>
                         <View style={styles.azBarTrack}>
                           {/* 実績バー */}
                           <View
@@ -1760,7 +1722,9 @@ export default function PlanScreen() {
                           {/* 100%ターゲットライン */}
                           <View style={[styles.azBarTarget, { left: `${targetPos}%` }]} />
                         </View>
-                        <Text style={styles.azBarLabel}>{(completed / 1000).toFixed(0)}km</Text>
+                        {/* 達成率 + 距離 */}
+                        <Text style={[styles.azBarPct, isOver && styles.azBarTextOver]}>{pct}%</Text>
+                        <Text style={[styles.azBarDist, isOver && styles.azBarTextOver]}>{(completed / 1000).toFixed(0)}km</Text>
                       </View>
                     );
                   })}
@@ -1768,9 +1732,22 @@ export default function PlanScreen() {
                 </View>
 
                 {/* ゾーン比率（消化率・積み上げバー） */}
-                <Text style={styles.analyticsZoneTitle}>ゾーン比率（消化率）</Text>
+                <Text style={styles.analyticsZoneTitle}>ゾーン比率（全体を100として）</Text>
                 {totalCompleted > 0 && (
                   <View style={styles.azRatioWrap}>
+                    {/* パーセンテージラベル（バーの上） */}
+                    <View style={styles.azRatioLabels}>
+                      {zoneData.map(({ zone, completed }) => {
+                        const pct = (completed / totalCompleted) * 100;
+                        if (pct < 3) return null;
+                        return (
+                          <View key={zone} style={[styles.azRatioLabelItem, { width: `${pct}%` }]}>
+                            <Text style={styles.azRatioLabelText}>{Math.round(pct)}%</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                    {/* 積み上げバー */}
                     <View style={styles.azRatioBar}>
                       {zoneData.map(({ zone, config, completed }) => {
                         const pct = (completed / totalCompleted) * 100;
@@ -1783,17 +1760,7 @@ export default function PlanScreen() {
                         );
                       })}
                     </View>
-                    <View style={styles.azRatioLabels}>
-                      {zoneData.map(({ zone, config, completed }) => {
-                        const pct = (completed / totalCompleted) * 100;
-                        if (pct < 3) return null;
-                        return (
-                          <View key={zone} style={[styles.azRatioLabelItem, { width: `${pct}%` }]}>
-                            <Text style={styles.azRatioLabelText}>{Math.round(pct)}%</Text>
-                          </View>
-                        );
-                      })}
-                    </View>
+                    <Text style={styles.azRatioCaption}>消化率</Text>
                   </View>
                 )}
               </View>
@@ -3170,58 +3137,24 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
 
-  // ゾーン別達成率テーブル
-  azTable: {
-    borderRadius: 10,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  azTableHeader: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-  },
-  azTableHeaderCell: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.text.muted,
-  },
-  azTableRow: {
-    flexDirection: 'row',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.06)',
-  },
-  azTableRowOver: {
-    backgroundColor: 'rgba(239, 68, 68, 0.15)',
-  },
-  azTableCell: {
-    justifyContent: 'center',
-  },
-  azTableCellText: {
-    fontSize: 13,
-    color: COLORS.text.primary,
-  },
-  azTableCellTextOver: {
-    color: '#EF4444',
-    fontWeight: '600',
-  },
-
-  // ゾーン別横棒グラフ
+  // ゾーン別横棒グラフ（達成率・距離一体型）
   azBarChartWrap: {
-    gap: 6,
+    gap: 5,
   },
   azBarRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+    borderRadius: 6,
+  },
+  azBarRowOver: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
   },
   azBarTrack: {
     flex: 1,
-    height: 16,
+    height: 18,
     borderRadius: 4,
     backgroundColor: 'rgba(255, 255, 255, 0.06)',
     overflow: 'visible',
@@ -3235,15 +3168,24 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -3,
     width: 2,
-    height: 22,
+    height: 24,
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    borderStyle: 'dashed',
   },
-  azBarLabel: {
-    fontSize: 11,
-    color: COLORS.text.muted,
-    width: 40,
+  azBarPct: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.text.primary,
+    width: 38,
     textAlign: 'right',
+  },
+  azBarDist: {
+    fontSize: 12,
+    color: COLORS.text.secondary,
+    width: 42,
+    textAlign: 'right',
+  },
+  azBarTextOver: {
+    color: '#EF4444',
   },
   azBarTargetLabel: {
     fontSize: 10,
@@ -3274,6 +3216,12 @@ const styles = StyleSheet.create({
   azRatioLabelText: {
     fontSize: 10,
     color: COLORS.text.muted,
+  },
+  azRatioCaption: {
+    fontSize: 11,
+    color: COLORS.text.muted,
+    textAlign: 'center',
+    marginTop: 2,
   },
 
   // トレーニング記録ボタン（概要画面）
