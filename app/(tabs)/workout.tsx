@@ -108,6 +108,9 @@ export default function WorkoutScreen() {
   const replaceDayLabel = params.replaceDayLabel || '';
   const isFromPlan = params.fromPlan === 'true';
 
+  // 処理済みのパラメータタイムスタンプを記録（タブ切り替え時の再適用を防止）
+  const [lastProcessedT, setLastProcessedT] = useState<string | null>(null);
+
   // メニューを実施選択する
   const handleSelectForTraining = (workout: WorkoutTemplate) => {
     const log: TrainingLog = {
@@ -153,15 +156,16 @@ export default function WorkoutScreen() {
   }, [params.category, params.t, isFocused]);
 
   // workoutIdパラメータが渡された場合、該当メニューの詳細画面を自動表示
-  // isFocusedを依存に含め、タブ切り替え時にもパラメータを検出する
+  // タブ切り替え時の再適用を防止するため、処理済みのtを記録する
   useEffect(() => {
-    if (isFocused && params.workoutId) {
+    if (isFocused && params.workoutId && params.t && params.t !== lastProcessedT) {
       const workout = WORKOUTS.find((w) => w.id === params.workoutId) || customWorkoutsAsTemplates.find((w) => w.id === params.workoutId);
       if (workout) {
         setSelectedWorkout(workout as WorkoutTemplate);
       }
+      setLastProcessedT(params.t);
     }
-  }, [params.workoutId, params.t, isFocused, customWorkoutsAsTemplates]);
+  }, [params.workoutId, params.t, isFocused, customWorkoutsAsTemplates, lastProcessedT]);
 
   // カスタムワークアウトをWorkoutTemplate形式に変換
   const customWorkoutsAsTemplates = useMemo(() => {
