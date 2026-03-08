@@ -222,8 +222,13 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
   }
 
   const weeklyPlans: WeeklyPlan[] = [];
+  // 今週の月曜日を計算（月=0, 火=1, ... 日=6 の体系で）
+  // JS の getDay(): 0=日, 1=月, ... 6=土
+  // 日曜日(0)の場合は6日前の月曜、それ以外は (getDay()-1) 日前の月曜
   const startDate = new Date();
-  startDate.setDate(startDate.getDate() - startDate.getDay() + 1);
+  const jsDay = startDate.getDay();
+  const diffToMonday = jsDay === 0 ? 6 : jsDay - 1;
+  startDate.setDate(startDate.getDate() - diffToMonday);
 
   const eventDistance = WEEKLY_DISTANCE_BY_EVENT[lookupDistance] || WEEKLY_DISTANCE_BY_EVENT[1500];
 

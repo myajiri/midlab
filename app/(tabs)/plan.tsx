@@ -830,8 +830,18 @@ export default function PlanScreen() {
                           onPress={() => {
                             if (!isFutureDay) {
                               if (day.completed) {
-                                // 完了→未完了: トグルのみ
+                                // 完了→未完了: トグル＋対応するTrainingLogも削除
                                 toggleWorkoutComplete(weekPlan.weekNumber, day.id);
+                                // この日のワークアウトに対応するTrainingLogを削除
+                                const dayDate = new Date(weekPlan.startDate);
+                                dayDate.setDate(dayDate.getDate() + i);
+                                const dateStr = dayDate.toISOString().split('T')[0];
+                                const matchingLog = trainingLogs.find(
+                                  (l) => l.date === dateStr && l.weekNumber === weekPlan.weekNumber && l.planId === activePlan?.id
+                                );
+                                if (matchingLog) {
+                                  deleteTrainingLog(matchingLog.id);
+                                }
                               } else {
                                 // 未完了→完了: 事後記録モーダルを表示
                                 // ワークアウトのゾーン別予定距離を取得（レスト距離含む）
@@ -946,6 +956,24 @@ export default function PlanScreen() {
                     // 記録なしで完了
                     if (actualDataTarget) {
                       toggleWorkoutComplete(actualDataTarget.weekNumber, actualDataTarget.dayId);
+                      // TrainingLogにも記録を追加
+                      const wp = activePlan?.weeklyPlans.find(w => w.weekNumber === actualDataTarget.weekNumber);
+                      const dayData = wp?.days.find(d => d?.id === actualDataTarget.dayId);
+                      if (dayData && wp) {
+                        const dayDate = new Date(wp.startDate);
+                        dayDate.setDate(dayDate.getDate() + dayData.dayOfWeek);
+                        addTrainingLog({
+                          id: `tl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                          date: dayDate.toISOString().split('T')[0],
+                          workoutId: dayData.workoutId || dayData.id,
+                          workoutName: dayData.label,
+                          workoutCategory: dayData.focusCategory || dayData.type,
+                          status: 'completed',
+                          planId: activePlan?.id,
+                          weekNumber: actualDataTarget.weekNumber,
+                          completedAt: new Date().toISOString(),
+                        });
+                      }
                     }
                     setActualDataModalVisible(false);
                   }}
@@ -971,6 +999,28 @@ export default function PlanScreen() {
                         notes: actualNotes || undefined,
                         zoneDistances: Object.keys(zoneDistances).length > 0 ? zoneDistances : undefined,
                       });
+                      // TrainingLogにも記録を追加
+                      const wp = activePlan?.weeklyPlans.find(w => w.weekNumber === actualDataTarget.weekNumber);
+                      const dayData = wp?.days.find(d => d?.id === actualDataTarget.dayId);
+                      if (dayData && wp) {
+                        const dayDate = new Date(wp.startDate);
+                        dayDate.setDate(dayDate.getDate() + dayData.dayOfWeek);
+                        addTrainingLog({
+                          id: `tl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+                          date: dayDate.toISOString().split('T')[0],
+                          workoutId: dayData.workoutId || dayData.id,
+                          workoutName: dayData.label,
+                          workoutCategory: dayData.focusCategory || dayData.type,
+                          status: 'completed',
+                          planId: activePlan?.id,
+                          weekNumber: actualDataTarget.weekNumber,
+                          result: {
+                            distance: totalDistance > 0 ? totalDistance : undefined,
+                            notes: actualNotes || undefined,
+                          },
+                          completedAt: new Date().toISOString(),
+                        });
+                      }
                     }
                     setActualDataModalVisible(false);
                   }}
