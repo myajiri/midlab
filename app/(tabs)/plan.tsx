@@ -1708,6 +1708,16 @@ export default function PlanScreen() {
                   </View>
                 </View>
 
+                {/* ゾーン凡例 */}
+                <View style={styles.azLegend}>
+                  {zoneData.map(({ zone, config }) => (
+                    <View key={zone} style={styles.azLegendItem}>
+                      <View style={[styles.azLegendDot, { backgroundColor: config.color }]} />
+                      <Text style={styles.azLegendText}>{config.label}</Text>
+                    </View>
+                  ))}
+                </View>
+
                 {/* ゾーン別横棒グラフ + 達成率・距離（一体型） */}
                 <Text style={styles.analyticsZoneTitle}>ゾーン別刺激量</Text>
                 <View style={styles.azBarChartWrap}>
@@ -3148,6 +3158,31 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
+  },
+
+  // ゾーン凡例
+  azLegend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    rowGap: 6,
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  azLegendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginRight: 8,
+  },
+  azLegendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  azLegendText: {
+    fontSize: 11,
+    color: COLORS.text.secondary,
   },
 
   // ゾーン別横棒グラフ（達成率・距離一体型）
