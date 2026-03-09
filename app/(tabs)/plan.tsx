@@ -931,6 +931,7 @@ export default function PlanScreen() {
                     {!isRestDay && (() => {
                       const dayDate = new Date(weekPlan.startDate);
                       dayDate.setDate(dayDate.getDate() + i);
+                      dayDate.setHours(0, 0, 0, 0);
                       const today = new Date();
                       today.setHours(0, 0, 0, 0);
                       const isFutureDay = dayDate > today;
