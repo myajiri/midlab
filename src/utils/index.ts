@@ -800,28 +800,40 @@ export const calculateTrainingAnalytics = (
   let weeklyDistance = 0;
   let monthlyDistance = 0;
 
+  // タイムゾーン安全な日付文字列ヘルパー（YYYY-MM-DD）
+  const toDateStr = (d: Date): string => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   const now = new Date();
-  const today = new Date(now);
-  today.setHours(0, 0, 0, 0);
+  const todayStr = toDateStr(now);
   const weekAgo = new Date(now);
   weekAgo.setDate(weekAgo.getDate() - 7);
+  const weekAgoStr = toDateStr(weekAgo);
   const monthAgo = new Date(now);
   monthAgo.setDate(monthAgo.getDate() - 30);
+  const monthAgoStr = toDateStr(monthAgo);
 
   // weeklyPlansの完了済みワークアウトIDを追跡（重複防止）
   const planCompletedWorkoutKeys = new Set<string>();
 
   for (const week of weeklyPlans) {
+    // startDateからローカル日付を計算（タイムゾーン安全）
+    const startParts = (week.startDate?.split('T')[0] || '').split('-').map(Number);
+
     for (let i = 0; i < week.days.length; i++) {
       const day = week.days[i];
       if (!day || day.type === 'rest') continue;
 
-      const dayDate = new Date(week.startDate);
-      dayDate.setDate(dayDate.getDate() + i);
-      dayDate.setHours(0, 0, 0, 0);
+      // ローカル日付として計算（UTCパース問題を回避）
+      const dayDate = new Date(startParts[0], startParts[1] - 1, startParts[2] + i);
+      const dateStr = toDateStr(dayDate);
 
       // 本日以降の未来の日はカウント対象外（計画基準は本日まで）
-      const isFutureDay = dayDate > today;
+      const isFutureDay = dateStr > todayStr;
       if (!isFutureDay) {
         totalCount++;
       }
@@ -840,7 +852,6 @@ export const calculateTrainingAnalytics = (
 
       if (day.completed) {
         completedCount++;
-        const dateStr = dayDate.toISOString().split('T')[0];
         planCompletedWorkoutKeys.add(`${dateStr}_${day.workoutId || day.id}`);
 
         // 実績ゾーン距離がある場合はそれを使用、なければ計画値
@@ -851,8 +862,8 @@ export const calculateTrainingAnalytics = (
 
         // 総距離の計算
         const totalDist = day.actualData?.distance || Object.values(zones).reduce((s, d) => s + (d || 0), 0);
-        if (dayDate >= weekAgo) weeklyDistance += totalDist;
-        if (dayDate >= monthAgo) monthlyDistance += totalDist;
+        if (dateStr >= weekAgoStr) weeklyDistance += totalDist;
+        if (dateStr >= monthAgoStr) monthlyDistance += totalDist;
       }
     }
   }
@@ -869,8 +880,6 @@ export const calculateTrainingAnalytics = (
       completedCount++;
       totalCount++;
 
-      const logDate = new Date(log.date);
-
       // ワークアウトのゾーン別距離を取得
       const zones = getWorkoutZoneDistances(log.workoutId, limiterType);
 
@@ -882,8 +891,8 @@ export const calculateTrainingAnalytics = (
 
       // 総距離の計算
       const totalDist = log.result?.distance || Object.values(zones).reduce((s, d) => s + (d || 0), 0);
-      if (logDate >= weekAgo) weeklyDistance += totalDist;
-      if (logDate >= monthAgo) monthlyDistance += totalDist;
+      if (log.date >= weekAgoStr) weeklyDistance += totalDist;
+      if (log.date >= monthAgoStr) monthlyDistance += totalDist;
     }
   }
 
