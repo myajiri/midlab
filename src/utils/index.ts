@@ -801,6 +801,8 @@ export const calculateTrainingAnalytics = (
   let monthlyDistance = 0;
 
   const now = new Date();
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
   const weekAgo = new Date(now);
   weekAgo.setDate(weekAgo.getDate() - 7);
   const monthAgo = new Date(now);
@@ -813,19 +815,27 @@ export const calculateTrainingAnalytics = (
     for (let i = 0; i < week.days.length; i++) {
       const day = week.days[i];
       if (!day || day.type === 'rest') continue;
-      totalCount++;
 
       const dayDate = new Date(week.startDate);
       dayDate.setDate(dayDate.getDate() + i);
+      dayDate.setHours(0, 0, 0, 0);
+
+      // 本日以降の未来の日はカウント対象外（計画基準は本日まで）
+      const isFutureDay = dayDate > today;
+      if (!isFutureDay) {
+        totalCount++;
+      }
 
       // ワークアウトのゾーン別距離を取得
       const zones = day.workoutId
         ? getWorkoutZoneDistances(day.workoutId, limiterType)
         : {};
 
-      // 計画されたゾーン距離を集計（全期間の目標合計）
-      for (const [zone, dist] of Object.entries(zones)) {
-        plannedZoneDistances[zone as ZoneName] = (plannedZoneDistances[zone as ZoneName] || 0) + (dist || 0);
+      // 計画されたゾーン距離を集計（本日までの目標合計）
+      if (!isFutureDay) {
+        for (const [zone, dist] of Object.entries(zones)) {
+          plannedZoneDistances[zone as ZoneName] = (plannedZoneDistances[zone as ZoneName] || 0) + (dist || 0);
+        }
       }
 
       if (day.completed) {
