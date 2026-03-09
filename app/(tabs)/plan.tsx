@@ -359,17 +359,19 @@ export default function PlanScreen() {
     setRecordingLogId(null);
   };
 
-  // ログを日付でグループ化
+  // ログを日付でグループ化（現在の計画に紐づくログのみ）
   const groupedLogs = useMemo(() => {
     const groups: Record<string, TrainingLog[]> = {};
     for (const log of trainingLogs) {
+      // 計画がある場合は、その計画のログのみ表示
+      if (activePlan && log.planId !== activePlan.id) continue;
       const date = log.date;
       if (!groups[date]) groups[date] = [];
       groups[date].push(log);
     }
     // 日付降順でソート
     return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a));
-  }, [trainingLogs]);
+  }, [trainingLogs, activePlan]);
 
   // プラン関連のログのみフィルタ
   const planLogs = useMemo(() => {
@@ -931,6 +933,7 @@ export default function PlanScreen() {
                     {!isRestDay && (() => {
                       const dayDate = new Date(weekPlan.startDate);
                       dayDate.setDate(dayDate.getDate() + i);
+                      dayDate.setHours(0, 0, 0, 0);
                       const today = new Date();
                       today.setHours(0, 0, 0, 0);
                       const isFutureDay = dayDate > today;
@@ -1151,7 +1154,7 @@ export default function PlanScreen() {
   // ============================================
   if (view === 'log') {
     const todayStr = new Date().toISOString().split('T')[0];
-    const todayLogs = trainingLogs.filter((l) => l.date === todayStr);
+    const todayLogs = trainingLogs.filter((l) => l.date === todayStr && l.planId === activePlan?.id);
     const plannedLogs = todayLogs.filter((l) => l.status === 'planned');
 
     return (
@@ -1394,7 +1397,6 @@ export default function PlanScreen() {
             onClose={() => setRecordModalVisible(false)}
             onSave={handleSaveRecord}
             distance={recordDistance}
-            setDistance={setRecordDistance}
             durationMin={recordDurationMin}
             setDurationMin={setRecordDurationMin}
             durationSec={recordDurationSec}
@@ -1516,7 +1518,6 @@ export default function PlanScreen() {
             onSave={handleSaveEdit}
             onDelete={handleDeleteRecord}
             distance={editDistance}
-            setDistance={setEditDistance}
             durationMin={editDurationMin}
             setDurationMin={setEditDurationMin}
             durationSec={editDurationSec}
@@ -1665,7 +1666,7 @@ export default function PlanScreen() {
               <View>
                 <Text style={styles.logEntryButtonTitle}>トレーニング記録</Text>
                 <Text style={styles.logEntryButtonSubtitle}>
-                  {trainingLogs.filter((l) => l.status === 'completed').length}件の記録
+                  {trainingLogs.filter((l) => l.status === 'completed' && l.planId === activePlan?.id).length}件の記録
                 </Text>
               </View>
             </View>
@@ -1675,7 +1676,9 @@ export default function PlanScreen() {
 
         {/* トレーニング分析ダッシュボード */}
         {activePlan.weeklyPlans && (() => {
-          const analytics = calculateTrainingAnalytics(activePlan.weeklyPlans, activePlan.baseline.limiterType, trainingLogs);
+          // 現在の計画に紐づくログのみを分析対象にする（計画再生成時に古いログが混入しないように）
+          const planLogs = trainingLogs.filter((l) => l.planId === activePlan.id);
+          const analytics = calculateTrainingAnalytics(activePlan.weeklyPlans, activePlan.baseline.limiterType, planLogs);
           if (analytics.completedCount === 0) return null;
 
           const ZONE_LABELS: Record<string, { label: string; color: string }> = {
@@ -2116,7 +2119,6 @@ interface RecordResultModalProps {
   onClose: () => void;
   onSave: () => void;
   distance: string;
-  setDistance: (v: string) => void;
   durationMin: string;
   setDurationMin: (v: string) => void;
   durationSec: string;
@@ -2131,7 +2133,7 @@ interface RecordResultModalProps {
 
 function RecordResultModal({
   visible, onClose, onSave,
-  distance, setDistance,
+  distance,
   durationMin, setDurationMin,
   durationSec, setDurationSec,
   feeling, setFeeling,
@@ -2156,18 +2158,17 @@ function RecordResultModal({
             </View>
 
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-              {/* 距離 */}
-              <View style={styles.modalInputGroup}>
-                <Text style={styles.modalInputLabel}>走行距離（m）</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  value={distance}
-                  onChangeText={setDistance}
-                  placeholder="例: 6000"
-                  placeholderTextColor={COLORS.text.muted}
-                  keyboardType="numeric"
-                />
-              </View>
+              {/* 距離（メニューから自動取得・読み取り専用） */}
+              {distance ? (
+                <View style={styles.modalInputGroup}>
+                  <Text style={styles.modalInputLabel}>走行距離</Text>
+                  <View style={[styles.modalInput, { backgroundColor: COLORS.background, justifyContent: 'center' }]}>
+                    <Text style={{ color: COLORS.text.primary, fontSize: 15 }}>
+                      {Number(distance) >= 1000 ? `${(Number(distance) / 1000).toFixed(1)} km` : `${distance} m`}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
 
               {/* 所要時間（分:秒） */}
               <View style={styles.modalInputGroup}>

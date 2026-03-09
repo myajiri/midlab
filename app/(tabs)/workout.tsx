@@ -111,6 +111,9 @@ export default function WorkoutScreen() {
   // 処理済みのパラメータタイムスタンプを記録（タブ切り替え時の再適用を防止）
   const [lastProcessedT, setLastProcessedT] = useState<string | null>(null);
 
+  // 詳細画面を開いた時の遷移元を記録（戻る先を正しく判断するため）
+  const [openedFromPlan, setOpenedFromPlan] = useState(false);
+
   // メニューを実施選択する
   const handleSelectForTraining = (workout: WorkoutTemplate) => {
     const log: TrainingLog = {
@@ -162,6 +165,7 @@ export default function WorkoutScreen() {
       const workout = WORKOUTS.find((w) => w.id === params.workoutId) || customWorkoutsAsTemplates.find((w) => w.id === params.workoutId);
       if (workout) {
         setSelectedWorkout(workout as WorkoutTemplate);
+        setOpenedFromPlan(isFromPlan);
       }
       setLastProcessedT(params.t);
     }
@@ -215,9 +219,9 @@ export default function WorkoutScreen() {
   if (selectedWorkout) {
     return (
       <SwipeBackView onSwipeBack={() => {
-        // スワイプバック: 計画タブからの遷移なら計画タブに戻る、それ以外は一覧に戻る
+        // スワイプバック: 計画タブから開いた場合のみ計画タブに戻る
         setSelectedWorkout(null);
-        if (isFromPlan) {
+        if (openedFromPlan) {
           router.navigate('/(tabs)/plan');
         }
       }}>
@@ -226,9 +230,9 @@ export default function WorkoutScreen() {
           etp={etp}
           limiter={limiter}
           onBack={() => {
-            // 戻るボタン: 計画タブからの遷移なら計画タブに戻る、それ以外は一覧に戻る
+            // 戻るボタン: 計画タブから開いた場合のみ計画タブに戻る
             setSelectedWorkout(null);
-            if (isFromPlan) {
+            if (openedFromPlan) {
               router.navigate('/(tabs)/plan');
             }
           }}
@@ -339,7 +343,7 @@ export default function WorkoutScreen() {
 
               return (
                 <View key={workout.id} style={styles.workoutCard}>
-                  <Pressable onPress={() => setSelectedWorkout(workout)}>
+                  <Pressable onPress={() => { setSelectedWorkout(workout); setOpenedFromPlan(false); }}>
                     <IntensityGraph segments={expanded} height={80} />
                     <View style={styles.workoutCardBody}>
                       <View style={styles.workoutCardNameRow}>
@@ -369,7 +373,7 @@ export default function WorkoutScreen() {
                   <View style={styles.workoutCardActions}>
                     <Pressable
                       style={styles.workoutDetailButton}
-                      onPress={() => setSelectedWorkout(workout)}
+                      onPress={() => { setSelectedWorkout(workout); setOpenedFromPlan(false); }}
                     >
                       <Ionicons name="information-circle-outline" size={16} color={COLORS.text.secondary} />
                       <Text style={styles.workoutDetailButtonText}>詳細</Text>
