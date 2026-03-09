@@ -1397,7 +1397,6 @@ export default function PlanScreen() {
             onClose={() => setRecordModalVisible(false)}
             onSave={handleSaveRecord}
             distance={recordDistance}
-            setDistance={setRecordDistance}
             durationMin={recordDurationMin}
             setDurationMin={setRecordDurationMin}
             durationSec={recordDurationSec}
@@ -1519,7 +1518,6 @@ export default function PlanScreen() {
             onSave={handleSaveEdit}
             onDelete={handleDeleteRecord}
             distance={editDistance}
-            setDistance={setEditDistance}
             durationMin={editDurationMin}
             setDurationMin={setEditDurationMin}
             durationSec={editDurationSec}
@@ -2121,7 +2119,6 @@ interface RecordResultModalProps {
   onClose: () => void;
   onSave: () => void;
   distance: string;
-  setDistance: (v: string) => void;
   durationMin: string;
   setDurationMin: (v: string) => void;
   durationSec: string;
@@ -2136,7 +2133,7 @@ interface RecordResultModalProps {
 
 function RecordResultModal({
   visible, onClose, onSave,
-  distance, setDistance,
+  distance,
   durationMin, setDurationMin,
   durationSec, setDurationSec,
   feeling, setFeeling,
@@ -2161,18 +2158,17 @@ function RecordResultModal({
             </View>
 
             <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-              {/* 距離 */}
-              <View style={styles.modalInputGroup}>
-                <Text style={styles.modalInputLabel}>走行距離（m）</Text>
-                <TextInput
-                  style={styles.modalInput}
-                  value={distance}
-                  onChangeText={setDistance}
-                  placeholder="例: 6000"
-                  placeholderTextColor={COLORS.text.muted}
-                  keyboardType="numeric"
-                />
-              </View>
+              {/* 距離（メニューから自動取得・読み取り専用） */}
+              {distance ? (
+                <View style={styles.modalInputGroup}>
+                  <Text style={styles.modalInputLabel}>走行距離</Text>
+                  <View style={[styles.modalInput, { backgroundColor: COLORS.background, justifyContent: 'center' }]}>
+                    <Text style={{ color: COLORS.text.primary, fontSize: 15 }}>
+                      {Number(distance) >= 1000 ? `${(Number(distance) / 1000).toFixed(1)} km` : `${distance} m`}
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
 
               {/* 所要時間（分:秒） */}
               <View style={styles.modalInputGroup}>

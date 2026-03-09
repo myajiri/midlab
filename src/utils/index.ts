@@ -854,25 +854,14 @@ export const calculateTrainingAnalytics = (
         completedCount++;
         planCompletedWorkoutKeys.add(`${dateStr}_${day.workoutId || day.id}`);
 
-        const menuTotalDist = Object.values(zones).reduce((s, d) => s + (d || 0), 0);
-
-        if (day.actualData?.zoneDistances) {
-          // ゾーン別実績距離が入力済み → そのまま使用
-          const actualZones = day.actualData.zoneDistances;
-          for (const [zone, dist] of Object.entries(actualZones)) {
-            completedZoneDistances[zone as ZoneName] = (completedZoneDistances[zone as ZoneName] || 0) + (dist || 0);
-          }
-        } else {
-          // ゾーン別未入力 → 実績距離でメニューのゾーン配分を比例スケーリング
-          const actualDist = day.actualData?.distance;
-          const scale = (actualDist && menuTotalDist > 0) ? actualDist / menuTotalDist : 1;
-          for (const [zone, dist] of Object.entries(zones)) {
-            completedZoneDistances[zone as ZoneName] = (completedZoneDistances[zone as ZoneName] || 0) + ((dist || 0) * scale);
-          }
+        // 実績ゾーン距離がある場合はそれを使用、なければ計画値（メニューの距離）
+        const actualZones = day.actualData?.zoneDistances || zones;
+        for (const [zone, dist] of Object.entries(actualZones)) {
+          completedZoneDistances[zone as ZoneName] = (completedZoneDistances[zone as ZoneName] || 0) + (dist || 0);
         }
 
-        // 総距離の計算
-        const totalDist = day.actualData?.distance || menuTotalDist;
+        // 総距離の計算（メニューのゾーン距離合計を使用）
+        const totalDist = Object.values(actualZones).reduce((s, d) => s + (d || 0), 0);
         if (dateStr >= weekAgoStr) weeklyDistance += totalDist;
         if (dateStr >= monthAgoStr) monthlyDistance += totalDist;
       }
@@ -891,23 +880,17 @@ export const calculateTrainingAnalytics = (
       completedCount++;
       totalCount++;
 
-      // ワークアウトのゾーン別距離を取得
+      // ワークアウトのゾーン別距離を取得（メニューの距離をそのまま使用）
       const zones = getWorkoutZoneDistances(log.workoutId, limiterType);
-      const menuTotalDist = Object.values(zones).reduce((s, d) => s + (d || 0), 0);
-
-      // 実績距離が入力されている場合、ゾーン距離を比例スケーリング
-      // 例: メニュー6km, 実績10km → 各ゾーン距離を 10/6 倍
-      const actualDist = log.result?.distance;
-      const scale = (actualDist && menuTotalDist > 0) ? actualDist / menuTotalDist : 1;
 
       // 計画外のワークアウトは実績のみ加算（planned には追加しない）
       // → 計画外の追加トレーニングがcompletedを押し上げて100%超えを実現
       for (const [zone, dist] of Object.entries(zones)) {
-        completedZoneDistances[zone as ZoneName] = (completedZoneDistances[zone as ZoneName] || 0) + ((dist || 0) * scale);
+        completedZoneDistances[zone as ZoneName] = (completedZoneDistances[zone as ZoneName] || 0) + (dist || 0);
       }
 
-      // 総距離の計算
-      const totalDist = actualDist || menuTotalDist;
+      // 総距離の計算（メニューのゾーン距離合計を使用）
+      const totalDist = Object.values(zones).reduce((s, d) => s + (d || 0), 0);
       if (log.date >= weekAgoStr) weeklyDistance += totalDist;
       if (log.date >= monthAgoStr) monthlyDistance += totalDist;
     }
