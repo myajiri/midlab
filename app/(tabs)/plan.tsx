@@ -290,7 +290,8 @@ export default function PlanScreen() {
     };
     addTrainingLog(log);
     setMenuSelectModalVisible(false);
-    showToast('メニューを追加しました', 'success');
+    // メニュー追加後、結果記録モーダルを自動表示
+    setTimeout(() => openRecordModal(log.id), 300);
   };
 
   // 他画面からのパラメータ変更に対応（メニュー変更後の遷移など）
