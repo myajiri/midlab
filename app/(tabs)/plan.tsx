@@ -1785,6 +1785,7 @@ export default function PlanScreen() {
                     );
                   })}
                   <Text style={styles.azBarTargetLabel}>--- 100%ライン</Text>
+                  <Text style={styles.azRatioCaption}>消化率</Text>
                 </View>
 
                 {/* ゾーン比率（消化率・積み上げバー） */}
@@ -1816,7 +1817,6 @@ export default function PlanScreen() {
                         );
                       })}
                     </View>
-                    <Text style={styles.azRatioCaption}>消化率</Text>
                   </View>
                 )}
               </View>
