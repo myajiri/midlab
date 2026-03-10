@@ -821,14 +821,15 @@ export const calculateTrainingAnalytics = (
   const planCompletedWorkoutKeys = new Set<string>();
 
   for (const week of weeklyPlans) {
-    // startDateからローカル日付を計算（タイムゾーン安全）
-    const startParts = (week.startDate?.split('T')[0] || '').split('-').map(Number);
+    // startDateからローカル日付を計算（UTCのISO文字列をローカル時刻に変換）
+    const weekStartLocal = new Date(week.startDate);
+    const startParts = [weekStartLocal.getFullYear(), weekStartLocal.getMonth() + 1, weekStartLocal.getDate()];
 
     for (let i = 0; i < week.days.length; i++) {
       const day = week.days[i];
       if (!day || day.type === 'rest') continue;
 
-      // ローカル日付として計算（UTCパース問題を回避）
+      // ローカル日付として計算（タイムゾーン安全）
       const dayDate = new Date(startParts[0], startParts[1] - 1, startParts[2] + i);
       const dateStr = toDateStr(dayDate);
 

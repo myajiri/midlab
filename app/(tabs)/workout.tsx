@@ -50,6 +50,14 @@ const CATEGORY_LABELS: Record<string, string> = {
   'オリジナル': 'オリジナル',
 };
 
+// タイムゾーン安全なローカル日付文字列ヘルパー（YYYY-MM-DD）
+const toLocalDateStr = (d: Date): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
 // ゾーン表示名
 const ZONE_LABELS: Record<string, string> = {
   jog: 'リカバリー',
@@ -118,7 +126,7 @@ export default function WorkoutScreen() {
   const handleSelectForTraining = (workout: WorkoutTemplate) => {
     const log: TrainingLog = {
       id: `tl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      date: new Date().toISOString().split('T')[0],
+      date: toLocalDateStr(new Date()),
       workoutId: workout.id,
       workoutName: workout.name,
       workoutCategory: workout.category,
