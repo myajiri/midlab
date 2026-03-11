@@ -1408,10 +1408,6 @@ export default function PlanScreen() {
             onClose={() => setRecordModalVisible(false)}
             onSave={handleSaveRecord}
             distance={recordDistance}
-            durationMin={recordDurationMin}
-            setDurationMin={setRecordDurationMin}
-            durationSec={recordDurationSec}
-            setDurationSec={setRecordDurationSec}
             feeling={recordFeeling}
             setFeeling={setRecordFeeling}
             notes={recordNotes}
@@ -1529,10 +1525,6 @@ export default function PlanScreen() {
             onSave={handleSaveEdit}
             onDelete={handleDeleteRecord}
             distance={editDistance}
-            durationMin={editDurationMin}
-            setDurationMin={setEditDurationMin}
-            durationSec={editDurationSec}
-            setDurationSec={setEditDurationSec}
             feeling={editFeeling}
             setFeeling={setEditFeeling}
             notes={editNotes}
@@ -2130,10 +2122,6 @@ interface RecordResultModalProps {
   onClose: () => void;
   onSave: () => void;
   distance: string;
-  durationMin: string;
-  setDurationMin: (v: string) => void;
-  durationSec: string;
-  setDurationSec: (v: string) => void;
   feeling: FeelingLevel;
   setFeeling: (v: FeelingLevel) => void;
   notes: string;
@@ -2145,8 +2133,6 @@ interface RecordResultModalProps {
 function RecordResultModal({
   visible, onClose, onSave,
   distance,
-  durationMin, setDurationMin,
-  durationSec, setDurationSec,
   feeling, setFeeling,
   notes, setNotes,
   title,
@@ -2180,39 +2166,6 @@ function RecordResultModal({
                   </View>
                 </View>
               ) : null}
-
-              {/* 所要時間（分:秒） */}
-              <View style={styles.modalInputGroup}>
-                <Text style={styles.modalInputLabel}>所要時間</Text>
-                <View style={styles.durationPickerRow}>
-                  <TextInput
-                    style={styles.durationPickerInput}
-                    value={durationMin}
-                    onChangeText={(text) => setDurationMin(text.replace(/[^0-9]/g, ''))}
-                    placeholder="0"
-                    placeholderTextColor={COLORS.text.muted}
-                    keyboardType="numeric"
-                    maxLength={3}
-                  />
-                  <Text style={styles.durationPickerLabel}>分</Text>
-                  <TextInput
-                    style={styles.durationPickerInput}
-                    value={durationSec}
-                    onChangeText={(text) => {
-                      const num = text.replace(/[^0-9]/g, '');
-                      // 59秒を超えないように制限
-                      if (num === '' || parseInt(num, 10) <= 59) {
-                        setDurationSec(num);
-                      }
-                    }}
-                    placeholder="00"
-                    placeholderTextColor={COLORS.text.muted}
-                    keyboardType="numeric"
-                    maxLength={2}
-                  />
-                  <Text style={styles.durationPickerLabel}>秒</Text>
-                </View>
-              </View>
 
               {/* 体感 */}
               <View style={styles.modalInputGroup}>
@@ -3559,25 +3512,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     fontSize: 15,
     color: COLORS.text.primary,
-  },
-  durationPickerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  durationPickerInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    fontSize: 15,
-    color: COLORS.text.primary,
-    width: 70,
-    textAlign: 'center',
-  },
-  durationPickerLabel: {
-    fontSize: 14,
-    color: COLORS.text.secondary,
   },
   modalInputMultiline: {
     minHeight: 80,
