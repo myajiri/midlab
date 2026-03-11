@@ -109,8 +109,10 @@ export default function WorkoutScreen() {
     { zone: 'jog', distance: '1600', label: 'W-up', reps: '1', recoveryDistance: '' },
   ]);
 
-  // 差し替えモード判定
-  const isReplaceMode = !!(params.replaceWeek && params.replaceDayId);
+  // 差し替えモード判定（パラメータのtで一意に識別し、処理済みなら無効化）
+  const replaceT = params.t || '';
+  const [processedReplaceT, setProcessedReplaceT] = useState<string | null>(null);
+  const isReplaceMode = !!(params.replaceWeek && params.replaceDayId && replaceT && replaceT !== processedReplaceT);
   const replaceWeek = params.replaceWeek ? parseInt(params.replaceWeek, 10) : 0;
   const replaceDayId = params.replaceDayId || '';
   const replaceDayLabel = params.replaceDayLabel || '';
@@ -141,6 +143,8 @@ export default function WorkoutScreen() {
   const handleReplaceWorkout = (workout: WorkoutTemplate) => {
     replaceWorkoutInPlan(replaceWeek, replaceDayId, workout.id, workout.name, workout.category);
     showToast(`${replaceDayLabel}のメニューを「${workout.name}」に変更しました`, 'success');
+    // 差し替え処理済みとして記録（タブ再訪問時にモードが残らないように）
+    setProcessedReplaceT(replaceT);
     // 計画タブの週間表示に戻り、他のメニューも変更できるようにする
     router.navigate({
       pathname: '/(tabs)/plan',
@@ -245,6 +249,10 @@ export default function WorkoutScreen() {
             }
           }}
           onReplaceWorkout={isReplaceMode ? handleReplaceWorkout : undefined}
+          onDelete={selectedWorkout.id.startsWith('custom-') && !isReplaceMode ? (id) => {
+            deleteCustomWorkout(id);
+            setSelectedWorkout(null);
+          } : undefined}
           replaceDayLabel={replaceDayLabel}
         />
       </SwipeBackView>
@@ -646,10 +654,11 @@ interface WorkoutDetailScreenProps {
   onBack: () => void;
   onStartTraining?: (workout: WorkoutTemplate) => void;
   onReplaceWorkout?: (workout: WorkoutTemplate) => void;
+  onDelete?: (workoutId: string) => void;
   replaceDayLabel?: string;
 }
 
-function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining, onReplaceWorkout, replaceDayLabel }: WorkoutDetailScreenProps) {
+function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining, onReplaceWorkout, onDelete, replaceDayLabel }: WorkoutDetailScreenProps) {
   const variant = workout.limiterVariants?.[limiter];
   const expandedSegments = expandSegments(workout.segments, variant);
   const totalDistance = calculateTotalDistance(workout.segments, variant);
@@ -674,6 +683,19 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining, o
               <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
             </Pressable>
             <Text style={styles.detailTitle}>{workout.name}</Text>
+            {onDelete && (
+              <Pressable
+                style={styles.detailDeleteButton}
+                onPress={() => {
+                  Alert.alert('メニューを削除', `「${workout.name}」を削除しますか？`, [
+                    { text: 'キャンセル', style: 'cancel' },
+                    { text: '削除', style: 'destructive', onPress: () => onDelete(workout.id) },
+                  ]);
+                }}
+              >
+                <Ionicons name="trash-outline" size={20} color="#EF4444" />
+              </Pressable>
+            )}
           </View>
         </FadeIn>
 
@@ -1159,6 +1181,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.text.primary,
     flex: 1,
+  },
+  detailDeleteButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // 強度グラフ

@@ -792,6 +792,7 @@ export const calculateTrainingAnalytics = (
   weeklyPlans: WeeklyPlan[],
   limiterType: LimiterType,
   trainingLogs?: TrainingLog[],
+  additionalWorkouts?: WorkoutTemplate[],
 ): TrainingAnalytics => {
   const completedZoneDistances: ZoneDistances = {};
   const plannedZoneDistances: ZoneDistances = {};
@@ -841,7 +842,7 @@ export const calculateTrainingAnalytics = (
 
       // ワークアウトのゾーン別距離を取得
       const zones = day.workoutId
-        ? getWorkoutZoneDistances(day.workoutId, limiterType)
+        ? getWorkoutZoneDistances(day.workoutId, limiterType, additionalWorkouts)
         : {};
 
       // 計画されたゾーン距離を集計（本日までの目標合計）
@@ -882,7 +883,7 @@ export const calculateTrainingAnalytics = (
       totalCount++;
 
       // ワークアウトのゾーン別距離を取得（メニューの距離をそのまま使用）
-      const zones = getWorkoutZoneDistances(log.workoutId, limiterType);
+      const zones = getWorkoutZoneDistances(log.workoutId, limiterType, additionalWorkouts);
 
       // 計画外のワークアウトは実績のみ加算（planned には追加しない）
       // → 計画外の追加トレーニングがcompletedを押し上げて100%超えを実現

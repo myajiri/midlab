@@ -325,8 +325,8 @@ export const usePlanStore = create<PlanState>()(
           const srDayOfWeek = (srDate.getDay() + 6) % 7;
 
           const newDays = [...week.days];
-          // レース日をレースメニューに変更
-          if (newDays[srDayOfWeek] && newDays[srDayOfWeek]!.type !== 'rest') {
+          // レース日をレースメニューに変更（休養日でもサブレースを優先）
+          if (newDays[srDayOfWeek]) {
             newDays[srDayOfWeek] = {
               ...newDays[srDayOfWeek]!,
               type: 'race' as const,
@@ -486,17 +486,50 @@ export const usePlanStore = create<PlanState>()(
             return srDate >= weekStart && srDate <= weekEnd;
           });
 
+          // サブレース日の曜日を計算してレースメニューに変更
+          const newDays = week.days.map((day) => {
+            if (!day) return day;
+            const saved = completionMap.get(day.id);
+            if (saved) {
+              return { ...day, completed: saved.completed, actualData: saved.actualData };
+            }
+            return day;
+          });
+
+          if (subRaceInWeek) {
+            const srDate = new Date(subRaceInWeek.date);
+            const srDayOfWeek = (srDate.getDay() + 6) % 7;
+            // レース日をレースメニューに変更（休養日でもサブレースを優先）
+            if (newDays[srDayOfWeek]) {
+              newDays[srDayOfWeek] = {
+                ...newDays[srDayOfWeek]!,
+                type: 'race' as const,
+                label: subRaceInWeek.name || 'レース',
+                isKey: true,
+                workoutId: undefined,
+                focusKey: undefined,
+                focusCategory: undefined,
+              };
+            }
+            // 前日の高強度を回避
+            const prevDay = (srDayOfWeek - 1 + 7) % 7;
+            const prevWorkout = newDays[prevDay];
+            if (prevWorkout && (prevWorkout.type === 'workout' || prevWorkout.isKey) && prevWorkout.type !== 'rest') {
+              newDays[prevDay] = {
+                ...prevWorkout,
+                type: 'easy',
+                label: 'イージー（レース前調整）',
+                isKey: false,
+                focusKey: 'aerobic',
+                focusCategory: '有酸素ベース',
+              };
+            }
+          }
+
           return {
             ...week,
             subRace: subRaceInWeek || undefined,
-            days: week.days.map((day) => {
-              if (!day) return day;
-              const saved = completionMap.get(day.id);
-              if (saved) {
-                return { ...day, completed: saved.completed, actualData: saved.actualData };
-              }
-              return day;
-            }),
+            days: newDays,
             workouts: week.workouts.map((w) => {
               const saved = completionMap.get(w.id);
               if (saved) {

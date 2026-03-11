@@ -9,7 +9,6 @@ import {
   ScrollView,
   StyleSheet,
   Pressable,
-  Switch,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -39,9 +38,7 @@ import {
 import {
   COLORS,
   LEVELS,
-  LEVELS_LITE,
   PACE_INCREMENT,
-  ETP_COEFFICIENT,
   ZONE_COEFFICIENTS_V3,
   RACE_COEFFICIENTS,
 } from '../../src/constants';
@@ -109,17 +106,12 @@ export default function TestScreen() {
   const [breathRecovery, setBreathRecovery] = useState<RecoveryTime>('30-60');
   const [lastTestResult, setLastTestResult] = useState<TestResult | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [isLiteMode, setIsLiteMode] = useState(false);
-
   const config = LEVELS[level];
-  const liteConfig = LEVELS_LITE[level];
-  const currentPaceIncrement = isLiteMode ? liteConfig.paceIncrement : PACE_INCREMENT;
-  const currentMaxLaps = isLiteMode ? liteConfig.maxLaps : config.maxLaps;
-  const schedule = useMemo(() => generateLapSchedule(level, isLiteMode ? liteConfig : undefined), [level, isLiteMode]);
-  const maxLaps = currentMaxLaps;
+  const schedule = useMemo(() => generateLapSchedule(level), [level]);
+  const maxLaps = config.maxLaps;
 
   // LCP計算
-  const lcp = config.startPace - (completedLaps - 1) * currentPaceIncrement;
+  const lcp = config.startPace - (completedLaps - 1) * PACE_INCREMENT;
 
   const handleSubmit = () => {
     const etp = calculateEtpFromTest(lcp);
@@ -422,31 +414,6 @@ export default function TestScreen() {
               </View>
             </View>
 
-            {/* ライトモード切替 */}
-            <View style={styles.liteModeRow}>
-              <View style={styles.liteModeInfo}>
-                <Text style={styles.liteModeLabel}>ライトモード</Text>
-                <Text style={styles.liteModeDesc}>加速を緩やかに（負荷軽減）</Text>
-              </View>
-              <Switch
-                value={isLiteMode}
-                onValueChange={(v) => {
-                  setIsLiteMode(v);
-                  setCompletedLaps(Math.min(completedLaps, v ? liteConfig.maxLaps : config.maxLaps));
-                }}
-                trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(34,197,94,0.3)' }}
-                thumbColor={isLiteMode ? '#22C55E' : '#6B7280'}
-              />
-            </View>
-            {isLiteMode && (
-              <View style={styles.liteModeNote}>
-                <Ionicons name="bulb-outline" size={14} color={COLORS.warning} />
-                <Text style={styles.liteModeNoteText}>
-                  ライトモードはペース加速を毎周{liteConfig.paceIncrement}秒に抑えます。通常モード（毎周{PACE_INCREMENT}秒）より身体的負担が少なく、回復期やシーズン初期の測定に適しています。推定eTPは通常モードと同じ計算式（最終ペース×{ETP_COEFFICIENT}）を使用するため、モード間で比較する際は同一モードでの相対変化に注目してください。
-                </Text>
-              </View>
-            )}
-
             {/* レベル選択 */}
             <Text style={styles.levelLabel}>レベル選択</Text>
             <View style={styles.levelTabs}>
@@ -476,7 +443,7 @@ export default function TestScreen() {
               </View>
               <View style={styles.scheduleRow}>
                 <Text style={styles.scheduleLabel}>加速</Text>
-                <Text style={styles.scheduleValue}>毎周 -{currentPaceIncrement}秒</Text>
+                <Text style={styles.scheduleValue}>毎周 -{PACE_INCREMENT}秒</Text>
               </View>
             </View>
 
@@ -489,7 +456,7 @@ export default function TestScreen() {
         {/* 進行表（コンパクト） */}
         <SlideIn delay={200} direction="up">
           <Pressable style={styles.scheduleCard}>
-            <Text style={styles.cardTitle}>レベル{level} 進行表{isLiteMode ? '（ライト）' : ''}</Text>
+            <Text style={styles.cardTitle}>レベル{level} 進行表</Text>
             <View style={styles.scheduleTable}>
               <View style={styles.tableHeader}>
                 <Text style={[styles.tableCell, styles.tableHeaderCell, { width: 40 }]}>周</Text>
@@ -671,31 +638,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.text.secondary,
     lineHeight: 16,
-  },
-
-  // ライトモード
-  liteModeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginBottom: 16,
-  },
-  liteModeInfo: {
-    flex: 1,
-  },
-  liteModeLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text.primary,
-  },
-  liteModeDesc: {
-    fontSize: 11,
-    color: COLORS.text.muted,
-    marginTop: 2,
   },
 
   // スタートカード
@@ -960,22 +902,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
 
-  // ライトモード推定根拠
-  liteModeNote: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 6,
-    backgroundColor: 'rgba(234, 179, 8, 0.08)',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 16,
-  },
-  liteModeNoteText: {
-    flex: 1,
-    fontSize: 11,
-    color: COLORS.text.muted,
-    lineHeight: 16,
-  },
 
   // 入力フォーム
   inputCard: {
