@@ -109,8 +109,10 @@ export default function WorkoutScreen() {
     { zone: 'jog', distance: '1600', label: 'W-up', reps: '1', recoveryDistance: '' },
   ]);
 
-  // 差し替えモード判定
-  const isReplaceMode = !!(params.replaceWeek && params.replaceDayId);
+  // 差し替えモード判定（パラメータのtで一意に識別し、処理済みなら無効化）
+  const replaceT = params.t || '';
+  const [processedReplaceT, setProcessedReplaceT] = useState<string | null>(null);
+  const isReplaceMode = !!(params.replaceWeek && params.replaceDayId && replaceT && replaceT !== processedReplaceT);
   const replaceWeek = params.replaceWeek ? parseInt(params.replaceWeek, 10) : 0;
   const replaceDayId = params.replaceDayId || '';
   const replaceDayLabel = params.replaceDayLabel || '';
@@ -141,6 +143,8 @@ export default function WorkoutScreen() {
   const handleReplaceWorkout = (workout: WorkoutTemplate) => {
     replaceWorkoutInPlan(replaceWeek, replaceDayId, workout.id, workout.name, workout.category);
     showToast(`${replaceDayLabel}のメニューを「${workout.name}」に変更しました`, 'success');
+    // 差し替え処理済みとして記録（タブ再訪問時にモードが残らないように）
+    setProcessedReplaceT(replaceT);
     // 計画タブの週間表示に戻り、他のメニューも変更できるようにする
     router.navigate({
       pathname: '/(tabs)/plan',
