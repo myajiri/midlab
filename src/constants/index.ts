@@ -22,14 +22,6 @@ export const ETP_COEFFICIENT = 1.12;
 
 // ライトモード設定（ペース加速が緩やかなテスト）
 // 通常テストが厳しすぎる選手向け。ペースインクリメントを2-3秒に抑え、最大周回も削減。
-export const LEVELS_LITE: Record<LevelName, { startPace: number; maxLaps: number; paceIncrement: number }> = {
-  SS: { startPace: 76, maxLaps: 6, paceIncrement: 2 },
-  S:  { startPace: 88, maxLaps: 8, paceIncrement: 2 },
-  A:  { startPace: 96, maxLaps: 8, paceIncrement: 3 },
-  B:  { startPace: 108, maxLaps: 8, paceIncrement: 3 },
-  C:  { startPace: 120, maxLaps: 8, paceIncrement: 3 },
-};
-
 // 6ゾーン係数
 // coef: eTP=60時のベース係数
 // slope: eTPが1上がるごとの追加係数（上限eTP=100で打ち止め）
