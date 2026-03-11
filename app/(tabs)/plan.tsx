@@ -1689,7 +1689,7 @@ export default function PlanScreen() {
         {activePlan.weeklyPlans && (() => {
           // 現在の計画に紐づくログのみを分析対象にする（計画再生成時に古いログが混入しないように）
           const planLogs = trainingLogs.filter((l) => l.planId === activePlan.id);
-          const analytics = calculateTrainingAnalytics(activePlan.weeklyPlans, activePlan.baseline.limiterType, planLogs);
+          const analytics = calculateTrainingAnalytics(activePlan.weeklyPlans, activePlan.baseline.limiterType, planLogs, customWorkoutsAsTemplates);
           if (analytics.completedCount === 0) return null;
 
           const ZONE_LABELS: Record<string, { label: string; color: string }> = {
