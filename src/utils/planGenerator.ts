@@ -62,7 +62,7 @@ export function resolveDistanceForLookup(distance: RaceDistance, customDistance?
   if (distance === 'custom') {
     const d = customDistance || 5000;
     // 最も近い既存距離を返す
-    let closest = STANDARD_DISTANCES[0];
+    let closest: number = STANDARD_DISTANCES[0];
     let minDiff = Math.abs(d - closest);
     for (const sd of STANDARD_DISTANCES) {
       const diff = Math.abs(d - sd);
@@ -209,6 +209,17 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
     }
   });
 
+  // 今週の月曜日を計算（月=0, 火=1, ... 日=6 の体系で）
+  // JS の getDay(): 0=日, 1=月, ... 6=土
+  // 日曜日(0)の場合は6日前の月曜、それ以外は (getDay()-1) 日前の月曜
+  const startDate = new Date();
+  const jsDay = startDate.getDay();
+  const diffToMonday = jsDay === 0 ? 6 : jsDay - 1;
+  startDate.setDate(startDate.getDate() - diffToMonday);
+
+  // startDate（今週の月曜）からレース日を含む週までの週数を計算
+  const weeksToGenerate = Math.min(Math.ceil((raceDate.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)), 20);
+
   // ETPテストをレース日から逆算して配置
   // レースから最低3週前までにのみ配置（taper期・レース直前を回避）
   const rampTestWeeks: number[] = [];
@@ -228,18 +239,8 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
   rampTestWeeks.sort((a, b) => a - b);
 
   const weeklyPlans: WeeklyPlan[] = [];
-  // 今週の月曜日を計算（月=0, 火=1, ... 日=6 の体系で）
-  // JS の getDay(): 0=日, 1=月, ... 6=土
-  // 日曜日(0)の場合は6日前の月曜、それ以外は (getDay()-1) 日前の月曜
-  const startDate = new Date();
-  const jsDay = startDate.getDay();
-  const diffToMonday = jsDay === 0 ? 6 : jsDay - 1;
-  startDate.setDate(startDate.getDate() - diffToMonday);
 
   const eventDistance = WEEKLY_DISTANCE_BY_EVENT[lookupDistance] || WEEKLY_DISTANCE_BY_EVENT[1500];
-
-  // startDate（今週の月曜）からレース日を含む週までの週数を計算
-  const weeksToGenerate = Math.min(Math.ceil((raceDate.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)), 20);
 
   for (let w = 0; w < weeksToGenerate; w++) {
     const weekNumber = w + 1;

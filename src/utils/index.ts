@@ -26,6 +26,7 @@ import {
   ScheduledWorkout,
   ZoneDistances,
   WorkoutTemplate,
+  WorkoutSegment,
   WeeklyPlan,
   TrainingLog,
 } from '../types';
@@ -726,7 +727,8 @@ export const getWorkoutZoneDistances = (workoutId: string, limiterType?: Limiter
   if (!workout) return {};
   const zones: ZoneDistances = {};
   const variant = limiterType ? workout.limiterVariants?.[limiterType] : undefined;
-  for (const seg of workout.segments) {
+  for (const s of workout.segments) {
+    const seg = s as WorkoutSegment;
     const reps = seg.reps ? (variant?.reps || seg.reps) : 1;
     const dist = seg.distance * reps;
     zones[seg.zone] = (zones[seg.zone] || 0) + dist;
