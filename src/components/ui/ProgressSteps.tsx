@@ -7,6 +7,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
+import { useTranslation } from 'react-i18next';
 
 interface Step {
   label: string;
@@ -163,6 +164,7 @@ export const WeekProgress: React.FC<WeekProgressProps> = ({
   activeDay,
   size = 'medium',
 }) => {
+  const { t } = useTranslation();
   const sizeMap = {
     small: { dot: 6, gap: 3 },
     medium: { dot: 10, gap: 4 },
@@ -170,7 +172,7 @@ export const WeekProgress: React.FC<WeekProgressProps> = ({
   };
   const { dot: dotSize, gap } = sizeMap[size];
 
-  const days = ['月', '火', '水', '木', '金', '土', '日'];
+  const days = [t('plan.mon'), t('plan.tue'), t('plan.wed'), t('plan.thu'), t('plan.fri'), t('plan.sat'), t('plan.sun')];
 
   return (
     <View style={[styles.weekProgressContainer, { gap }]}>

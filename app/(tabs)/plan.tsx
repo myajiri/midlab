@@ -72,6 +72,13 @@ const getTranslatedLabel = (workoutId: string | undefined, fallbackLabel: string
   return translated;
 };
 
+// 日別スケジュールのラベル翻訳（タイプ別の特殊ラベルも対応）
+const getDayLabel = (day: { type: string; workoutId?: string; label: string }): string => {
+  if (day.type === 'rest') return i18next.t('plan.restLabel');
+  if (day.type === 'test') return i18next.t('plan.etpTestLabel');
+  return getTranslatedLabel(day.workoutId, day.label);
+};
+
 // カテゴリ名のi18n変換ヘルパー（定数の日本語カテゴリ名→翻訳キー）
 const CATEGORY_KEY_MAP: Record<string, string> = {
   '有酸素ベース': 'constants.categories.aerobicBase',
@@ -617,14 +624,14 @@ export default function PlanScreen() {
                           onPress={() => setRestDayFrequency(freq)}
                         >
                           <Text style={[styles.frequencyOptionText, isSelected && styles.frequencyOptionTextActive]}>
-                            {config.label}
+                            {t(`constants.restDayFrequency.${freq}.label`)}
                           </Text>
                         </Pressable>
                       );
                     })}
                   </View>
                   <Text style={styles.hintText}>
-                    {REST_DAY_FREQUENCY_CONFIG[restDayFrequency].desc}
+                    {t(`constants.restDayFrequency.${restDayFrequency}.desc`)}
                   </Text>
                 </View>
 
@@ -943,7 +950,7 @@ export default function PlanScreen() {
                       </View>
                       <View style={styles.dayCenter}>
                         <View style={styles.dayLabelRow}>
-                          <Text style={[styles.dayLabel, day.isKey && styles.dayLabelKey]} numberOfLines={1}>{getTranslatedLabel(day.workoutId, day.label)}</Text>
+                          <Text style={[styles.dayLabel, day.isKey && styles.dayLabelKey]} numberOfLines={1}>{getDayLabel(day)}</Text>
                           {day.isKey && <Text style={styles.keyBadge}>{t('plan.keyBadge')}</Text>}
                         </View>
                         {day.isKey && limiterConnection && (
@@ -991,7 +998,7 @@ export default function PlanScreen() {
                               setActualDataTarget({
                                 weekNumber: weekPlan.weekNumber,
                                 dayId: day.id,
-                                label: getTranslatedLabel(day.workoutId, day.label),
+                                label: getDayLabel(day),
                                 zoneDistances: Object.keys(plannedZones).length > 0 ? plannedZones : undefined,
                               });
                               setActualZoneInputs({});

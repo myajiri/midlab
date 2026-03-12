@@ -176,11 +176,17 @@ const ja = {
     },
 
     // 結果
+    resultReady: '準備完了！',
     resultEstimated: 'PBからETPを推定しました',
     resultNeedTest: 'ETPテストで正確なETPを測定しましょう',
+    estimatedEtpLabel: '推定ETP',
+    etpSecPer400m: '{{seconds}}秒/400m',
+    nextStepsTitle: '次のステップ',
     nextStepTest: 'テストタブでETPテストを実施',
     nextStepHome: 'ホームでゾーンを確認',
     nextStepTrain: 'トレーニングを開始',
+    startApp: 'アプリを始める',
+    goBack: '戻る',
   },
 
   // ============================================
@@ -351,6 +357,12 @@ const ja = {
     weekDayLabel: '第{{week}}週 {{day}}',
     weekGoal: '今週のポイント',
     keyBadge: 'キー',
+    restLabel: '休養',
+    etpTestLabel: 'ETPテスト',
+    easyPreRace: 'イージー（レース前調整）',
+    recoveryPreRace: 'リカバリー（レース前調整）',
+    mPacePreRace: 'Mペース刺激 8-10km + WS（レース前調整）',
+    raceLabel: 'レース',
     thisWeek: '今週',
     today: '今日',
     phaseLabel: '{{phase}}',
@@ -550,6 +562,7 @@ const ja = {
     segmentDistance: '距離（m）',
     segmentLabel: 'ラベル（例: W-up 4周）',
     segmentReps: '本数',
+    segmentRecoveryLabel: '回復',
     segmentRecovery: 'リカバリー（m）',
     addSegment: 'セグメントを追加',
     needOneSegment: '少なくとも1つのセグメントが必要です',

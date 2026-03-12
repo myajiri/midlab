@@ -99,6 +99,15 @@ const getVariantNote = (workoutId: string, limiter: LimiterType, fallback: strin
   return translated;
 };
 
+// セグメントラベルの「周」を翻訳するヘルパー
+const translateSegmentLabel = (label: string): string => {
+  // 「回復 1周」→ "Recovery 1 lap"
+  let result = label.replace(/^回復/, i18next.t('workout.segmentRecoveryLabel'));
+  // 「N周」→ "N laps"
+  result = result.replace(/(\d+)周$/, `$1${i18next.t('common.laps')}`);
+  return result;
+};
+
 interface ExpandedSegment {
   zone: ZoneName | 'rest';
   distance: number;
@@ -805,7 +814,7 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining, o
                   <View style={styles.segmentRow}>
                     <View style={styles.segmentLeft}>
                       <Text style={styles.segmentLabel}>
-                        {seg.label}{reps && reps > 1 ? ` × ${reps}` : ''}
+                        {translateSegmentLabel(seg.label)}{reps && reps > 1 ? ` × ${reps}` : ''}
                       </Text>
                       <Text style={styles.segmentZone}>{getZoneLabels()[seg.zone] || seg.zone}</Text>
                     </View>

@@ -42,6 +42,7 @@ import {
   MAX_MONTHLY_DISTANCE_CAP,
 } from '../constants';
 import { selectWorkoutForCategory } from './workoutSelector';
+import i18next from 'i18next';
 
 export interface GeneratePlanParams {
   race: { name: string; date: string; distance: RaceDistance; customDistance?: number };
@@ -122,7 +123,7 @@ function selectEasyWorkout(baseEasyDistance: number, volumeScale: number): { wor
       return {
         workoutId: entry.workoutId,
         distance: entry.distance,
-        label: `イージー ${entry.distance / 1000}km`,
+        label: `${i18next.t('workout.zoneEasy')} ${entry.distance / 1000}km`,
       };
     }
   }
@@ -323,7 +324,7 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
         lastWeek.days[raceDayOfWeek] = {
           ...lastWeek.days[raceDayOfWeek]!,
           type: 'race',
-          label: race.name || 'レース',
+          label: race.name || i18next.t('plan.raceLabel'),
           isKey: true,
           workoutId: undefined,
           focusKey: undefined,
@@ -338,7 +339,7 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
         lastWeek.days[prevDay] = {
           ...prevWorkout,
           type: 'easy',
-          label: `イージー`,
+          label: i18next.t('workout.zoneEasy'),
           isKey: false,
           workoutId: recoverySelection.workoutId,
           focusKey: 'aerobic',
@@ -474,9 +475,9 @@ function generateWeeklySchedule(
   const days: (ScheduledWorkout | null)[] = [];
   for (let d = 0; d < 7; d++) {
     if (restDays.includes(d)) {
-      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'rest', label: '休養', isKey: false, completed: false });
+      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'rest', label: i18next.t('plan.restLabel'), isKey: false, completed: false });
     } else if (isRampTestWeek && d === testDay) {
-      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'test', label: 'ETPテスト', isKey: true, completed: false, focusKey: 'test' });
+      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'test', label: i18next.t('plan.etpTestLabel'), isKey: true, completed: false, focusKey: 'test' });
     } else if (keyWorkoutDays.includes(d) && !isRecoveryWeek) {
       const idx = keyWorkoutDays.indexOf(d);
       const focus = idx === 0 ? primary : secondary;
@@ -484,10 +485,10 @@ function generateWeeklySchedule(
       const workoutId = selectWorkoutForCategory(focus?.menuCategory || '', etp, weekNumber);
       // workoutIdから具体的なワークアウト名を取得して表示
       const workoutName = workoutId ? WORKOUTS.find(w => w.id === workoutId)?.name : null;
-      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'workout', label: workoutName || focus?.name || 'ポイント練習', isKey: true, completed: false, focusKey, focusCategory: focus?.menuCategory, workoutId });
+      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'workout', label: workoutName || focus?.name || 'Workout', isKey: true, completed: false, focusKey, focusCategory: focus?.menuCategory, workoutId });
     } else if (d === longRunDay && !isRampTestWeek) {
       const longSelection = selectLongRunWorkout(volumeScale);
-      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'long', label: `ロング ${longSelection.distance / 1000}km`, isKey: !isRecoveryWeek, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース', workoutId: longSelection.workoutId });
+      days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'long', label: `Long ${longSelection.distance / 1000}km`, isKey: !isRecoveryWeek, completed: false, focusKey: 'aerobic', focusCategory: '有酸素ベース', workoutId: longSelection.workoutId });
     } else {
       const lookupDist = typeof raceDistance === 'string' ? 1500 : raceDistance;
       const baseEasyDist = EASY_DISTANCE_BY_EVENT[lookupDist]?.[phaseType] || 6000;
@@ -508,7 +509,7 @@ function generateWeeklySchedule(
         days[d] = {
           ...currentWorkout,
           type: 'recovery',
-          label: `リカバリー ${recoverySelection.distance / 1000}km`,
+          label: `${i18next.t('workout.zoneJog')} ${recoverySelection.distance / 1000}km`,
           workoutId: recoverySelection.workoutId,
         };
         break;

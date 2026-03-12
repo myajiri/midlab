@@ -14,6 +14,7 @@ module.exports = {
       },
     }],
   },
+  setupFiles: ['<rootDir>/src/__mocks__/i18n-setup.ts'],
   moduleNameMapper: {
     '^expo-localization$': '<rootDir>/src/__mocks__/expo-localization.ts',
     '^@react-native-async-storage/async-storage$': '<rootDir>/src/__mocks__/async-storage.ts',

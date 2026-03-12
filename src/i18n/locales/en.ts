@@ -176,11 +176,17 @@ const en = {
     },
 
     // 結果
+    resultReady: 'All Set!',
     resultEstimated: 'ETP estimated from PBs',
     resultNeedTest: 'Take the ETP Test to measure your ETP',
+    estimatedEtpLabel: 'Estimated ETP',
+    etpSecPer400m: '{{seconds}}s/400m',
+    nextStepsTitle: 'Next Steps',
     nextStepTest: 'Take the ETP Test on the Test tab',
     nextStepHome: 'Check your zones on Home',
     nextStepTrain: 'Start training',
+    startApp: 'Start App',
+    goBack: 'Back',
   },
 
   // ============================================
@@ -351,6 +357,12 @@ const en = {
     weekDayLabel: 'Week {{week}} {{day}}',
     weekGoal: "This Week's Focus",
     keyBadge: 'Key',
+    restLabel: 'Rest',
+    etpTestLabel: 'ETP Test',
+    easyPreRace: 'Easy (pre-race)',
+    recoveryPreRace: 'Recovery (pre-race)',
+    mPacePreRace: 'M-pace stimulus 8-10km + WS (pre-race)',
+    raceLabel: 'Race',
     thisWeek: 'This Week',
     today: 'Today',
     phaseLabel: '{{phase}}',
@@ -550,6 +562,7 @@ const en = {
     segmentDistance: 'Distance (m)',
     segmentLabel: 'Label (e.g. W-up 4 laps)',
     segmentReps: 'Reps',
+    segmentRecoveryLabel: 'Recovery',
     segmentRecovery: 'Recovery (m)',
     addSegment: 'Add Segment',
     needOneSegment: 'At least one segment is required',

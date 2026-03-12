@@ -12,9 +12,11 @@ import { formatKmPace } from '../../src/utils';
 import { ProgressBar, SuccessCheckmark } from '../../src/components/ui';
 import { FadeIn, SlideIn, ScaleIn } from '../../src/components/ui/Animated';
 import { COLORS } from '../../src/constants';
+import { useTranslation } from 'react-i18next';
 
 export default function OnboardingResult() {
   const router = useRouter();
+  const { t } = useTranslation();
   const profile = useProfileStore((state) => state.profile);
   const setOnboardingComplete = useSettingsStore((state) => state.setOnboardingComplete);
 
@@ -40,11 +42,11 @@ export default function OnboardingResult() {
         <SuccessCheckmark size={80} color={COLORS.success} />
 
         <SlideIn direction="up" delay={300}>
-          <Text style={styles.title}>準備完了！</Text>
+          <Text style={styles.title}>{t('onboarding.resultReady')}</Text>
           <Text style={styles.subtitle}>
             {estimatedEtp
-              ? 'PBからETPを推定しました'
-              : 'ETPテストでETPを測定しましょう'}
+              ? t('onboarding.resultEstimated')
+              : t('onboarding.resultNeedTest')}
           </Text>
         </SlideIn>
 
@@ -52,9 +54,9 @@ export default function OnboardingResult() {
         {estimatedEtp && (
           <ScaleIn delay={500}>
             <View style={styles.etpCard}>
-              <Text style={styles.etpLabel}>推定ETP</Text>
+              <Text style={styles.etpLabel}>{t('onboarding.estimatedEtpLabel')}</Text>
               <Text style={styles.etpPace}>{formatKmPace(estimatedEtp)}</Text>
-              <Text style={styles.etpSec}>{estimatedEtp}秒/400m</Text>
+              <Text style={styles.etpSec}>{t('onboarding.etpSecPer400m', { seconds: estimatedEtp })}</Text>
             </View>
           </ScaleIn>
         )}
@@ -62,11 +64,11 @@ export default function OnboardingResult() {
         {/* 次のステップ */}
         <SlideIn delay={700} direction="up" style={{ width: '100%' }}>
           <View style={styles.nextSteps}>
-            <Text style={styles.nextStepsTitle}>次のステップ</Text>
+            <Text style={styles.nextStepsTitle}>{t('onboarding.nextStepsTitle')}</Text>
             {[
-              { icon: 'analytics', text: 'テストタブでETPテストを実施' },
-              { icon: 'home', text: 'ホームでゾーンを確認' },
-              { icon: 'fitness', text: 'トレーニングを開始' },
+              { icon: 'analytics', text: t('onboarding.nextStepTest') },
+              { icon: 'home', text: t('onboarding.nextStepHome') },
+              { icon: 'fitness', text: t('onboarding.nextStepTrain') },
             ].map((step, i) => (
               <View key={i} style={styles.stepRow}>
                 <View style={styles.stepNum}>
@@ -83,10 +85,10 @@ export default function OnboardingResult() {
       <SlideIn delay={900} direction="up">
         <View style={styles.buttonArea}>
           <Pressable style={styles.completeButton} onPress={handleComplete}>
-            <Text style={styles.completeButtonText}>アプリを始める</Text>
+            <Text style={styles.completeButtonText}>{t('onboarding.startApp')}</Text>
           </Pressable>
           <Pressable style={styles.backButton} onPress={handleBack}>
-            <Text style={styles.backButtonText}>戻る</Text>
+            <Text style={styles.backButtonText}>{t('onboarding.goBack')}</Text>
           </Pressable>
         </View>
       </SlideIn>

@@ -49,6 +49,16 @@ import { ZoneName, LimiterType } from '../../src/types';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { useIsFocused } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
+import i18next from 'i18next';
+
+// ワークアウトラベルのi18n変換ヘルパー
+const getTranslatedLabel = (workoutId: string | undefined, fallbackLabel: string): string => {
+  if (!workoutId) return fallbackLabel;
+  const key = `workouts.${workoutId}.name`;
+  const translated = i18next.t(key, { defaultValue: '' });
+  if (!translated || translated === key) return fallbackLabel;
+  return translated;
+};
 
 // リミッターのIoniconsアイコン
 const LIMITER_ICON: Record<LimiterType, { name: string; color: string }> = {
@@ -284,7 +294,7 @@ export default function HomeScreen() {
                 },
               })}
             >
-              <Text style={styles.todayLabel}>{todayWorkout.label}</Text>
+              <Text style={styles.todayLabel}>{getTranslatedLabel(todayWorkout.workoutId, todayWorkout.label)}</Text>
               <Text style={styles.todayHint}>{t('home.tapForDetails')}</Text>
             </Pressable>
           </View>

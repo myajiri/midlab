@@ -27,6 +27,7 @@ import {
 import { STORAGE_KEYS } from '../constants';
 import { calculateEtp, calculateZonesV3, getEffectiveValues, getUserStage, estimateLimiterFromPBs } from '../utils';
 import { generatePlan } from '../utils/planGenerator';
+import i18next from 'i18next';
 
 // サブレースの距離に対応するレースワークアウトIDを返す
 function selectRaceWorkoutId(distance: number | 'custom', customDistance?: number): string | undefined {
@@ -57,7 +58,7 @@ function applySubRaceAdjustments(
     newDays[srDayOfWeek] = {
       ...newDays[srDayOfWeek]!,
       type: 'race' as const,
-      label: subRace.name || 'レース',
+      label: subRace.name || i18next.t('plan.raceLabel'),
       isKey: true,
       workoutId: raceWorkoutId,
       focusKey: undefined,
@@ -77,7 +78,7 @@ function applySubRaceAdjustments(
       newDays[r1] = {
         ...newDays[r1]!,
         type: 'easy',
-        label: 'イージー（レース前調整）',
+        label: i18next.t('plan.easyPreRace'),
         isKey: false,
         workoutId: undefined,
         focusKey: 'aerobic',
@@ -91,7 +92,7 @@ function applySubRaceAdjustments(
       newDays[r2] = {
         ...newDays[r2]!,
         type: 'easy',
-        label: 'イージー（レース前調整）',
+        label: i18next.t('plan.easyPreRace'),
         isKey: false,
         workoutId: undefined,
         focusKey: 'aerobic',
@@ -105,7 +106,7 @@ function applySubRaceAdjustments(
       newDays[r3] = {
         ...newDays[r3]!,
         type: 'easy',
-        label: 'Mペース刺激 8-10km + WS（レース前調整）',
+        label: i18next.t('plan.mPacePreRace'),
         isKey: false,
         workoutId: undefined,
         focusKey: 'aerobic',
@@ -120,7 +121,7 @@ function applySubRaceAdjustments(
       newDays[r1] = {
         ...newDays[r1]!,
         type: 'recovery',
-        label: 'リカバリー（レース前調整）',
+        label: i18next.t('plan.recoveryPreRace'),
         isKey: false,
         workoutId: undefined,
         focusKey: 'aerobic',
