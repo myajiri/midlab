@@ -934,25 +934,29 @@ export const PHYSIOLOGICAL_FOCUS_CATEGORIES: Record<string, { name: string; menu
 
 // eTP別ワークアウト選択設定
 // eTP閾値以下の選手（速い選手）にはより長い距離のインターバルを推奨
-export const WORKOUT_SELECTION_BY_ETP: Record<string, Array<{ maxEtp: number; workoutId: string }>> = {
+// alternates: 週ごとにローテーションする候補（同じメニューの連続を防止）
+export const WORKOUT_SELECTION_BY_ETP: Record<string, Array<{ maxEtp: number; workoutId: string; alternates?: string[] }>> = {
   'VO2max': [
-    { maxEtp: 70, workoutId: 'vo2max-1200x4' },   // SS〜S: 速い選手 → 1200m
-    { maxEtp: 80, workoutId: 'vo2max-1000x5' },   // A: 中間 → 1000m
-    { maxEtp: 999, workoutId: 'vo2max-800x6' },    // B〜C: → 800m
+    // SS〜S: 1200mメイン、1000mをローテーション
+    { maxEtp: 70, workoutId: 'vo2max-1200x4', alternates: ['vo2max-1000x5'] },
+    // A: 1000mと1200mをローテーション（3:00/km帯でもVO2max滞在時間を確保）
+    { maxEtp: 80, workoutId: 'vo2max-1000x5', alternates: ['vo2max-1200x4', 'vo2max-600x8'] },
+    // B〜C: 800mメイン、600mをローテーション
+    { maxEtp: 999, workoutId: 'vo2max-800x6', alternates: ['vo2max-600x8'] },
   ],
   '乳酸閾値': [
-    { maxEtp: 75, workoutId: 'tempo-6000' },       // 速い選手 → 長めテンポ
-    { maxEtp: 999, workoutId: 'tempo-4000' },      // 標準 → 4000m
+    { maxEtp: 75, workoutId: 'tempo-6000', alternates: ['tempo-4000'] },
+    { maxEtp: 999, workoutId: 'tempo-4000' },
   ],
   'スピード・スプリント': [
-    { maxEtp: 70, workoutId: 'speed-300x6' },      // SS〜S: 300mスピード持久力
-    { maxEtp: 80, workoutId: 'reps-400x6' },       // A: 400mレップ
-    { maxEtp: 999, workoutId: 'reps-200x10' },     // B〜C: 200mレップ
+    { maxEtp: 70, workoutId: 'speed-300x6', alternates: ['reps-400x6'] },
+    { maxEtp: 80, workoutId: 'reps-400x6', alternates: ['speed-300x6'] },
+    { maxEtp: 999, workoutId: 'reps-200x10', alternates: ['reps-400x6'] },
   ],
   '有酸素ベース': [
-    { maxEtp: 70, workoutId: 'windsprints' },       // SS〜S: 流し付きイージー走
-    { maxEtp: 80, workoutId: 'easy-12000' },        // A: やや長めのイージー走
-    { maxEtp: 999, workoutId: 'easy-10000' },       // B〜C: 標準ロングイージー走
+    { maxEtp: 70, workoutId: 'windsprints' },
+    { maxEtp: 80, workoutId: 'easy-12000' },
+    { maxEtp: 999, workoutId: 'easy-10000' },
   ],
 };
 

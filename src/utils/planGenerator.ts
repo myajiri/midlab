@@ -480,7 +480,7 @@ function generateWeeklySchedule(
       const idx = keyWorkoutDays.indexOf(d);
       const focus = idx === 0 ? primary : secondary;
       const focusKey = idx === 0 ? primaryFocus : secondaryFocus;
-      const workoutId = selectWorkoutForCategory(focus?.menuCategory || '', etp);
+      const workoutId = selectWorkoutForCategory(focus?.menuCategory || '', etp, weekNumber);
       // workoutIdから具体的なワークアウト名を取得して表示
       const workoutName = workoutId ? WORKOUTS.find(w => w.id === workoutId)?.name : null;
       days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'workout', label: workoutName || focus?.name || 'ポイント練習', isKey: true, completed: false, focusKey, focusCategory: focus?.menuCategory, workoutId });
