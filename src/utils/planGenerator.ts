@@ -209,17 +209,23 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
     }
   });
 
+  // ETPテストをレース日から逆算して配置
+  // レースから最低3週前までにのみ配置（taper期・レース直前を回避）
   const rampTestWeeks: number[] = [];
   const testInterval = 8;
-  for (let w = testInterval; w <= weeksUntilRace && w < 20; w += testInterval) {
+  const minWeeksBeforeRace = 3; // レース3週前以降はテスト禁止
+  const lastAllowedTestWeek = weeksToGenerate - minWeeksBeforeRace;
+  // レースから逆算して8週間隔で配置（例: レース18週 → 許容15週目まで → 15, 7 の順）
+  for (let w = lastAllowedTestWeek; w >= 1; w -= testInterval) {
     const weekPhase = phases.find(p => w >= p.startWeek && w <= p.endWeek);
     if (weekPhase && weekPhase.type !== 'taper') rampTestWeeks.push(w);
   }
+  // ベースフェーズ終了時にテストがなければ追加（ただし許容範囲内に限る）
   const basePhase = phases.find(p => p.type === 'base');
-  if (basePhase && !rampTestWeeks.includes(basePhase.endWeek)) {
+  if (basePhase && basePhase.endWeek <= lastAllowedTestWeek && !rampTestWeeks.includes(basePhase.endWeek)) {
     rampTestWeeks.push(basePhase.endWeek);
-    rampTestWeeks.sort((a, b) => a - b);
   }
+  rampTestWeeks.sort((a, b) => a - b);
 
   const weeklyPlans: WeeklyPlan[] = [];
   // 今週の月曜日を計算（月=0, 火=1, ... 日=6 の体系で）
