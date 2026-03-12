@@ -325,8 +325,11 @@ export const usePlanStore = create<PlanState>()(
           const srDayOfWeek = (srDate.getDay() + 6) % 7;
 
           const newDays = [...week.days];
+          // 変更前の元データを保存（削除時の復元用）
+          const originalDays: { [dayIndex: number]: typeof newDays[number] } = {};
           // レース日をレースメニューに変更（休養日でもサブレースを優先）
           if (newDays[srDayOfWeek]) {
+            originalDays[srDayOfWeek] = { ...newDays[srDayOfWeek]! };
             newDays[srDayOfWeek] = {
               ...newDays[srDayOfWeek]!,
               type: 'race' as const,
@@ -341,6 +344,7 @@ export const usePlanStore = create<PlanState>()(
           const prevDay = (srDayOfWeek - 1 + 7) % 7;
           const prevWorkout = newDays[prevDay];
           if (prevWorkout && (prevWorkout.type === 'workout' || prevWorkout.isKey) && prevWorkout.type !== 'rest') {
+            originalDays[prevDay] = { ...prevWorkout };
             newDays[prevDay] = {
               ...prevWorkout,
               type: 'easy',
@@ -350,6 +354,8 @@ export const usePlanStore = create<PlanState>()(
               focusCategory: '有酸素ベース',
             };
           }
+          // サブレースに元データを保存
+          subRaceInWeek.originalDays = originalDays;
 
           return {
             ...week,
@@ -373,9 +379,11 @@ export const usePlanStore = create<PlanState>()(
         const plan = get().activePlan;
         if (!plan) return;
 
+        // 削除対象のサブレースを取得（元データ復元用）
+        const removedSubRace = (plan.subRaces || []).find((sr) => sr.id === subRaceId);
         const updatedSubRaces = (plan.subRaces || []).filter((sr) => sr.id !== subRaceId);
 
-        // サブレースを週間プランから除去
+        // サブレースを週間プランから除去し、変更された日のメニューを復元
         const updatedWeeklyPlans = plan.weeklyPlans.map((week) => {
           const weekStart = new Date(week.startDate);
           const weekEnd = new Date(week.endDate);
@@ -383,6 +391,24 @@ export const usePlanStore = create<PlanState>()(
             const srDate = new Date(sr.date);
             return srDate >= weekStart && srDate <= weekEnd;
           });
+
+          // この週のサブレースが削除対象の場合、元のdaysを復元
+          if (week.subRace && week.subRace.id === subRaceId && removedSubRace?.originalDays) {
+            const restoredDays = [...week.days];
+            for (const [dayIndexStr, originalDay] of Object.entries(removedSubRace.originalDays)) {
+              const dayIndex = Number(dayIndexStr);
+              if (originalDay && restoredDays[dayIndex]) {
+                restoredDays[dayIndex] = originalDay;
+              }
+            }
+            return {
+              ...week,
+              subRace: subRaceInWeek || undefined,
+              days: restoredDays,
+              workouts: restoredDays.filter((d): d is NonNullable<typeof d> => d !== null),
+            };
+          }
+
           return { ...week, subRace: subRaceInWeek || undefined };
         });
 
@@ -499,8 +525,11 @@ export const usePlanStore = create<PlanState>()(
           if (subRaceInWeek) {
             const srDate = new Date(subRaceInWeek.date);
             const srDayOfWeek = (srDate.getDay() + 6) % 7;
+            // 変更前の元データを保存（削除時の復元用）
+            const originalDays: { [dayIndex: number]: typeof newDays[number] } = {};
             // レース日をレースメニューに変更（休養日でもサブレースを優先）
             if (newDays[srDayOfWeek]) {
+              originalDays[srDayOfWeek] = { ...newDays[srDayOfWeek]! };
               newDays[srDayOfWeek] = {
                 ...newDays[srDayOfWeek]!,
                 type: 'race' as const,
@@ -515,6 +544,7 @@ export const usePlanStore = create<PlanState>()(
             const prevDay = (srDayOfWeek - 1 + 7) % 7;
             const prevWorkout = newDays[prevDay];
             if (prevWorkout && (prevWorkout.type === 'workout' || prevWorkout.isKey) && prevWorkout.type !== 'rest') {
+              originalDays[prevDay] = { ...prevWorkout };
               newDays[prevDay] = {
                 ...prevWorkout,
                 type: 'easy',
@@ -524,6 +554,8 @@ export const usePlanStore = create<PlanState>()(
                 focusCategory: '有酸素ベース',
               };
             }
+            // サブレースに元データを保存
+            subRaceInWeek.originalDays = originalDays;
           }
 
           return {
