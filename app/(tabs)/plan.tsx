@@ -1288,6 +1288,19 @@ export default function PlanScreen() {
                                 </View>
                               </View>
                               <Text style={styles.logTimelineCardCategory}>{log.workoutCategory}</Text>
+                              {/* 記録距離がない場合、ワークアウトIDから予定距離を表示 */}
+                              {!log.result?.distance && log.workoutId && (() => {
+                                const zd = getWorkoutZoneDistances(log.workoutId, limiter, customWorkoutsAsTemplates);
+                                const total = Object.values(zd).reduce((s, d) => s + (d || 0), 0);
+                                return total > 0 ? (
+                                  <View style={styles.logResultSummary}>
+                                    <View style={styles.logResultItem}>
+                                      <Ionicons name="trending-up" size={14} color={COLORS.text.muted} />
+                                      <Text style={styles.logResultValue}>{total}m</Text>
+                                    </View>
+                                  </View>
+                                ) : null;
+                              })()}
                               {log.result && (
                                 <View style={styles.logResultSummary}>
                                   {log.result.distance != null && (
