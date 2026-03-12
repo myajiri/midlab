@@ -232,10 +232,14 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
 
   const eventDistance = WEEKLY_DISTANCE_BY_EVENT[lookupDistance] || WEEKLY_DISTANCE_BY_EVENT[1500];
 
-  for (let w = 0; w < weeksUntilRace && w < 20; w++) {
+  // startDate（今週の月曜）からレース日を含む週までの週数を計算
+  const weeksToGenerate = Math.min(Math.ceil((raceDate.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)), 20);
+
+  for (let w = 0; w < weeksToGenerate; w++) {
     const weekNumber = w + 1;
     const phase = phases.find(p => weekNumber >= p.startWeek && weekNumber <= p.endWeek);
-    const phaseType = phase?.type || 'base';
+    // フェーズ外の週はレース週に近いためtaperとして扱う
+    const phaseType = phase?.type || 'taper';
     const dist = DISTRIBUTION_BY_LIMITER[phaseType]?.[baseline.limiterType] || DISTRIBUTION_BY_LIMITER.base.balanced;
 
     const weekStart = new Date(startDate);
