@@ -55,7 +55,7 @@ import {
   WorkoutTemplate,
 } from '../../src/types';
 import { generatePlan } from '../../src/utils/planGenerator';
-import { getWeeklyPlanRationale, calculateTrainingAnalytics, getWorkoutZoneDistances, calculateZoneTimes } from '../../src/utils';
+import { getWeeklyPlanRationale, calculateTrainingAnalytics, getWorkoutZoneDistances, calculateZoneTimes, AnalyticsPeriod } from '../../src/utils';
 import { ZoneName } from '../../src/types';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
@@ -414,6 +414,9 @@ export default function PlanScreen() {
   const [showSubRaceDatePicker, setShowSubRaceDatePicker] = useState(false);
   const addSubRace = usePlanStore((state) => state.addSubRace);
   const removeSubRace = usePlanStore((state) => state.removeSubRace);
+
+  // トレーニング分析の期間フィルタ
+  const [analyticsPeriod, setAnalyticsPeriod] = useState<AnalyticsPeriod>('all');
 
   // 日付バリデーション
   // ※ Hooks（useMemo）は条件分岐の前に配置する必要がある（Rules of Hooks）
@@ -1681,7 +1684,7 @@ export default function PlanScreen() {
         {activePlan.weeklyPlans && (() => {
           // 現在の計画に紐づくログのみを分析対象にする（計画再生成時に古いログが混入しないように）
           const planLogs = trainingLogs.filter((l) => l.planId === activePlan.id);
-          const analytics = calculateTrainingAnalytics(activePlan.weeklyPlans, activePlan.baseline.limiterType, planLogs, customWorkoutsAsTemplates);
+          const analytics = calculateTrainingAnalytics(activePlan.weeklyPlans, activePlan.baseline.limiterType, planLogs, customWorkoutsAsTemplates, analyticsPeriod);
           if (analytics.completedCount === 0) return null;
 
           const ZONE_LABELS: Record<string, { label: string; color: string }> = {
@@ -1713,6 +1716,25 @@ export default function PlanScreen() {
                 <View style={styles.analyticsTitleRow}>
                   <Ionicons name="stats-chart-outline" size={18} color={COLORS.primary} />
                   <Text style={styles.analyticsTitle}>トレーニング分析</Text>
+                </View>
+
+                {/* 期間セレクター */}
+                <View style={styles.analyticsPeriodRow}>
+                  {([
+                    { key: 'all' as AnalyticsPeriod, label: '全期間' },
+                    { key: '30d' as AnalyticsPeriod, label: '30日間' },
+                    { key: '7d' as AnalyticsPeriod, label: '7日間' },
+                  ]).map((item) => (
+                    <Pressable
+                      key={item.key}
+                      style={[styles.analyticsPeriodButton, analyticsPeriod === item.key && styles.analyticsPeriodButtonActive]}
+                      onPress={() => setAnalyticsPeriod(item.key)}
+                    >
+                      <Text style={[styles.analyticsPeriodText, analyticsPeriod === item.key && styles.analyticsPeriodTextActive]}>
+                        {item.label}
+                      </Text>
+                    </Pressable>
+                  ))}
                 </View>
 
                 {/* 走行距離サマリー */}
@@ -3106,6 +3128,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text.primary,
+  },
+  analyticsPeriodRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 14,
+  },
+  analyticsPeriodButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  analyticsPeriodButtonActive: {
+    backgroundColor: COLORS.primary,
+  },
+  analyticsPeriodText: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+  },
+  analyticsPeriodTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   analyticsDistanceRow: {
     flexDirection: 'row',
