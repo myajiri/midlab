@@ -767,7 +767,7 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining, o
               <Text style={styles.selectionGuideText}>{getWorkoutText(workout, 'selectionGuide')}</Text>
             </View>
           </SlideIn>
-        )}
+        ) : null}
 
         {/* なぜこのメニューか */}
         <SlideIn delay={180} direction="up">
