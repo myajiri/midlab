@@ -487,17 +487,42 @@ export const usePlanStore = create<PlanState>()(
         const plan = get().activePlan;
         if (!plan) return;
 
+        // 新ワークアウトのカテゴリからisKey・type・focusKeyを決定
+        const isEasyCategory = newWorkoutCategory === '有酸素ベース';
+        const isRecovery = newWorkoutId.startsWith('recovery-');
+        const isLong = newWorkoutId.startsWith('long-');
+        const isEasy = newWorkoutId.startsWith('easy-');
+        const newIsKey = !isEasyCategory || isLong; // ロングはKey扱い
+        const newType: ScheduledWorkout['type'] = isRecovery ? 'recovery' : isEasy ? 'easy' : isLong ? 'long' : 'workout';
+        const categoryToFocusKey: Record<string, string> = {
+          '有酸素ベース': 'aerobic',
+          '乳酸閾値': 'threshold',
+          'VO2max': 'vo2max',
+          'スピード・スプリント': 'speed',
+          '総合': 'threshold',
+        };
+        const newFocusKey = categoryToFocusKey[newWorkoutCategory] || 'aerobic';
+
         const updatedWeeklyPlans = plan.weeklyPlans.map((week) => {
           if (week.weekNumber !== weekNumber) return week;
+          const applyReplace = (d: ScheduledWorkout) => ({
+            ...d,
+            workoutId: newWorkoutId,
+            label: newWorkoutName,
+            focusCategory: newWorkoutCategory,
+            isKey: newIsKey,
+            type: newType,
+            focusKey: newFocusKey,
+          });
           return {
             ...week,
             days: week.days.map((d) => {
               if (!d || d.id !== dayId) return d;
-              return { ...d, workoutId: newWorkoutId, label: newWorkoutName, focusCategory: newWorkoutCategory };
+              return applyReplace(d);
             }),
             workouts: week.workouts.map((w) => {
               if (w.id !== dayId) return w;
-              return { ...w, workoutId: newWorkoutId, label: newWorkoutName, focusCategory: newWorkoutCategory };
+              return applyReplace(w);
             }),
           };
         });
