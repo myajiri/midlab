@@ -78,6 +78,27 @@ const getLimiterConfig = (): Record<LimiterType, { icon: string; label: string }
   balanced: { icon: 'scale', label: i18next.t('workout.limiterBalanced') },
 });
 
+// ワークアウトの翻訳テキストを取得するヘルパー
+const getWorkoutText = (workout: WorkoutTemplate, field: 'name' | 'description' | 'selectionGuide'): string => {
+  const key = `workouts.${workout.id}.${field}`;
+  const translated = i18next.t(key, { defaultValue: '' });
+  // 翻訳キーがそのまま返ってきた場合は元のテキストを使用
+  if (!translated || translated === key) {
+    return (workout as any)[field] || '';
+  }
+  return translated;
+};
+
+// リミッターバリアントのnoteを翻訳するヘルパー
+const getVariantNote = (workoutId: string, limiter: LimiterType, fallback: string): string => {
+  const key = `workouts.${workoutId}.limiterVariants.${limiter}.note`;
+  const translated = i18next.t(key, { defaultValue: '' });
+  if (!translated || translated === key) {
+    return fallback;
+  }
+  return translated;
+};
+
 interface ExpandedSegment {
   zone: ZoneName | 'rest';
   distance: number;
@@ -134,7 +155,7 @@ export default function WorkoutScreen() {
       id: `tl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       date: toLocalDateStr(new Date()),
       workoutId: workout.id,
-      workoutName: workout.name,
+      workoutName: getWorkoutText(workout, 'name'),
       workoutCategory: workout.category,
       status: 'planned',
       planId: activePlan?.id,
@@ -145,8 +166,8 @@ export default function WorkoutScreen() {
 
   // 計画内メニューを差し替える
   const handleReplaceWorkout = (workout: WorkoutTemplate) => {
-    replaceWorkoutInPlan(replaceWeek, replaceDayId, workout.id, workout.name, workout.category);
-    showToast(t('workout.replacedWorkout', { dayLabel: replaceDayLabel, workoutName: workout.name }), 'success');
+    replaceWorkoutInPlan(replaceWeek, replaceDayId, workout.id, getWorkoutText(workout, 'name'), workout.category);
+    showToast(t('workout.replacedWorkout', { dayLabel: replaceDayLabel, workoutName: getWorkoutText(workout, 'name') }), 'success');
     // 差し替え処理済みとして記録（タブ再訪問時にモードが残らないように）
     setProcessedReplaceT(replaceT);
     // 計画タブの週間表示に戻り、他のメニューも変更できるようにする
@@ -367,7 +388,7 @@ export default function WorkoutScreen() {
                     <IntensityGraph segments={expanded} height={80} />
                     <View style={styles.workoutCardBody}>
                       <View style={styles.workoutCardNameRow}>
-                        <Text style={styles.workoutCardName}>{workout.name}</Text>
+                        <Text style={styles.workoutCardName}>{getWorkoutText(workout, 'name')}</Text>
                         {isCustom && (
                           <View style={styles.customBadge}>
                             <Text style={styles.customBadgeText}>{t('common.custom')}</Text>
@@ -385,7 +406,7 @@ export default function WorkoutScreen() {
                       {variant?.note && (
                         <View style={styles.workoutCardNote}>
                           <Ionicons name={WORKOUT_LIMITER_CONFIG[limiter].icon as any} size={14} color={WORKOUT_LIMITER_CONFIG[limiter].color} />
-                          <Text style={styles.workoutCardNoteText}>{variant.note}</Text>
+                          <Text style={styles.workoutCardNoteText}>{getVariantNote(workout.id, limiter, variant.note)}</Text>
                         </View>
                       )}
                     </View>
@@ -436,7 +457,7 @@ export default function WorkoutScreen() {
                         <Pressable
                           style={styles.workoutDetailButton}
                           onPress={() => {
-                            Alert.alert(t('workout.deleteWorkout'), t('workout.deleteWorkoutConfirm', { name: workout.name }), [
+                            Alert.alert(t('workout.deleteWorkout'), t('workout.deleteWorkoutConfirm', { name: getWorkoutText(workout, 'name') }), [
                               { text: t('common.cancel'), style: 'cancel' },
                               { text: t('common.delete'), style: 'destructive', onPress: () => deleteCustomWorkout(workout.id) },
                             ]);
@@ -687,12 +708,12 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining, o
             <Pressable style={styles.backButton} onPress={onBack}>
               <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
             </Pressable>
-            <Text style={styles.detailTitle}>{workout.name}</Text>
+            <Text style={styles.detailTitle}>{getWorkoutText(workout, 'name')}</Text>
             {onDelete && (
               <Pressable
                 style={styles.detailDeleteButton}
                 onPress={() => {
-                  Alert.alert(t('workout.deleteWorkout'), t('workout.deleteWorkoutConfirm', { name: workout.name }), [
+                  Alert.alert(t('workout.deleteWorkout'), t('workout.deleteWorkoutConfirm', { name: getWorkoutText(workout, 'name') }), [
                     { text: t('common.cancel'), style: 'cancel' },
                     { text: t('common.delete'), style: 'destructive', onPress: () => onDelete(workout.id) },
                   ]);
@@ -726,24 +747,24 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining, o
             <View style={styles.limiterCard}>
               <Ionicons name={getLimiterConfig()[limiter].icon as any} size={20} color={COLORS.primary} />
               <View>
-                <Text style={styles.limiterCardTitle}>{getLimiterConfig()[limiter].label}{i18next.t('workout.limiterAdjustments')}</Text>
-                <Text style={styles.limiterCardNote}>{variant.note}</Text>
+                <Text style={styles.limiterCardTitle}>{getLimiterConfig()[limiter].label} - {i18next.t('workout.limiterAdjustments')}</Text>
+                <Text style={styles.limiterCardNote}>{getVariantNote(workout.id, limiter, variant.note)}</Text>
               </View>
             </View>
           )}
 
-          <Text style={styles.detailDescription}>{workout.description}</Text>
+          <Text style={styles.detailDescription}>{getWorkoutText(workout, 'description')}</Text>
         </SlideIn>
 
         {/* 選択ガイド（同カテゴリ内での差分・選び方） */}
-        {workout.selectionGuide && (
+        {getWorkoutText(workout, 'selectionGuide') ? (
           <SlideIn delay={170} direction="up">
             <View style={styles.selectionGuideCard}>
               <View style={styles.selectionGuideHeader}>
                 <Ionicons name="git-compare-outline" size={18} color="#3B82F6" />
                 <Text style={styles.selectionGuideTitle}>{t('workout.selectionGuide')}</Text>
               </View>
-              <Text style={styles.selectionGuideText}>{workout.selectionGuide}</Text>
+              <Text style={styles.selectionGuideText}>{getWorkoutText(workout, 'selectionGuide')}</Text>
             </View>
           </SlideIn>
         )}

@@ -27,7 +27,7 @@ import {
 import { formatTime, formatKmPace, calculateSpeedIndex, estimateLimiterFromSpeedIndex, calculateEtp } from '../../src/utils';
 import { TimePickerModal } from '../../src/components/ui';
 import { FadeIn, SlideIn } from '../../src/components/ui/Animated';
-import { COLORS, PB_COEFFICIENTS, TRAINING_PHILOSOPHY } from '../../src/constants';
+import { COLORS, PB_COEFFICIENTS } from '../../src/constants';
 import { AgeCategory, Experience, LimiterType, PBs } from '../../src/types';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
@@ -470,12 +470,12 @@ export default function SettingsScreen() {
               <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>{t('settings.philosophy')}</Text>
             </View>
             <Text style={styles.philosophyIntro}>{t('settings.philosophyIntro')}</Text>
-            {TRAINING_PHILOSOPHY.map((item, index) => {
+            {(i18next.t('philosophy', { returnObjects: true }) as Array<{ title: string; content: string; icon: string }>).map((item, index, arr) => {
               const isExpanded = expandedPhilosophy === index;
               return (
                 <Pressable
                   key={index}
-                  style={[styles.philosophyItem, index < TRAINING_PHILOSOPHY.length - 1 && styles.helpItemBorder]}
+                  style={[styles.philosophyItem, index < arr.length - 1 && styles.helpItemBorder]}
                   onPress={() => setExpandedPhilosophy(isExpanded ? null : index)}
                 >
                   <View style={styles.philosophyTermRow}>

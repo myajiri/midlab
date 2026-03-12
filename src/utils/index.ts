@@ -638,7 +638,6 @@ export const estimateLimiterFromSpeedIndex = (
 
 import {
   LIMITER_RATIONALE,
-  FOCUS_RATIONALE,
   PHASE_RATIONALE,
   PHYSIOLOGICAL_FOCUS_CATEGORIES,
   WORKOUT_LIMITER_CONFIG,
@@ -657,14 +656,10 @@ export const getWorkoutRationale = (
     ([_, v]) => v.menuCategory === category
   )?.[0];
 
-  const focusRationale = focusKey ? FOCUS_RATIONALE[focusKey] : null;
-  const limiterConfig = WORKOUT_LIMITER_CONFIG[limiterType];
-
-  if (focusRationale) {
-    const connection = focusRationale.limiterConnection[limiterType];
+  if (focusKey) {
     return {
-      headline: focusRationale.whyImportant,
-      detail: connection,
+      headline: i18next.t(`rationale.focus.${focusKey}.whyImportant`),
+      detail: i18next.t(`rationale.focus.${focusKey}.limiterConnection.${limiterType}`),
     };
   }
 
