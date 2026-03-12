@@ -55,7 +55,7 @@ import {
   WorkoutTemplate,
 } from '../../src/types';
 import { generatePlan } from '../../src/utils/planGenerator';
-import { getWeeklyPlanRationale, calculateTrainingAnalytics, getWorkoutZoneDistances, calculateZoneTimes } from '../../src/utils';
+import { getWeeklyPlanRationale, calculateTrainingAnalytics, getWorkoutZoneDistances, calculateZoneTimes, AnalyticsPeriod } from '../../src/utils';
 import { ZoneName } from '../../src/types';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
@@ -414,6 +414,9 @@ export default function PlanScreen() {
   const [showSubRaceDatePicker, setShowSubRaceDatePicker] = useState(false);
   const addSubRace = usePlanStore((state) => state.addSubRace);
   const removeSubRace = usePlanStore((state) => state.removeSubRace);
+
+  // トレーニング分析の期間フィルタ
+  const [analyticsPeriod, setAnalyticsPeriod] = useState<AnalyticsPeriod>('all');
 
   // 日付バリデーション
   // ※ Hooks（useMemo）は条件分岐の前に配置する必要がある（Rules of Hooks）
@@ -1285,6 +1288,19 @@ export default function PlanScreen() {
                                 </View>
                               </View>
                               <Text style={styles.logTimelineCardCategory}>{log.workoutCategory}</Text>
+                              {/* 記録距離がない場合、ワークアウトIDから予定距離を表示 */}
+                              {!log.result?.distance && log.workoutId && (() => {
+                                const zd = getWorkoutZoneDistances(log.workoutId, limiter, customWorkoutsAsTemplates);
+                                const total = Object.values(zd).reduce((s, d) => s + (d || 0), 0);
+                                return total > 0 ? (
+                                  <View style={styles.logResultSummary}>
+                                    <View style={styles.logResultItem}>
+                                      <Ionicons name="trending-up" size={14} color={COLORS.text.muted} />
+                                      <Text style={styles.logResultValue}>{total}m</Text>
+                                    </View>
+                                  </View>
+                                ) : null;
+                              })()}
                               {log.result && (
                                 <View style={styles.logResultSummary}>
                                   {log.result.distance != null && (
@@ -1681,7 +1697,7 @@ export default function PlanScreen() {
         {activePlan.weeklyPlans && (() => {
           // 現在の計画に紐づくログのみを分析対象にする（計画再生成時に古いログが混入しないように）
           const planLogs = trainingLogs.filter((l) => l.planId === activePlan.id);
-          const analytics = calculateTrainingAnalytics(activePlan.weeklyPlans, activePlan.baseline.limiterType, planLogs, customWorkoutsAsTemplates);
+          const analytics = calculateTrainingAnalytics(activePlan.weeklyPlans, activePlan.baseline.limiterType, planLogs, customWorkoutsAsTemplates, analyticsPeriod);
           if (analytics.completedCount === 0) return null;
 
           const ZONE_LABELS: Record<string, { label: string; color: string }> = {
@@ -1713,6 +1729,25 @@ export default function PlanScreen() {
                 <View style={styles.analyticsTitleRow}>
                   <Ionicons name="stats-chart-outline" size={18} color={COLORS.primary} />
                   <Text style={styles.analyticsTitle}>トレーニング分析</Text>
+                </View>
+
+                {/* 期間セレクター */}
+                <View style={styles.analyticsPeriodRow}>
+                  {([
+                    { key: 'all' as AnalyticsPeriod, label: '全期間' },
+                    { key: '30d' as AnalyticsPeriod, label: '30日間' },
+                    { key: '7d' as AnalyticsPeriod, label: '7日間' },
+                  ]).map((item) => (
+                    <Pressable
+                      key={item.key}
+                      style={[styles.analyticsPeriodButton, analyticsPeriod === item.key && styles.analyticsPeriodButtonActive]}
+                      onPress={() => setAnalyticsPeriod(item.key)}
+                    >
+                      <Text style={[styles.analyticsPeriodText, analyticsPeriod === item.key && styles.analyticsPeriodTextActive]}>
+                        {item.label}
+                      </Text>
+                    </Pressable>
+                  ))}
                 </View>
 
                 {/* 走行距離サマリー */}
@@ -2053,6 +2088,29 @@ export default function PlanScreen() {
                 const planStart = activePlan.weeklyPlans?.[0]?.startDate;
                 const raceEnd = activePlan.race.date;
                 const srDateStr = subRaceDate.toISOString();
+                // 過去の日付（今日以前）は設定不可
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const srDateOnly = new Date(subRaceDate);
+                srDateOnly.setHours(0, 0, 0, 0);
+                if (srDateOnly <= today) {
+                  Alert.alert('エラー', '過去の日付にはサブレースを設定できません。\n明日以降の日付を選択してください。');
+                  return;
+                }
+                // 完了済みの日には設定不可
+                const srDayOfWeek = (subRaceDate.getDay() + 6) % 7;
+                const targetWeek = activePlan.weeklyPlans?.find((week) => {
+                  const weekStart = new Date(week.startDate);
+                  const weekEnd = new Date(week.endDate);
+                  return srDateOnly >= weekStart && srDateOnly <= weekEnd;
+                });
+                if (targetWeek) {
+                  const targetDay = targetWeek.days[srDayOfWeek];
+                  if (targetDay?.completed) {
+                    Alert.alert('エラー', 'この日は既にトレーニングが完了しています。\n完了済みの日にはサブレースを設定できません。');
+                    return;
+                  }
+                }
                 if (planStart && srDateStr < planStart) {
                   Alert.alert('エラー', '計画開始日より前の日付は設定できません');
                   return;
@@ -2075,6 +2133,11 @@ export default function PlanScreen() {
                   priority: subRacePriority,
                 });
                 setShowSubRaceModal(false);
+                // レースカテゴリへ遷移（W-up/C-downの編集・カスタムレースメニュー作成を促す）
+                router.push({
+                  pathname: '/(tabs)/workout',
+                  params: { category: 'レース', t: Date.now().toString() },
+                });
               }}
               disabled={!subRaceName || !subRaceDate}
             >
@@ -3083,6 +3146,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text.primary,
+  },
+  analyticsPeriodRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 14,
+  },
+  analyticsPeriodButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+  },
+  analyticsPeriodButtonActive: {
+    backgroundColor: COLORS.primary,
+  },
+  analyticsPeriodText: {
+    fontSize: 12,
+    color: COLORS.text.muted,
+  },
+  analyticsPeriodTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
   },
   analyticsDistanceRow: {
     flexDirection: 'row',

@@ -788,11 +788,15 @@ export interface TrainingAnalytics {
   totalCount: number;
 }
 
+// 分析期間フィルタ: 'all'=全期間, '7d'=過去7日, '30d'=過去30日
+export type AnalyticsPeriod = 'all' | '7d' | '30d';
+
 export const calculateTrainingAnalytics = (
   weeklyPlans: WeeklyPlan[],
   limiterType: LimiterType,
   trainingLogs?: TrainingLog[],
   additionalWorkouts?: WorkoutTemplate[],
+  period: AnalyticsPeriod = 'all',
 ): TrainingAnalytics => {
   const completedZoneDistances: ZoneDistances = {};
   const plannedZoneDistances: ZoneDistances = {};
@@ -818,6 +822,9 @@ export const calculateTrainingAnalytics = (
   monthAgo.setDate(monthAgo.getDate() - 30);
   const monthAgoStr = toDateStr(monthAgo);
 
+  // 期間フィルタの開始日を決定
+  const periodStartStr = period === '7d' ? weekAgoStr : period === '30d' ? monthAgoStr : '';
+
   // weeklyPlansの完了済みワークアウトIDを追跡（重複防止）
   const planCompletedWorkoutKeys = new Set<string>();
 
@@ -833,6 +840,9 @@ export const calculateTrainingAnalytics = (
       // ローカル日付として計算（タイムゾーン安全）
       const dayDate = new Date(startParts[0], startParts[1] - 1, startParts[2] + i);
       const dateStr = toDateStr(dayDate);
+
+      // 期間フィルタ: 開始日より前の日はスキップ
+      if (periodStartStr && dateStr < periodStartStr) continue;
 
       // 本日以降の未来の日はカウント対象外（計画基準は本日まで）
       const isFutureDay = dateStr > todayStr;
@@ -874,6 +884,9 @@ export const calculateTrainingAnalytics = (
   if (trainingLogs) {
     for (const log of trainingLogs) {
       if (log.status !== 'completed') continue;
+
+      // 期間フィルタ: 開始日より前の記録はスキップ
+      if (periodStartStr && log.date < periodStartStr) continue;
 
       // weeklyPlansで既にカウント済みの記録はスキップ
       const key = `${log.date}_${log.workoutId}`;

@@ -209,17 +209,23 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
     }
   });
 
+  // ETPテストをレース日から逆算して配置
+  // レースから最低3週前までにのみ配置（taper期・レース直前を回避）
   const rampTestWeeks: number[] = [];
   const testInterval = 8;
-  for (let w = testInterval; w <= weeksUntilRace && w < 20; w += testInterval) {
+  const minWeeksBeforeRace = 3; // レース3週前以降はテスト禁止
+  const lastAllowedTestWeek = weeksToGenerate - minWeeksBeforeRace;
+  // レースから逆算して8週間隔で配置（例: レース18週 → 許容15週目まで → 15, 7 の順）
+  for (let w = lastAllowedTestWeek; w >= 1; w -= testInterval) {
     const weekPhase = phases.find(p => w >= p.startWeek && w <= p.endWeek);
     if (weekPhase && weekPhase.type !== 'taper') rampTestWeeks.push(w);
   }
+  // ベースフェーズ終了時にテストがなければ追加（ただし許容範囲内に限る）
   const basePhase = phases.find(p => p.type === 'base');
-  if (basePhase && !rampTestWeeks.includes(basePhase.endWeek)) {
+  if (basePhase && basePhase.endWeek <= lastAllowedTestWeek && !rampTestWeeks.includes(basePhase.endWeek)) {
     rampTestWeeks.push(basePhase.endWeek);
-    rampTestWeeks.sort((a, b) => a - b);
   }
+  rampTestWeeks.sort((a, b) => a - b);
 
   const weeklyPlans: WeeklyPlan[] = [];
   // 今週の月曜日を計算（月=0, 火=1, ... 日=6 の体系で）
@@ -232,10 +238,14 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
 
   const eventDistance = WEEKLY_DISTANCE_BY_EVENT[lookupDistance] || WEEKLY_DISTANCE_BY_EVENT[1500];
 
-  for (let w = 0; w < weeksUntilRace && w < 20; w++) {
+  // startDate（今週の月曜）からレース日を含む週までの週数を計算
+  const weeksToGenerate = Math.min(Math.ceil((raceDate.getTime() - startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)), 20);
+
+  for (let w = 0; w < weeksToGenerate; w++) {
     const weekNumber = w + 1;
     const phase = phases.find(p => weekNumber >= p.startWeek && weekNumber <= p.endWeek);
-    const phaseType = phase?.type || 'base';
+    // フェーズ外の週はレース週に近いためtaperとして扱う
+    const phaseType = phase?.type || 'taper';
     const dist = DISTRIBUTION_BY_LIMITER[phaseType]?.[baseline.limiterType] || DISTRIBUTION_BY_LIMITER.base.balanced;
 
     const weekStart = new Date(startDate);
@@ -470,7 +480,7 @@ function generateWeeklySchedule(
       const idx = keyWorkoutDays.indexOf(d);
       const focus = idx === 0 ? primary : secondary;
       const focusKey = idx === 0 ? primaryFocus : secondaryFocus;
-      const workoutId = selectWorkoutForCategory(focus?.menuCategory || '', etp);
+      const workoutId = selectWorkoutForCategory(focus?.menuCategory || '', etp, weekNumber);
       // workoutIdから具体的なワークアウト名を取得して表示
       const workoutName = workoutId ? WORKOUTS.find(w => w.id === workoutId)?.name : null;
       days.push({ id: `w${weekNumber}-d${d}`, dayOfWeek: d, type: 'workout', label: workoutName || focus?.name || 'ポイント練習', isKey: true, completed: false, focusKey, focusCategory: focus?.menuCategory, workoutId });
