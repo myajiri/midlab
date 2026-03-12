@@ -2053,6 +2053,29 @@ export default function PlanScreen() {
                 const planStart = activePlan.weeklyPlans?.[0]?.startDate;
                 const raceEnd = activePlan.race.date;
                 const srDateStr = subRaceDate.toISOString();
+                // 過去の日付（今日以前）は設定不可
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const srDateOnly = new Date(subRaceDate);
+                srDateOnly.setHours(0, 0, 0, 0);
+                if (srDateOnly <= today) {
+                  Alert.alert('エラー', '過去の日付にはサブレースを設定できません。\n明日以降の日付を選択してください。');
+                  return;
+                }
+                // 完了済みの日には設定不可
+                const srDayOfWeek = (subRaceDate.getDay() + 6) % 7;
+                const targetWeek = activePlan.weeklyPlans?.find((week) => {
+                  const weekStart = new Date(week.startDate);
+                  const weekEnd = new Date(week.endDate);
+                  return srDateOnly >= weekStart && srDateOnly <= weekEnd;
+                });
+                if (targetWeek) {
+                  const targetDay = targetWeek.days[srDayOfWeek];
+                  if (targetDay?.completed) {
+                    Alert.alert('エラー', 'この日は既にトレーニングが完了しています。\n完了済みの日にはサブレースを設定できません。');
+                    return;
+                  }
+                }
                 if (planStart && srDateStr < planStart) {
                   Alert.alert('エラー', '計画開始日より前の日付は設定できません');
                   return;
