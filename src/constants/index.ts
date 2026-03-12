@@ -891,12 +891,11 @@ export const WORKOUTS = [
     id: 'race-10000',
     name: '10000mレース',
     category: 'レース',
-    description: '10000mレース。W-up・C-downを含むレース日のメニュー。VO2max＋閾値強度の組み合わせで記録。',
-    selectionGuide: 'W-up 1600m → 前半5000m(interval) → 後半5000m(threshold) → C-down 1600m のデフォルト構成。',
+    description: '10000mレース。W-up・C-downを含むレース日のメニュー。閾値強度で記録（10000mのレースペースは閾値付近）。',
+    selectionGuide: 'W-up 1600m → レース 10000m → C-down 1600m のデフォルト構成。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up' },
-      { zone: 'interval' as ZoneName, distance: 5000, label: 'レース前半 5000m' },
-      { zone: 'threshold' as ZoneName, distance: 5000, label: 'レース後半 5000m' },
+      { zone: 'threshold' as ZoneName, distance: 10000, label: 'レース 10000m' },
       { zone: 'jog' as ZoneName, distance: 1600, label: 'C-down' },
     ],
     limiterVariants: {
@@ -909,12 +908,11 @@ export const WORKOUTS = [
     id: 'race-half',
     name: 'ハーフマラソン',
     category: 'レース',
-    description: 'ハーフマラソン（21.0975km）。W-up・C-downを含むレース日のメニュー。閾値＋マラソン強度で記録。',
-    selectionGuide: 'W-up 1600m → 前半(threshold) → 後半(marathon) → C-down 1600m のデフォルト構成。',
+    description: 'ハーフマラソン（21.0975km）。W-up・C-downを含むレース日のメニュー。閾値強度で記録（ハーフのレースペースは閾値付近）。',
+    selectionGuide: 'W-up 1600m → レース 21097m → C-down 1600m のデフォルト構成。',
     segments: [
       { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up' },
-      { zone: 'threshold' as ZoneName, distance: 10000, label: 'レース前半 10km' },
-      { zone: 'marathon' as ZoneName, distance: 11097, label: 'レース後半 11km' },
+      { zone: 'threshold' as ZoneName, distance: 21097, label: 'レース 21.0975km' },
       { zone: 'jog' as ZoneName, distance: 1600, label: 'C-down' },
     ],
     limiterVariants: {
