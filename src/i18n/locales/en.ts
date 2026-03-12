@@ -136,6 +136,12 @@ const en = {
     featureZonesDesc: 'Automatically calculate optimal paces',
     featurePersonalize: 'Personalize',
     featurePersonalizeDesc: 'Training tailored to you',
+    feature1Title: 'ETP Test',
+    feature1Desc: 'Scientifically determine your endurance type',
+    feature2Title: 'Zone Calculation',
+    feature2Desc: 'Automatically calculate optimal paces',
+    feature3Title: 'Personalize',
+    feature3Desc: 'Training tailored to you',
     getStarted: 'Get Started',
     start: 'Get Started',
     skip: 'Skip',
@@ -352,6 +358,13 @@ const en = {
     daysUntilRace: '{{days}} days to go',
 
     // 体感
+    feeling: {
+      great: 'Great',
+      good: 'Good',
+      normal: 'Normal',
+      tough: 'Tough',
+      bad: 'Off',
+    },
     feelingGreat: 'Great',
     feelingGood: 'Good',
     feelingNormal: 'Normal',
@@ -359,9 +372,17 @@ const en = {
     feelingBad: 'Off',
 
     // レース距離ラベル
+    customDistance: 'Custom Distance',
+    halfMarathon: 'Half Marathon',
+    marathon: 'Marathon',
     distanceHalf: 'Half',
     distanceMarathon: 'Marathon',
     distanceCustom: 'Custom',
+
+    // 分析期間
+    periodAll: 'All Time',
+    period30d: '30 Days',
+    period7d: '7 Days',
 
     // トレーニングログ
     trainingLog: 'Training Log',
@@ -457,7 +478,7 @@ const en = {
     durationLabel: 'Duration',
     minuteLabel: 'min',
     secondLabel: 'sec',
-    feeling: 'Feeling',
+    feelingSectionLabel: 'Feeling',
     feelingLabel: 'How did it feel?',
     notes: 'Notes',
     notesLabel: 'Notes',

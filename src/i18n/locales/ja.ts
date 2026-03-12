@@ -136,6 +136,12 @@ const ja = {
     featureZonesDesc: '最適なペースを自動計算',
     featurePersonalize: 'パーソナライズ',
     featurePersonalizeDesc: 'あなたに合ったトレーニング',
+    feature1Title: 'ETPテスト',
+    feature1Desc: '科学的に持久力タイプを判定',
+    feature2Title: 'ゾーン算出',
+    feature2Desc: '最適なペースを自動計算',
+    feature3Title: 'パーソナライズ',
+    feature3Desc: 'あなたに合ったトレーニング',
     getStarted: 'はじめる',
     start: 'はじめる',
     skip: 'スキップ',
@@ -352,6 +358,13 @@ const ja = {
     daysUntilRace: 'あと{{days}}日',
 
     // 体感
+    feeling: {
+      great: '絶好調',
+      good: '好調',
+      normal: '普通',
+      tough: 'きつい',
+      bad: '不調',
+    },
     feelingGreat: '絶好調',
     feelingGood: '好調',
     feelingNormal: '普通',
@@ -359,9 +372,17 @@ const ja = {
     feelingBad: '不調',
 
     // レース距離ラベル
+    customDistance: 'カスタム距離',
+    halfMarathon: 'ハーフマラソン',
+    marathon: 'マラソン',
     distanceHalf: 'ハーフ',
     distanceMarathon: 'マラソン',
     distanceCustom: 'カスタム',
+
+    // 分析期間
+    periodAll: '全期間',
+    period30d: '30日間',
+    period7d: '7日間',
 
     // トレーニングログ
     trainingLog: 'トレーニングログ',
@@ -457,7 +478,7 @@ const ja = {
     durationLabel: 'タイム',
     minuteLabel: '分',
     secondLabel: '秒',
-    feeling: '体感',
+    feelingSectionLabel: '体感',
     feelingLabel: '体感はどうでしたか？',
     notes: 'メモ',
     notesLabel: 'メモ',

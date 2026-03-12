@@ -2235,7 +2235,7 @@ function RecordResultModal({
 
               {/* 体感 */}
               <View style={styles.modalInputGroup}>
-                <Text style={styles.modalInputLabel}>{t('plan.feeling')}</Text>
+                <Text style={styles.modalInputLabel}>{t('plan.feelingSectionLabel')}</Text>
                 <View style={styles.feelingSelector}>
                   {(Object.keys(FEELING_CONFIG) as FeelingLevel[]).map((key) => {
                     const config = FEELING_CONFIG[key];
