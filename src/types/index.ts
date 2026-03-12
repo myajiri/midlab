@@ -286,6 +286,7 @@ export interface TrainingLog {
 // アプリ設定
 export interface AppSettings {
   useNewUI?: boolean;
+  language?: 'ja' | 'en' | 'system';
 }
 
 // 有効値（現在のeTPとリミッター）

@@ -48,6 +48,7 @@ import { COLORS, ZONE_COEFFICIENTS_V3, RACE_COEFFICIENTS } from '../../src/const
 import { ZoneName, LimiterType } from '../../src/types';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { useIsFocused } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 
 // リミッターのIoniconsアイコン
 const LIMITER_ICON: Record<LimiterType, { name: string; color: string }> = {
@@ -56,13 +57,14 @@ const LIMITER_ICON: Record<LimiterType, { name: string; color: string }> = {
   balanced: { name: 'scale', color: '#22C55E' },
 };
 
-const LIMITER_LABEL: Record<LimiterType, string> = {
-  cardio: '心肺リミッター型',
-  muscular: '筋持久力リミッター型',
-  balanced: 'バランス型',
+const LIMITER_LABEL_KEY: Record<LimiterType, string> = {
+  cardio: 'constants.limiters.cardio.label',
+  muscular: 'constants.limiters.muscular.label',
+  balanced: 'constants.limiters.balanced.label',
 };
 
 export default function HomeScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const setSubScreenOpen = useSetSubScreenOpen();
   const isFocused = useIsFocused();
@@ -97,9 +99,9 @@ export default function HomeScreen() {
             <View style={styles.welcomeIconContainer}>
               <Ionicons name="flash" size={40} color={COLORS.primary} />
             </View>
-            <Text style={styles.welcomeTitle}>ミドラボへようこそ</Text>
+            <Text style={styles.welcomeTitle}>{t('home.welcomeTitle')}</Text>
             <Text style={styles.welcomeSubtitle}>
-              ETPテストであなたに最適なトレーニングを見つけましょう
+              {t('home.welcomeSubtitle')}
             </Text>
           </View>
 
@@ -110,8 +112,8 @@ export default function HomeScreen() {
                 <Text style={styles.stepNumberText}>1</Text>
               </View>
               <View style={styles.stepContent}>
-                <Text style={styles.stepTitle}>プロフィールを設定</Text>
-                <Text style={styles.stepDesc}>基本情報と自己ベストを登録</Text>
+                <Text style={styles.stepTitle}>{t('home.step1Title')}</Text>
+                <Text style={styles.stepDesc}>{t('home.step1Desc')}</Text>
               </View>
             </View>
             <View style={styles.stepConnector} />
@@ -120,8 +122,8 @@ export default function HomeScreen() {
                 <Text style={styles.stepNumberTextMuted}>2</Text>
               </View>
               <View style={styles.stepContent}>
-                <Text style={styles.stepTitleMuted}>ETPテストを実施</Text>
-                <Text style={styles.stepDesc}>持久力タイプを測定</Text>
+                <Text style={styles.stepTitleMuted}>{t('home.step2Title')}</Text>
+                <Text style={styles.stepDesc}>{t('home.step2Desc')}</Text>
               </View>
             </View>
             <View style={styles.stepConnector} />
@@ -130,8 +132,8 @@ export default function HomeScreen() {
                 <Text style={styles.stepNumberTextMuted}>3</Text>
               </View>
               <View style={styles.stepContent}>
-                <Text style={styles.stepTitleMuted}>トレーニング開始</Text>
-                <Text style={styles.stepDesc}>最適なペースで練習</Text>
+                <Text style={styles.stepTitleMuted}>{t('home.step3Title')}</Text>
+                <Text style={styles.stepDesc}>{t('home.step3Desc')}</Text>
               </View>
             </View>
           </View>
@@ -139,13 +141,13 @@ export default function HomeScreen() {
           {/* CTA */}
           <View style={styles.welcomeCta}>
             <Button
-              title="プロフィールを設定する"
+              title={t('home.setupProfile')}
               onPress={() => router.push('/settings')}
               fullWidth
               size="large"
             />
             <Text style={styles.welcomeHint}>
-              約1分で完了します
+              {t('home.setupHint')}
             </Text>
           </View>
         </ScrollView>
@@ -158,7 +160,7 @@ export default function HomeScreen() {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         {/* ヘッダー */}
         <FadeIn delay={0}>
-          <Text style={styles.pageTitle}>ダッシュボード</Text>
+          <Text style={styles.pageTitle}>{t('home.dashboard')}</Text>
         </FadeIn>
 
         {/* ステータスカード */}
@@ -169,11 +171,11 @@ export default function HomeScreen() {
               <Text style={styles.etpLabel}>ETP</Text>
               <View style={styles.etpSourceBadge}>
                 <Text style={styles.etpSourceText}>
-                  {source === 'estimated' ? '推定' : source === 'measured' ? '測定' : 'デフォルト'}
+                  {source === 'estimated' ? t('home.estimated') : source === 'measured' ? t('home.measured') : t('home.default')}
                 </Text>
               </View>
             </View>
-            <Text style={styles.etpValue}>{etp}秒</Text>
+            <Text style={styles.etpValue}>{t('home.etpSeconds', { seconds: etp })}</Text>
             <Text style={styles.etpKmPace}>{formatKmPace(etp)}</Text>
 
             {/* リミッターバッジ */}
@@ -183,18 +185,18 @@ export default function HomeScreen() {
                 size={18}
                 color={LIMITER_ICON[limiter].color}
               />
-              <Text style={styles.limiterLabel}>{LIMITER_LABEL[limiter]}</Text>
+              <Text style={styles.limiterLabel}>{t(LIMITER_LABEL_KEY[limiter])}</Text>
             </View>
 
             {/* レベルとVO2max */}
             <View style={styles.metricsRow}>
               <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>レベル</Text>
+                <Text style={styles.metricLabel}>{t('home.level')}</Text>
                 <Text style={styles.metricValueBlue}>{level || '-'}</Text>
               </View>
               <View style={styles.metricDivider} />
               <View style={styles.metricItem}>
-                <Text style={styles.metricLabel}>推定VO2max</Text>
+                <Text style={styles.metricLabel}>{t('home.estimatedVO2max')}</Text>
                 <Text style={styles.metricValueGreen}>{vo2max || '-'}</Text>
               </View>
             </View>
@@ -202,7 +204,7 @@ export default function HomeScreen() {
             {/* 最終測定日 */}
             {latestResult && (
               <Text style={styles.lastTestDate}>
-                最終測定: {new Date(latestResult.date).toLocaleDateString('ja-JP')}
+                {t('home.lastTest', { date: new Date(latestResult.date).toLocaleDateString('ja-JP') })}
               </Text>
             )}
 
@@ -216,7 +218,7 @@ export default function HomeScreen() {
         {(source !== 'measured' || !activePlan) && (
           <View style={styles.nextStepsSection}>
             <SectionHeader
-              title="次のステップ"
+              title={t('home.nextSteps')}
               icon="rocket-outline"
               iconColor={COLORS.secondary}
               variant="small"
@@ -227,11 +229,11 @@ export default function HomeScreen() {
               <ActionCard
                 icon="analytics-outline"
                 iconColor="#8B5CF6"
-                title="ETPテストを実施"
-                description="正確なETPとリミッタータイプを測定しましょう"
+                title={t('home.runEtpTest')}
+                description={t('home.runEtpTestDesc')}
                 onPress={() => router.push('/test')}
                 variant="highlight"
-                badge={source === 'estimated' ? '推奨' : undefined}
+                badge={source === 'estimated' ? t('home.recommended') : undefined}
                 style={styles.actionCardMargin}
               />
             )}
@@ -241,8 +243,8 @@ export default function HomeScreen() {
               <ActionCard
                 icon="calendar-outline"
                 iconColor="#F97316"
-                title="トレーニング計画を作成"
-                description="目標レースに向けた週間計画を自動生成"
+                title={t('home.createPlan')}
+                description={t('home.createPlanDesc')}
                 onPress={() => router.push('/plan')}
                 variant={source === 'measured' ? 'highlight' : 'default'}
                 style={styles.actionCardMargin}
@@ -254,14 +256,14 @@ export default function HomeScreen() {
         {/* アクティブ計画カード */}
         {activePlan && (
           <View style={styles.planCard}>
-            <Text style={styles.sectionLabel}>目標レース</Text>
+            <Text style={styles.sectionLabel}>{t('home.targetRace')}</Text>
             <Pressable
               style={styles.planContent}
               onPress={() => router.push('/plan')}
             >
               <Text style={styles.planName}>{activePlan.race.name}</Text>
               <Text style={styles.planMeta}>
-                {new Date(activePlan.race.date).toLocaleDateString('ja-JP')} | {activePlan.race.distance === 'custom' ? `${activePlan.race.customDistance || 0}m` : activePlan.race.distance === 21097 ? 'ハーフマラソン' : activePlan.race.distance === 42195 ? 'マラソン' : `${activePlan.race.distance}m`}
+                {new Date(activePlan.race.date).toLocaleDateString('ja-JP')} | {activePlan.race.distance === 'custom' ? `${activePlan.race.customDistance || 0}m` : activePlan.race.distance === 21097 ? t('home.halfMarathon') : activePlan.race.distance === 42195 ? t('home.marathon') : `${activePlan.race.distance}m`}
               </Text>
             </Pressable>
           </View>
@@ -270,7 +272,7 @@ export default function HomeScreen() {
         {/* 今日のトレーニング */}
         {todayWorkout && todayWorkout.type !== 'rest' && (
           <View style={styles.todayWorkout}>
-            <Text style={styles.sectionLabel}>今日のトレーニング</Text>
+            <Text style={styles.sectionLabel}>{t('home.todayWorkout')}</Text>
             <Pressable
               style={styles.todayContent}
               onPress={() => router.push({
@@ -283,7 +285,7 @@ export default function HomeScreen() {
               })}
             >
               <Text style={styles.todayLabel}>{todayWorkout.label}</Text>
-              <Text style={styles.todayHint}>タップして詳細を見る →</Text>
+              <Text style={styles.todayHint}>{t('home.tapForDetails')}</Text>
             </Pressable>
           </View>
         )}
@@ -292,9 +294,9 @@ export default function HomeScreen() {
         {weekProgress && (
           <View style={styles.weekProgressSection}>
             <SectionHeader
-              title="今週の進捗"
+              title={t('home.weekProgress')}
               count={weekProgress.completed}
-              subtitle={`${weekProgress.total}ワークアウト中`}
+              subtitle={t('home.ofWorkouts', { total: weekProgress.total })}
             />
             <View style={styles.weekProgressCard}>
               <WeekProgress
@@ -308,7 +310,7 @@ export default function HomeScreen() {
 
         {/* レース予測タイム & PB */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>レース予測 & PB</Text>
+          <Text style={styles.sectionTitle}>{t('home.racePredictions')}</Text>
           <View style={styles.predictionsGrid}>
             {(() => {
               const predictions = calculateRacePredictions(etp, limiter);
@@ -356,8 +358,8 @@ export default function HomeScreen() {
 
         {/* トレーニングゾーン */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>トレーニングゾーン</Text>
-          <Text style={styles.etpBadge}>ETP: {formatKmPace(etp)} ({etp}秒/400m)</Text>
+          <Text style={styles.sectionTitle}>{t('home.trainingZones')}</Text>
+          <Text style={styles.etpBadge}>{t('home.etpBadge', { pace: formatKmPace(etp), seconds: etp })}</Text>
           <View style={styles.zonesTable}>
             {(['jog', 'easy', 'marathon', 'threshold', 'interval', 'repetition'] as ZoneName[]).map((zone) => {
               const pace = zones[zone];
@@ -376,7 +378,7 @@ export default function HomeScreen() {
                   </View>
                   <View style={styles.zonePaces}>
                     <Text style={styles.zonePaceKm}>{formatKmPace(pace)}</Text>
-                    <Text style={styles.zonePace400}>({pace}秒/400m)</Text>
+                    <Text style={styles.zonePace400}>{t('home.pacePerLap', { seconds: pace })}</Text>
                   </View>
                 </View>
               );

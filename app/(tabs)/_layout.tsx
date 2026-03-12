@@ -13,6 +13,7 @@ import {
   type TabNavigationState,
 } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { COLORS } from '../../src/constants';
 import { useIsSubScreenOpen } from '../../store/useUIStore';
 
@@ -43,6 +44,7 @@ const TabIcon = ({ focused, outlineName, filledName }: TabIconProps) => (
 );
 
 export default function TabLayout() {
+  const { t } = useTranslation();
   const isSubScreenOpen = useIsSubScreenOpen();
 
   return (
@@ -81,7 +83,7 @@ export default function TabLayout() {
       <MaterialTopTabs.Screen
         name="index"
         options={{
-          title: 'ホーム',
+          title: t('tabs.home'),
           tabBarIcon: ({ focused }) => (
             <TabIcon
               focused={focused}
@@ -94,7 +96,7 @@ export default function TabLayout() {
       <MaterialTopTabs.Screen
         name="test"
         options={{
-          title: 'テスト',
+          title: t('tabs.test'),
           tabBarIcon: ({ focused }) => (
             <TabIcon
               focused={focused}
@@ -107,7 +109,7 @@ export default function TabLayout() {
       <MaterialTopTabs.Screen
         name="plan"
         options={{
-          title: '計画',
+          title: t('tabs.plan'),
           tabBarIcon: ({ focused }) => (
             <TabIcon
               focused={focused}
@@ -120,7 +122,7 @@ export default function TabLayout() {
       <MaterialTopTabs.Screen
         name="workout"
         options={{
-          title: 'トレーニング',
+          title: t('tabs.workout'),
           tabBarIcon: ({ focused }) => (
             <TabIcon
               focused={focused}
@@ -133,7 +135,7 @@ export default function TabLayout() {
       <MaterialTopTabs.Screen
         name="settings"
         options={{
-          title: '設定',
+          title: t('tabs.settings'),
           tabBarIcon: ({ focused }) => (
             <TabIcon
               focused={focused}

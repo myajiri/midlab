@@ -60,6 +60,7 @@ import { ZoneName } from '../../src/types';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
 import { useIsFocused } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 
 // タイムゾーン安全なローカル日付文字列ヘルパー（YYYY-MM-DD）
 const toLocalDateStr = (d: Date): string => {
@@ -70,23 +71,23 @@ const toLocalDateStr = (d: Date): string => {
 };
 
 // レース距離ラベル
-const RACE_DISTANCE_OPTIONS: { value: RaceDistance; label: string }[] = [
-  { value: 400, label: '400m' },
-  { value: 800, label: '800m' },
-  { value: 1500, label: '1500m' },
-  { value: 3000, label: '3000m' },
-  { value: 5000, label: '5000m' },
-  { value: 10000, label: '10000m' },
-  { value: 21097, label: 'ハーフ' },
-  { value: 42195, label: 'マラソン' },
-  { value: 'custom', label: '任意' },
+const RACE_DISTANCE_OPTIONS: { value: RaceDistance; labelKey: string }[] = [
+  { value: 400, labelKey: '400m' },
+  { value: 800, labelKey: '800m' },
+  { value: 1500, labelKey: '1500m' },
+  { value: 3000, labelKey: '3000m' },
+  { value: 5000, labelKey: '5000m' },
+  { value: 10000, labelKey: '10000m' },
+  { value: 21097, labelKey: 'plan.distanceHalf' },
+  { value: 42195, labelKey: 'plan.distanceMarathon' },
+  { value: 'custom', labelKey: 'plan.distanceCustom' },
 ];
 
-// レース距離の表示ラベル
-function formatRaceDistance(distance: RaceDistance, customDistance?: number): string {
-  if (distance === 'custom') return customDistance ? `${customDistance}m` : '任意距離';
-  if (distance === 21097) return 'ハーフマラソン';
-  if (distance === 42195) return 'マラソン';
+// レース距離の表示ラベル - コンポーネント内でformatRaceDistance(t, ...)として使用
+function formatRaceDistance(tFn: (key: string) => string, distance: RaceDistance, customDistance?: number): string {
+  if (distance === 'custom') return customDistance ? `${customDistance}m` : tFn('plan.customDistance');
+  if (distance === 21097) return tFn('plan.halfMarathon');
+  if (distance === 42195) return tFn('plan.marathon');
   return `${distance}m`;
 }
 
@@ -94,15 +95,16 @@ function formatRaceDistance(distance: RaceDistance, customDistance?: number): st
 type ViewType = 'overview' | 'create' | 'weekly' | 'log';
 
 // 体感レベル設定
-const FEELING_CONFIG: Record<FeelingLevel, { label: string; icon: string; color: string }> = {
-  great: { label: '最高', icon: 'happy', color: '#22C55E' },
-  good: { label: '良い', icon: 'thumbs-up', color: '#3B82F6' },
-  normal: { label: '普通', icon: 'remove', color: '#EAB308' },
-  tough: { label: 'きつい', icon: 'thumbs-down', color: '#F97316' },
-  bad: { label: '不調', icon: 'sad', color: '#EF4444' },
+const FEELING_CONFIG: Record<FeelingLevel, { labelKey: string; icon: string; color: string }> = {
+  great: { labelKey: 'plan.feeling.great', icon: 'happy', color: '#22C55E' },
+  good: { labelKey: 'plan.feeling.good', icon: 'thumbs-up', color: '#3B82F6' },
+  normal: { labelKey: 'plan.feeling.normal', icon: 'remove', color: '#EAB308' },
+  tough: { labelKey: 'plan.feeling.tough', icon: 'thumbs-down', color: '#F97316' },
+  bad: { labelKey: 'plan.feeling.bad', icon: 'sad', color: '#EF4444' },
 };
 
 export default function PlanScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams<{ view?: string; weekNumber?: string; t?: string }>();
   const isPremium = useIsPremium();
@@ -127,9 +129,9 @@ export default function PlanScreen() {
       description: cw.description,
       segments: cw.segments,
       limiterVariants: {
-        cardio: { note: 'カスタムメニュー' },
-        muscular: { note: 'カスタムメニュー' },
-        balanced: { note: 'カスタムメニュー' },
+        cardio: { note: t('plan.customWorkout') },
+        muscular: { note: t('plan.customWorkout') },
+        balanced: { note: t('plan.customWorkout') },
       },
     }));
   }, [customWorkouts]);
@@ -141,12 +143,12 @@ export default function PlanScreen() {
   // メニュー更新: 計画を再生成
   const handleRegeneratePlan = () => {
     Alert.alert(
-      'メニューを更新',
-      '最新のメニューで計画を再生成します。完了済みのマークは保持されます。',
+      t('plan.updateMenu'),
+      t('plan.updateMenuDesc'),
       [
-        { text: 'キャンセル', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: '更新する',
+          text: t('plan.update'),
           onPress: () => {
             regeneratePlan(profile, testResults);
             setUpdateBannerDismissed(true);
@@ -225,7 +227,7 @@ export default function PlanScreen() {
     });
     setEditModalVisible(false);
     setEditingLogId(null);
-    showToast('記録を更新しました', 'success');
+    showToast(t('plan.recordUpdated'), 'success');
   };
 
   // 記録を削除して未完了に戻す
@@ -254,7 +256,7 @@ export default function PlanScreen() {
     }
     setEditModalVisible(false);
     setEditingLogId(null);
-    showToast('記録を削除しました', 'success');
+    showToast(t('plan.recordDeleted'), 'success');
   };
 
   // メニュー追加モーダル
@@ -424,13 +426,13 @@ export default function PlanScreen() {
     if (!date) return { valid: false };
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    if (date < today) return { valid: false, error: '過去の日付です' };
+    if (date < today) return { valid: false, error: t('plan.errorPastDate') };
     const minDate = new Date();
     minDate.setDate(minDate.getDate() + 28);
-    if (date < minDate) return { valid: false, error: '最低4週間後の日付を選択してください' };
+    if (date < minDate) return { valid: false, error: t('plan.errorMinDate') };
     const maxDate = new Date();
     maxDate.setMonth(maxDate.getMonth() + 6);
-    if (date > maxDate) return { valid: false, error: '6ヶ月以内のレースを設定してください。それ以上先の場合は、時期が近づいてから計画を作成することをお勧めします。' };
+    if (date > maxDate) return { valid: false, error: t('plan.errorMaxDate') };
     return { valid: true };
   };
 
@@ -445,7 +447,7 @@ export default function PlanScreen() {
   // プレミアム機能チェック
   if (!isPremium) {
     return (
-      <PremiumGate featureName="トレーニング計画">
+      <PremiumGate featureName={t('plan.featureName')}>
         <View />
       </PremiumGate>
     );
@@ -458,11 +460,11 @@ export default function PlanScreen() {
 
   const handleCreatePlan = () => {
     if (!raceName || !dateValidation.valid || !raceDate) {
-      Alert.alert('エラー', '全ての項目を入力してください');
+      Alert.alert(t('common.error'), t('plan.errorFillAll'));
       return;
     }
     if (distance === 'custom' && (!customDistanceInput || parseInt(customDistanceInput, 10) <= 0)) {
-      Alert.alert('エラー', '任意距離を入力してください');
+      Alert.alert(t('common.error'), t('plan.errorCustomDistance'));
       return;
     }
     const customDist = distance === 'custom' ? parseInt(customDistanceInput, 10) : undefined;
@@ -482,9 +484,9 @@ export default function PlanScreen() {
   };
 
   const handleDeletePlan = () => {
-    Alert.alert('計画を削除', 'この計画を削除してもよろしいですか？', [
-      { text: 'キャンセル', style: 'cancel' },
-      { text: '削除', style: 'destructive', onPress: () => { clearPlan(); setView('create'); } },
+    Alert.alert(t('plan.deletePlan'), t('plan.deletePlanConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: () => { clearPlan(); setView('create'); } },
     ]);
   };
 
@@ -494,36 +496,36 @@ export default function PlanScreen() {
   if (view === 'create') {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <PremiumGate featureName="トレーニング計画">
+        <PremiumGate featureName={t('plan.featureName')}>
           <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
             <FadeIn>
-              <Text style={styles.pageTitle}>計画を作成</Text>
-              <Text style={styles.pageSubtitle}>6ヶ月以内の最も重要なレース（ターゲットレース）を設定します。{'\n'}途中のレースは計画作成後に追加できます。</Text>
+              <Text style={styles.pageTitle}>{t('plan.createTitle')}</Text>
+              <Text style={styles.pageSubtitle}>{t('plan.createSubtitle')}</Text>
             </FadeIn>
 
             <SlideIn delay={100} direction="up">
               <View style={styles.formCard}>
                 {/* レース名 */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>レース名</Text>
+                  <Text style={styles.inputLabel}>{t('plan.raceName')}</Text>
                   <TextInput
                     style={styles.input}
                     value={raceName}
                     onChangeText={setRaceName}
-                    placeholder="例: 〇〇記録会"
+                    placeholder={t('plan.raceNamePlaceholder')}
                     placeholderTextColor={COLORS.text.muted}
                   />
                 </View>
 
                 {/* レース日 */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>レース日</Text>
+                  <Text style={styles.inputLabel}>{t('plan.raceDate')}</Text>
                   <Pressable
                     style={[styles.inputButton, dateValidation.error && styles.inputError]}
                     onPress={() => setShowDatePicker(true)}
                   >
                     <Text style={[styles.inputButtonText, !raceDate && styles.inputPlaceholder]}>
-                      {raceDate ? formatDateDisplay(raceDate) : '日付を選択'}
+                      {raceDate ? formatDateDisplay(raceDate) : t('plan.selectDate')}
                     </Text>
                     <Ionicons name="calendar-outline" size={20} color={COLORS.text.muted} />
                   </Pressable>
@@ -532,7 +534,7 @@ export default function PlanScreen() {
 
                 {/* 種目 */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>種目</Text>
+                  <Text style={styles.inputLabel}>{t('plan.event')}</Text>
                   <View style={styles.distanceSelector}>
                     {RACE_DISTANCE_OPTIONS.map((opt) => (
                       <Pressable
@@ -541,7 +543,7 @@ export default function PlanScreen() {
                         onPress={() => setDistance(opt.value)}
                       >
                         <Text style={[styles.distanceOptionText, distance === opt.value && styles.distanceOptionTextActive]}>
-                          {opt.label}
+                          {t(opt.labelKey)}
                         </Text>
                       </Pressable>
                     ))}
@@ -551,7 +553,7 @@ export default function PlanScreen() {
                       style={[styles.input, { marginTop: 8 }]}
                       value={customDistanceInput}
                       onChangeText={setCustomDistanceInput}
-                      placeholder="距離をメートルで入力（例: 1000）"
+                      placeholder={t('plan.customDistancePlaceholder')}
                       placeholderTextColor={COLORS.text.muted}
                       keyboardType="numeric"
                     />
@@ -560,9 +562,9 @@ export default function PlanScreen() {
 
                 {/* 休養日 */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>休養日</Text>
+                  <Text style={styles.inputLabel}>{t('plan.restDay')}</Text>
                   <View style={styles.restDaySelector}>
-                    {(['月', '火', '水', '木', '金', '土', '日']).map((name, i) => (
+                    {([t('plan.mon'), t('plan.tue'), t('plan.wed'), t('plan.thu'), t('plan.fri'), t('plan.sat'), t('plan.sun')]).map((name, i) => (
                       <Pressable
                         key={i}
                         style={[styles.restDayOption, restDay === i && styles.restDayOptionActive]}
@@ -578,7 +580,7 @@ export default function PlanScreen() {
 
                 {/* 休養日頻度 */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>休養日の頻度</Text>
+                  <Text style={styles.inputLabel}>{t('plan.restDayFrequency')}</Text>
                   <View style={styles.frequencySelector}>
                     {(['auto', 'weekly', 'biweekly', 'monthly'] as RestDayFrequency[]).map((freq) => {
                       const config = REST_DAY_FREQUENCY_CONFIG[freq];
@@ -603,9 +605,9 @@ export default function PlanScreen() {
 
                 {/* Key曜日 */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>ポイント練習日（2日選択）</Text>
+                  <Text style={styles.inputLabel}>{t('plan.keyWorkoutDays')}</Text>
                   <View style={styles.restDaySelector}>
-                    {(['月', '火', '水', '木', '金', '土', '日']).map((name, i) => {
+                    {([t('plan.mon'), t('plan.tue'), t('plan.wed'), t('plan.thu'), t('plan.fri'), t('plan.sat'), t('plan.sun')]).map((name, i) => {
                       const isSelected = keyDays.includes(i);
                       const isRestDayConflict = i === restDay;
                       return (
@@ -647,7 +649,7 @@ export default function PlanScreen() {
 
                 {/* 月間走行距離 */}
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>月間走行距離（km）</Text>
+                  <Text style={styles.inputLabel}>{t('plan.monthlyMileage')}</Text>
                   <TextInput
                     style={styles.input}
                     value={profile.monthlyMileage ? String(profile.monthlyMileage) : ''}
@@ -659,11 +661,11 @@ export default function PlanScreen() {
                         useProfileStore.getState().updateAttributes({ monthlyMileage: undefined });
                       }
                     }}
-                    placeholder="例: 200"
+                    placeholder={t('plan.mileagePlaceholder')}
                     placeholderTextColor={COLORS.text.muted}
                     keyboardType="numeric"
                   />
-                  <Text style={styles.hintText}>走力に応じたメニューの本数調整に使用します</Text>
+                  <Text style={styles.hintText}>{t('plan.mileageHint')}</Text>
                 </View>
 
               </View>
@@ -675,12 +677,12 @@ export default function PlanScreen() {
                 onPress={handleCreatePlan}
                 disabled={!raceName || !dateValidation.valid}
               >
-                <Text style={styles.createButtonText}>計画を生成</Text>
+                <Text style={styles.createButtonText}>{t('plan.generate')}</Text>
               </Pressable>
 
               {activePlan && (
                 <Pressable style={styles.cancelButton} onPress={() => setView('overview')}>
-                  <Text style={styles.cancelButtonText}>キャンセル</Text>
+                  <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
                 </Pressable>
               )}
             </SlideIn>
@@ -691,7 +693,7 @@ export default function PlanScreen() {
               onSelect={(date) => setRaceDate(date)}
               value={raceDate || undefined}
               minDate={minDateForPicker}
-              title="レース日を選択"
+              title={t('plan.selectRaceDate')}
             />
           </ScrollView>
         </PremiumGate>
@@ -706,11 +708,11 @@ export default function PlanScreen() {
         <View style={styles.emptyContainer}>
           <FadeIn>
             <Ionicons name="calendar-outline" size={64} color={COLORS.text.muted} />
-            <Text style={styles.emptyTitle}>まだ計画がありません</Text>
-            <Text style={styles.emptySubtitle}>目標レースを設定して{'\n'}トレーニング計画を作成しましょう</Text>
+            <Text style={styles.emptyTitle}>{t('plan.noPlan')}</Text>
+            <Text style={styles.emptySubtitle}>{t('plan.noPlanSubtitle')}</Text>
             <Pressable style={styles.createButton} onPress={() => setView('create')}>
               <Ionicons name="add" size={20} color="#fff" />
-              <Text style={styles.createButtonText}>計画を作成</Text>
+              <Text style={styles.createButtonText}>{t('plan.createPlan')}</Text>
             </Pressable>
           </FadeIn>
         </View>
@@ -741,11 +743,11 @@ export default function PlanScreen() {
             <Pressable style={styles.backButton} onPress={() => setView('overview')}>
               <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
             </Pressable>
-            <Text style={styles.headerTitle}>週間スケジュール</Text>
+            <Text style={styles.headerTitle}>{t('plan.weeklySchedule')}</Text>
             <View style={{ width: 40 }} />
           </View>
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyTitle}>データがありません</Text>
+            <Text style={styles.emptyTitle}>{t('plan.noData')}</Text>
           </View>
         </SafeAreaView>
         </SwipeBackView>
@@ -753,7 +755,7 @@ export default function PlanScreen() {
     }
 
     const phase = PHASE_CONFIG[weekPlan.phaseType];
-    const dayNames = ['月', '火', '水', '木', '金', '土', '日'];
+    const dayNames = [t('plan.mon'), t('plan.tue'), t('plan.wed'), t('plan.thu'), t('plan.fri'), t('plan.sat'), t('plan.sun')];
     const isCurrentWeek = selectedWeek === currentWeekNumber;
 
     return (
@@ -765,7 +767,7 @@ export default function PlanScreen() {
             <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
           </Pressable>
           <View>
-            <Text style={styles.headerTitle}>第{weekPlan.weekNumber}週</Text>
+            <Text style={styles.headerTitle}>{t('plan.weekNumber', { week: weekPlan.weekNumber })}</Text>
             <Text style={styles.headerSubtitle}>
               {(() => {
                 const s = new Date(weekPlan.startDate);
@@ -790,7 +792,7 @@ export default function PlanScreen() {
               </Pressable>
               <View style={styles.weekNavCenter}>
                 <Text style={styles.weekNavLabel}>{phase?.label}</Text>
-                {isCurrentWeek && <View style={styles.currentWeekBadge}><Text style={styles.currentWeekBadgeText}>今週</Text></View>}
+                {isCurrentWeek && <View style={styles.currentWeekBadge}><Text style={styles.currentWeekBadgeText}>{t('plan.thisWeek')}</Text></View>}
               </View>
               <Pressable
                 style={[styles.weekNavButton, selectedWeek >= totalWeeks && styles.weekNavButtonDisabled]}
@@ -817,7 +819,7 @@ export default function PlanScreen() {
                   />
                 ))}
               </View>
-              <Text style={styles.weekProgressText}>{selectedWeek} / {totalWeeks} 週</Text>
+              <Text style={styles.weekProgressText}>{t('plan.weekProgress', { current: selectedWeek, total: totalWeeks })}</Text>
             </View>
           </SlideIn>
 
@@ -829,20 +831,20 @@ export default function PlanScreen() {
                   <View style={styles.subRaceBadge}>
                     <Ionicons name="trophy" size={14} color="#F97316" />
                     <Text style={styles.subRaceBadgeText}>
-                      {weekPlan.subRace.name} ({formatRaceDistance(weekPlan.subRace.distance, weekPlan.subRace.customDistance)})
+                      {weekPlan.subRace.name} ({formatRaceDistance(t, weekPlan.subRace.distance, weekPlan.subRace.customDistance)})
                     </Text>
                   </View>
                 )}
                 {weekPlan.isRecoveryWeek && (
                   <View style={styles.recoveryBadge}>
                     <Ionicons name="leaf" size={14} color="#22C55E" />
-                    <Text style={styles.recoveryBadgeText}>回復週</Text>
+                    <Text style={styles.recoveryBadgeText}>{t('plan.recoveryWeek')}</Text>
                   </View>
                 )}
                 {weekPlan.isRampTestWeek && (
                   <View style={styles.testBadge}>
                     <Ionicons name="analytics" size={14} color="#8B5CF6" />
-                    <Text style={styles.testBadgeText}>テスト週</Text>
+                    <Text style={styles.testBadgeText}>{t('plan.testWeek')}</Text>
                   </View>
                 )}
               </View>
@@ -854,7 +856,7 @@ export default function PlanScreen() {
             <View style={styles.weekRationaleCard}>
               <View style={styles.weekRationaleHeader}>
                 <Ionicons name="bulb-outline" size={16} color="#EAB308" />
-                <Text style={styles.weekRationaleTitle}>この週のねらい</Text>
+                <Text style={styles.weekRationaleTitle}>{t('plan.weekGoal')}</Text>
               </View>
               <Text style={styles.weekRationaleText}>
                 {getWeeklyPlanRationale(weekPlan.phaseType, activePlan.baseline.limiterType, weekPlan.isRecoveryWeek, weekPlan.isRampTestWeek, weekPlan.subRace?.name, weekPlan.subRace?.priority)}
@@ -935,7 +937,7 @@ export default function PlanScreen() {
                               category: day.focusCategory || 'all',
                               replaceWeek: weekPlan.weekNumber.toString(),
                               replaceDayId: day.id,
-                              replaceDayLabel: `第${weekPlan.weekNumber}週 ${dayNames[i]}曜`,
+                              replaceDayLabel: t('plan.weekDayLabel', { week: weekPlan.weekNumber, day: dayNames[i] }),
                               t: Date.now().toString(),
                             },
                           });
@@ -989,7 +991,7 @@ export default function PlanScreen() {
           </View>
 
           <FadeIn delay={600}>
-            <Text style={styles.completionHintText}>タップで詳細確認 ・ ⇄で変更 ・ ○で完了</Text>
+            <Text style={styles.completionHintText}>{t('plan.completionHint')}</Text>
           </FadeIn>
         </ScrollView>
 
@@ -1007,13 +1009,13 @@ export default function PlanScreen() {
             <Pressable style={styles.actualDataModalOverlayPress} onPress={() => setActualDataModalVisible(false)}>
               <Pressable style={styles.actualDataModalContent} onPress={(e) => e.stopPropagation()}>
                 <View style={styles.actualDataModalHeader}>
-                  <Text style={styles.actualDataModalTitle}>トレーニング記録</Text>
+                  <Text style={styles.actualDataModalTitle}>{t('plan.trainingRecord')}</Text>
                   <Pressable onPress={() => setActualDataModalVisible(false)}>
                     <Ionicons name="close" size={24} color={COLORS.text.secondary} />
                   </Pressable>
                 </View>
               <Text style={styles.actualDataModalSubtitle}>{actualDataTarget?.label || ''}</Text>
-              <Text style={styles.actualDataModalHint}>実際に走った各ゾーンの距離（m）を入力してください。アップ・ダウンジョグも含めて記録できます。</Text>
+              <Text style={styles.actualDataModalHint}>{t('plan.actualDataHint')}</Text>
 
               <ScrollView style={styles.actualDataZoneList}>
                 {(['jog', 'easy', 'marathon', 'threshold', 'interval', 'repetition'] as const).map((zone) => {
@@ -1030,7 +1032,7 @@ export default function PlanScreen() {
                       <View style={styles.actualDataZoneLabel}>
                         <View style={[styles.actualDataZoneDot, { backgroundColor: zoneInfo.color }]} />
                         <Text style={styles.actualDataZoneName}>{zoneInfo.name}</Text>
-                        {planned ? <Text style={styles.actualDataZonePlanned}>予定: {planned}m</Text> : null}
+                        {planned ? <Text style={styles.actualDataZonePlanned}>{t('plan.planned', { distance: planned })}</Text> : null}
                         {hasDiff ? (
                           <Text style={[styles.actualDataZonePlanned, { color: diffColor, fontWeight: '600' }]}>
                             {diffPct >= 0 ? '+' : ''}{diffPct}%
@@ -1050,12 +1052,12 @@ export default function PlanScreen() {
                 })}
 
                 <View style={styles.actualDataNotesSection}>
-                  <Text style={styles.actualDataNotesLabel}>メモ</Text>
+                  <Text style={styles.actualDataNotesLabel}>{t('plan.notes')}</Text>
                   <TextInput
                     style={styles.actualDataNotesInput}
                     value={actualNotes}
                     onChangeText={setActualNotes}
-                    placeholder="体調やペースの感想など"
+                    placeholder={t('plan.notesPlaceholder')}
                     placeholderTextColor={COLORS.text.muted}
                     multiline
                   />
@@ -1096,7 +1098,7 @@ export default function PlanScreen() {
                     setActualDataModalVisible(false);
                   }}
                 >
-                  <Text style={styles.actualDataSkipButtonText}>記録せず完了</Text>
+                  <Text style={styles.actualDataSkipButtonText}>{t('plan.completeWithoutRecord')}</Text>
                 </Pressable>
                 <Pressable
                   style={styles.actualDataSaveButton}
@@ -1151,7 +1153,7 @@ export default function PlanScreen() {
                     setActualDataModalVisible(false);
                   }}
                 >
-                  <Text style={styles.actualDataSaveButtonText}>記録して完了</Text>
+                  <Text style={styles.actualDataSaveButtonText}>{t('plan.recordAndComplete')}</Text>
                 </Pressable>
               </View>
               </Pressable>
@@ -1179,7 +1181,7 @@ export default function PlanScreen() {
             <Pressable style={styles.backButton} onPress={() => setView('overview')}>
               <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
             </Pressable>
-            <Text style={styles.headerTitle}>トレーニング記録</Text>
+            <Text style={styles.headerTitle}>{t('plan.trainingRecord')}</Text>
             <View style={{ width: 40 }} />
           </View>
 
@@ -1187,7 +1189,7 @@ export default function PlanScreen() {
             {/* 今日の実施予定 */}
             {plannedLogs.length > 0 && (
               <FadeIn>
-                <Text style={styles.sectionLabel}>今日の実施予定</Text>
+                <Text style={styles.sectionLabel}>{t('plan.todayPlanned')}</Text>
                 <View style={styles.logSection}>
                   {plannedLogs.map((log) => (
                     <View key={log.id} style={styles.logCard}>
@@ -1197,7 +1199,7 @@ export default function PlanScreen() {
                           <Text style={styles.logCardCategory}>{log.workoutCategory}</Text>
                         </View>
                         <View style={[styles.logStatusBadge, styles.logStatusPlanned]}>
-                          <Text style={styles.logStatusText}>予定</Text>
+                          <Text style={styles.logStatusText}>{t('plan.statusPlanned')}</Text>
                         </View>
                       </View>
                       <View style={styles.logCardActions}>
@@ -1206,18 +1208,18 @@ export default function PlanScreen() {
                           onPress={() => openRecordModal(log.id)}
                         >
                           <Ionicons name="create-outline" size={16} color="#fff" />
-                          <Text style={styles.logRecordButtonText}>結果を記録</Text>
+                          <Text style={styles.logRecordButtonText}>{t('plan.recordResult')}</Text>
                         </Pressable>
                         <Pressable
                           style={styles.logSkipButton}
                           onPress={() => {
-                            Alert.alert('スキップ', 'このメニューをスキップしますか？', [
-                              { text: 'キャンセル', style: 'cancel' },
-                              { text: 'スキップ', onPress: () => skipTrainingLog(log.id) },
+                            Alert.alert(t('plan.skip'), t('plan.skipConfirm'), [
+                              { text: t('common.cancel'), style: 'cancel' },
+                              { text: t('plan.skip'), onPress: () => skipTrainingLog(log.id) },
                             ]);
                           }}
                         >
-                          <Text style={styles.logSkipButtonText}>スキップ</Text>
+                          <Text style={styles.logSkipButtonText}>{t('plan.skip')}</Text>
                         </Pressable>
                       </View>
                     </View>
@@ -1237,21 +1239,21 @@ export default function PlanScreen() {
                 }}
               >
                 <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
-                <Text style={styles.addMenuButtonText}>メニューを追加</Text>
+                <Text style={styles.addMenuButtonText}>{t('plan.addMenu')}</Text>
               </Pressable>
             </FadeIn>
 
             {/* 時系列記録 */}
             <SlideIn delay={100} direction="up">
               <Text style={styles.sectionLabel}>
-                {activePlan ? 'レースまでの記録' : 'すべての記録'}
+                {activePlan ? t('plan.recordsUntilRace') : t('plan.allRecords')}
               </Text>
               {planLogs.length === 0 ? (
                 <View style={styles.logEmptyState}>
                   <Ionicons name="book-outline" size={48} color={COLORS.text.muted} />
-                  <Text style={styles.logEmptyText}>まだ記録がありません</Text>
+                  <Text style={styles.logEmptyText}>{t('plan.noRecords')}</Text>
                   <Text style={styles.logEmptySubText}>
-                    トレーニングタブからメニューを選択して実施しましょう
+                    {t('plan.noRecordsHint')}
                   </Text>
                 </View>
               ) : (
@@ -1259,9 +1261,10 @@ export default function PlanScreen() {
                   {planLogs.map(([date, logs], groupIndex) => {
                     const dateObj = new Date(date + 'T00:00:00');
                     const isToday = date === todayStr;
+                    const dayOfWeekNames = [t('plan.sun'), t('plan.mon'), t('plan.tue'), t('plan.wed'), t('plan.thu'), t('plan.fri'), t('plan.sat')];
                     const dateLabel = isToday
-                      ? '今日'
-                      : `${dateObj.getMonth() + 1}/${dateObj.getDate()}（${['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()]}）`;
+                      ? t('plan.today')
+                      : `${dateObj.getMonth() + 1}/${dateObj.getDate()}（${dayOfWeekNames[dateObj.getDay()]}）`;
 
                     return (
                       <SlideIn key={date} delay={150 + groupIndex * 50} direction="up">
@@ -1283,7 +1286,7 @@ export default function PlanScreen() {
                                   log.status === 'planned' && styles.logStatusPlanned,
                                 ]}>
                                   <Text style={styles.logStatusText}>
-                                    {log.status === 'completed' ? '完了' : log.status === 'skipped' ? 'スキップ' : '予定'}
+                                    {log.status === 'completed' ? t('plan.statusCompleted') : log.status === 'skipped' ? t('plan.statusSkipped') : t('plan.statusPlanned')}
                                   </Text>
                                 </View>
                               </View>
@@ -1312,7 +1315,7 @@ export default function PlanScreen() {
                                   {log.result.duration != null && (
                                     <View style={styles.logResultItem}>
                                       <Ionicons name="time-outline" size={14} color={COLORS.text.muted} />
-                                      <Text style={styles.logResultValue}>{Math.floor(log.result.duration / 60)}分{log.result.duration % 60}秒</Text>
+                                      <Text style={styles.logResultValue}>{t('plan.durationFormat', { min: Math.floor(log.result.duration / 60), sec: log.result.duration % 60 })}</Text>
                                     </View>
                                   )}
                                   {log.result.feeling && (
@@ -1323,7 +1326,7 @@ export default function PlanScreen() {
                                         color={FEELING_CONFIG[log.result.feeling].color}
                                       />
                                       <Text style={[styles.logResultValue, { color: FEELING_CONFIG[log.result.feeling].color }]}>
-                                        {FEELING_CONFIG[log.result.feeling].label}
+                                        {t(FEELING_CONFIG[log.result.feeling].labelKey)}
                                       </Text>
                                     </View>
                                   )}
@@ -1340,21 +1343,21 @@ export default function PlanScreen() {
                                       onPress={() => openEditModal(log)}
                                     >
                                       <Ionicons name="pencil-outline" size={14} color={COLORS.primary} />
-                                      <Text style={styles.logEditButtonText}>編集</Text>
+                                      <Text style={styles.logEditButtonText}>{t('common.edit')}</Text>
                                     </Pressable>
                                   )}
                                   <Pressable
                                     style={styles.logDeleteButton}
                                     onPress={() => {
                                       Alert.alert(
-                                        '記録を削除',
+                                        t('plan.deleteRecord'),
                                         log.status === 'completed'
-                                          ? 'この記録を削除して未完了に戻しますか？'
-                                          : 'この記録を削除しますか？',
+                                          ? t('plan.deleteRecordCompleted')
+                                          : t('plan.deleteRecordConfirm'),
                                         [
-                                          { text: 'キャンセル', style: 'cancel' },
+                                          { text: t('common.cancel'), style: 'cancel' },
                                           {
-                                            text: '削除',
+                                            text: t('common.delete'),
                                             style: 'destructive',
                                             onPress: () => {
                                               // 完了済みの場合は計画の完了状態も戻す
@@ -1374,7 +1377,7 @@ export default function PlanScreen() {
                                                 }
                                               }
                                               deleteTrainingLog(log.id);
-                                              showToast('記録を削除しました', 'success');
+                                              showToast(t('plan.recordDeleted'), 'success');
                                             },
                                           },
                                         ],
@@ -1392,14 +1395,14 @@ export default function PlanScreen() {
                                     onPress={() => openRecordModal(log.id)}
                                   >
                                     <Ionicons name="create-outline" size={14} color="#fff" />
-                                    <Text style={styles.logRecordButtonText}>記録</Text>
+                                    <Text style={styles.logRecordButtonText}>{t('plan.record')}</Text>
                                   </Pressable>
                                   <Pressable
                                     style={styles.logDeleteButton}
                                     onPress={() => {
-                                      Alert.alert('削除', 'この記録を削除しますか？', [
-                                        { text: 'キャンセル', style: 'cancel' },
-                                        { text: '削除', style: 'destructive', onPress: () => deleteTrainingLog(log.id) },
+                                      Alert.alert(t('common.delete'), t('plan.deleteRecordConfirm'), [
+                                        { text: t('common.cancel'), style: 'cancel' },
+                                        { text: t('common.delete'), style: 'destructive', onPress: () => deleteTrainingLog(log.id) },
                                       ]);
                                     }}
                                   >
@@ -1443,7 +1446,7 @@ export default function PlanScreen() {
             >
               <Pressable style={styles.menuSelectContent} onPress={(e) => e.stopPropagation()}>
                 <View style={styles.menuSelectHeader}>
-                  <Text style={styles.menuSelectTitle}>メニューを追加</Text>
+                  <Text style={styles.menuSelectTitle}>{t('plan.addMenu')}</Text>
                   <Pressable onPress={() => setMenuSelectModalVisible(false)}>
                     <Ionicons name="close" size={24} color={COLORS.text.secondary} />
                   </Pressable>
@@ -1459,7 +1462,7 @@ export default function PlanScreen() {
                 >
                   <View style={styles.menuSelectDateLeft}>
                     <Ionicons name="calendar-outline" size={18} color={COLORS.primary} />
-                    <Text style={styles.menuSelectDateLabel}>日付</Text>
+                    <Text style={styles.menuSelectDateLabel}>{t('plan.date')}</Text>
                   </View>
                   <View style={styles.menuSelectDateRight}>
                     <Text style={styles.menuSelectDateValue}>
@@ -1467,7 +1470,7 @@ export default function PlanScreen() {
                         const d = new Date(menuSelectDate + 'T00:00:00');
                         const todayStr = toLocalDateStr(new Date());
                         const dateStr = `${d.getFullYear()}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}`;
-                        return menuSelectDate === todayStr ? `${dateStr}（今日）` : dateStr;
+                        return menuSelectDate === todayStr ? `${dateStr}（${t('plan.today')}）` : dateStr;
                       })()}
                     </Text>
                     <Ionicons name="chevron-forward" size={16} color={COLORS.text.muted} />
@@ -1491,7 +1494,7 @@ export default function PlanScreen() {
                           menuSelectCategory === cat && styles.menuSelectCategoryChipTextActive,
                         ]}
                       >
-                        {cat === 'all' ? 'すべて' : cat}
+                        {cat === 'all' ? t('plan.all') : cat}
                       </Text>
                     </Pressable>
                   ))}
@@ -1531,7 +1534,7 @@ export default function PlanScreen() {
             }}
             value={new Date(menuSelectDate + 'T00:00:00')}
             maxDate={new Date()}
-            title="記録日を選択"
+            title={t('plan.selectRecordDate')}
           />
 
           {/* 記録編集モーダル */}
@@ -1545,7 +1548,7 @@ export default function PlanScreen() {
             setFeeling={setEditFeeling}
             notes={editNotes}
             setNotes={setEditNotes}
-            title="記録を編集"
+            title={t('plan.editRecord')}
           />
         </SafeAreaView>
       </SwipeBackView>
@@ -1563,16 +1566,16 @@ export default function PlanScreen() {
           <View style={styles.raceCard}>
             <View style={styles.raceCardHeader}>
               <View style={styles.targetRaceBadge}>
-                <Text style={styles.targetRaceBadgeText}>ターゲットレース</Text>
+                <Text style={styles.targetRaceBadgeText}>{t('plan.targetRace')}</Text>
               </View>
             </View>
             <View style={styles.raceCardHeader}>
               <Ionicons name="flag" size={20} color="#F97316" />
               <Text style={styles.raceName}>{activePlan.race.name}</Text>
             </View>
-            <Text style={styles.raceCountdown}>あと {daysUntilRace} 日</Text>
+            <Text style={styles.raceCountdown}>{t('plan.daysUntilRace', { days: daysUntilRace })}</Text>
             <View style={styles.raceDetails}>
-              <Text style={styles.raceDetailText}>{formatRaceDistance(activePlan.race.distance, activePlan.race.customDistance)}</Text>
+              <Text style={styles.raceDetailText}>{formatRaceDistance(t, activePlan.race.distance, activePlan.race.customDistance)}</Text>
             </View>
           </View>
         </FadeIn>
@@ -1584,8 +1587,8 @@ export default function PlanScreen() {
               <View style={styles.updateBannerContent}>
                 <Ionicons name="refresh-circle" size={22} color="#EAB308" />
                 <View style={styles.updateBannerTextContainer}>
-                  <Text style={styles.updateBannerTitle}>メニューが更新されました</Text>
-                  <Text style={styles.updateBannerDesc}>走力に合わせた最新メニューに更新できます</Text>
+                  <Text style={styles.updateBannerTitle}>{t('plan.menuUpdated')}</Text>
+                  <Text style={styles.updateBannerDesc}>{t('plan.menuUpdatedDesc')}</Text>
                 </View>
               </View>
               <View style={styles.updateBannerActions}>
@@ -1593,13 +1596,13 @@ export default function PlanScreen() {
                   style={styles.updateBannerButton}
                   onPress={handleRegeneratePlan}
                 >
-                  <Text style={styles.updateBannerButtonText}>更新する</Text>
+                  <Text style={styles.updateBannerButtonText}>{t('plan.update')}</Text>
                 </Pressable>
                 <Pressable
                   style={styles.updateBannerDismiss}
                   onPress={() => setUpdateBannerDismissed(true)}
                 >
-                  <Text style={styles.updateBannerDismissText}>後で</Text>
+                  <Text style={styles.updateBannerDismissText}>{t('plan.later')}</Text>
                 </Pressable>
               </View>
             </View>
@@ -1610,7 +1613,7 @@ export default function PlanScreen() {
         {activePlan.phases && (
           <SlideIn delay={100} direction="up">
             <View style={styles.phaseCard}>
-              <Text style={styles.sectionLabel}>トレーニングフェーズ</Text>
+              <Text style={styles.sectionLabel}>{t('plan.trainingPhase')}</Text>
               <View style={styles.phaseBar}>
                 {activePlan.phases.map((phase, i) => (
                   <View
@@ -1646,9 +1649,9 @@ export default function PlanScreen() {
             >
               <View style={styles.thisWeekHeader}>
                 <View>
-                  <Text style={styles.thisWeekLabel}>今週</Text>
+                  <Text style={styles.thisWeekLabel}>{t('plan.thisWeek')}</Text>
                   <Text style={styles.thisWeekPhase}>
-                    第{currentWeekNumber}週 - {PHASE_CONFIG[currentWeekPlan.phaseType].label}
+                    {t('plan.weekPhase', { week: currentWeekNumber, phase: PHASE_CONFIG[currentWeekPlan.phaseType].label })}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={24} color={COLORS.text.muted} />
@@ -1658,7 +1661,7 @@ export default function PlanScreen() {
               <View style={styles.keyWorkouts}>
                 {currentWeekPlan.days.filter(d => d?.isKey).slice(0, 3).map((d, i) => {
                   if (!d) return null;
-                  const dayNames = ['月', '火', '水', '木', '金', '土', '日'];
+                  const dayNames = [t('plan.mon'), t('plan.tue'), t('plan.wed'), t('plan.thu'), t('plan.fri'), t('plan.sat'), t('plan.sun')];
                   const iconInfo = getWorkoutIconInfo(d.type);
                   return (
                     <View key={i} style={styles.keyWorkoutItem}>
@@ -1683,9 +1686,9 @@ export default function PlanScreen() {
             <View style={styles.logEntryButtonLeft}>
               <Ionicons name="book-outline" size={20} color={COLORS.primary} />
               <View>
-                <Text style={styles.logEntryButtonTitle}>トレーニング記録</Text>
+                <Text style={styles.logEntryButtonTitle}>{t('plan.trainingRecord')}</Text>
                 <Text style={styles.logEntryButtonSubtitle}>
-                  {trainingLogs.filter((l) => l.status === 'completed' && l.planId === activePlan?.id).length}件の記録
+                  {t('plan.recordCount', { count: trainingLogs.filter((l) => l.status === 'completed' && l.planId === activePlan?.id).length })}
                 </Text>
               </View>
             </View>
@@ -1728,15 +1731,15 @@ export default function PlanScreen() {
               <View style={styles.analyticsCard}>
                 <View style={styles.analyticsTitleRow}>
                   <Ionicons name="stats-chart-outline" size={18} color={COLORS.primary} />
-                  <Text style={styles.analyticsTitle}>トレーニング分析</Text>
+                  <Text style={styles.analyticsTitle}>{t('plan.trainingAnalytics')}</Text>
                 </View>
 
                 {/* 期間セレクター */}
                 <View style={styles.analyticsPeriodRow}>
                   {([
-                    { key: 'all' as AnalyticsPeriod, label: '全期間' },
-                    { key: '30d' as AnalyticsPeriod, label: '30日間' },
-                    { key: '7d' as AnalyticsPeriod, label: '7日間' },
+                    { key: 'all' as AnalyticsPeriod, labelKey: 'plan.periodAll' },
+                    { key: '30d' as AnalyticsPeriod, labelKey: 'plan.period30d' },
+                    { key: '7d' as AnalyticsPeriod, labelKey: 'plan.period7d' },
                   ]).map((item) => (
                     <Pressable
                       key={item.key}
@@ -1744,7 +1747,7 @@ export default function PlanScreen() {
                       onPress={() => setAnalyticsPeriod(item.key)}
                     >
                       <Text style={[styles.analyticsPeriodText, analyticsPeriod === item.key && styles.analyticsPeriodTextActive]}>
-                        {item.label}
+                        {t(item.labelKey)}
                       </Text>
                     </Pressable>
                   ))}
@@ -1754,17 +1757,17 @@ export default function PlanScreen() {
                 <View style={styles.analyticsDistanceRow}>
                   <View style={styles.analyticsDistanceItem}>
                     <Text style={styles.analyticsDistanceValue}>{(analytics.weeklyDistance / 1000).toFixed(1)}</Text>
-                    <Text style={styles.analyticsDistanceLabel}>週間km</Text>
+                    <Text style={styles.analyticsDistanceLabel}>{t('plan.weeklyKm')}</Text>
                   </View>
                   <View style={styles.analyticsDistanceDivider} />
                   <View style={styles.analyticsDistanceItem}>
                     <Text style={styles.analyticsDistanceValue}>{(analytics.monthlyDistance / 1000).toFixed(1)}</Text>
-                    <Text style={styles.analyticsDistanceLabel}>30日間km</Text>
+                    <Text style={styles.analyticsDistanceLabel}>{t('plan.monthlyKm')}</Text>
                   </View>
                   <View style={styles.analyticsDistanceDivider} />
                   <View style={styles.analyticsDistanceItem}>
                     <Text style={styles.analyticsDistanceValue}>{analytics.completedCount}/{analytics.totalCount}</Text>
-                    <Text style={styles.analyticsDistanceLabel}>完了率</Text>
+                    <Text style={styles.analyticsDistanceLabel}>{t('plan.completionRate')}</Text>
                   </View>
                 </View>
 
@@ -1779,7 +1782,7 @@ export default function PlanScreen() {
                 </View>
 
                 {/* ゾーン別横棒グラフ + 達成率・距離（一体型） */}
-                <Text style={styles.analyticsZoneTitle}>ゾーン別刺激量</Text>
+                <Text style={styles.analyticsZoneTitle}>{t('plan.zoneStimulus')}</Text>
                 <View style={styles.azBarChartWrap}>
                   {zoneData.map(({ zone, config, completed, planned, ratio }) => {
                     const barWidth = Math.min((completed / maxDistance) * 100, 100);
@@ -1811,12 +1814,12 @@ export default function PlanScreen() {
                       </View>
                     );
                   })}
-                  <Text style={styles.azBarTargetLabel}>--- 100%ライン</Text>
-                  <Text style={styles.azRatioCaption}>消化率</Text>
+                  <Text style={styles.azBarTargetLabel}>--- {t('plan.targetLine100')}</Text>
+                  <Text style={styles.azRatioCaption}>{t('plan.completionRate')}</Text>
                 </View>
 
                 {/* ゾーン比率（消化率・積み上げバー） */}
-                <Text style={styles.analyticsZoneTitle}>ゾーン比率（全体を100として）</Text>
+                <Text style={styles.analyticsZoneTitle}>{t('plan.zoneRatio')}</Text>
                 {totalCompleted > 0 && (
                   <View style={styles.azRatioWrap}>
                     {/* パーセンテージラベル（バーの上） */}
@@ -1855,7 +1858,7 @@ export default function PlanScreen() {
         <SlideIn delay={280} direction="up">
           <View style={styles.subRaceSection}>
             <View style={styles.subRaceSectionHeader}>
-              <Text style={styles.sectionLabel}>レーススケジュール</Text>
+              <Text style={styles.sectionLabel}>{t('plan.raceSchedule')}</Text>
               <Pressable
                 style={styles.addSubRaceButton}
                 onPress={() => {
@@ -1867,15 +1870,14 @@ export default function PlanScreen() {
                 }}
               >
                 <Ionicons name="add-circle-outline" size={18} color={COLORS.primary} />
-                <Text style={styles.addSubRaceButtonText}>レース追加</Text>
+                <Text style={styles.addSubRaceButtonText}>{t('plan.addRace')}</Text>
               </Pressable>
             </View>
 
             {(!activePlan.subRaces || activePlan.subRaces.length === 0) ? (
               <View style={styles.subRaceEmpty}>
                 <Text style={styles.subRaceEmptyText}>
-                  ターゲットレースまでに出場予定のレースを追加できます。{'\n'}
-                  レース前の練習負荷が自動調整されます。
+                  {t('plan.subRaceEmptyText')}
                 </Text>
               </View>
             ) : (
@@ -1884,9 +1886,9 @@ export default function PlanScreen() {
                   const srDate = new Date(sr.date);
                   const daysUntilSr = Math.ceil((srDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
                   const priorityConfig = {
-                    high: { label: '重要', color: '#EF4444' },
-                    medium: { label: '中程度', color: '#EAB308' },
-                    low: { label: '練習レース', color: '#9CA3AF' },
+                    high: { label: t('plan.priorityHigh'), color: '#EF4444' },
+                    medium: { label: t('plan.priorityMedium'), color: '#EAB308' },
+                    low: { label: t('plan.priorityLow'), color: '#9CA3AF' },
                   };
                   return (
                     <View key={sr.id} style={styles.subRaceItem}>
@@ -1895,9 +1897,9 @@ export default function PlanScreen() {
                         <View>
                           <Text style={styles.subRaceItemName}>{sr.name}</Text>
                           <Text style={styles.subRaceItemDetail}>
-                            {formatRaceDistance(sr.distance, sr.customDistance)}
+                            {formatRaceDistance(t, sr.distance, sr.customDistance)}
                             {' '}·{' '}
-                            {daysUntilSr > 0 ? `あと${daysUntilSr}日` : '終了'}
+                            {daysUntilSr > 0 ? t('plan.daysUntilRace', { days: daysUntilSr }) : t('plan.finished')}
                             {' '}·{' '}
                             {priorityConfig[sr.priority].label}
                           </Text>
@@ -1905,9 +1907,9 @@ export default function PlanScreen() {
                       </View>
                       <Pressable
                         onPress={() => {
-                          Alert.alert('サブレース削除', `「${sr.name}」を削除しますか？`, [
-                            { text: 'キャンセル', style: 'cancel' },
-                            { text: '削除', style: 'destructive', onPress: () => removeSubRace(sr.id) },
+                          Alert.alert(t('plan.deleteSubRace'), t('plan.deleteSubRaceConfirm', { name: sr.name }), [
+                            { text: t('common.cancel'), style: 'cancel' },
+                            { text: t('common.delete'), style: 'destructive', onPress: () => removeSubRace(sr.id) },
                           ]);
                         }}
                       >
@@ -1924,7 +1926,7 @@ export default function PlanScreen() {
         {/* 全週一覧（コンパクト） */}
         <SlideIn delay={300} direction="up">
           <View style={styles.weeksOverview}>
-            <Text style={styles.sectionLabel}>全体進捗</Text>
+            <Text style={styles.sectionLabel}>{t('plan.overallProgress')}</Text>
             <View style={styles.weeksGrid}>
               {activePlan.weeklyPlans?.map((week, i) => {
                 const isCurrent = week.weekNumber === currentWeekNumber;
@@ -1961,21 +1963,21 @@ export default function PlanScreen() {
             style={styles.actionButton}
             onPress={() => {
               Alert.alert(
-                '新しい計画を作成',
-                '現在の計画を上書きして新しい計画を作成します。トレーニング記録やテスト結果は保持されます。',
+                t('plan.newPlan'),
+                t('plan.newPlanDesc'),
                 [
-                  { text: 'キャンセル', style: 'cancel' },
-                  { text: '作成する', onPress: () => setView('create') },
+                  { text: t('common.cancel'), style: 'cancel' },
+                  { text: t('plan.create'), onPress: () => setView('create') },
                 ],
               );
             }}
           >
             <Ionicons name="create-outline" size={18} color={COLORS.primary} />
-            <Text style={[styles.actionButtonText, { color: COLORS.primary }]}>新しい計画を作成</Text>
+            <Text style={[styles.actionButtonText, { color: COLORS.primary }]}>{t('plan.newPlan')}</Text>
           </Pressable>
           <Pressable style={[styles.actionButton, { marginTop: 8 }]} onPress={handleDeletePlan}>
             <Ionicons name="trash-outline" size={18} color="#EF4444" />
-            <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>計画を削除</Text>
+            <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>{t('plan.deletePlan')}</Text>
           </Pressable>
         </SlideIn>
       </ScrollView>
@@ -1994,7 +1996,7 @@ export default function PlanScreen() {
           <View style={styles.modalOverlayPress}>
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>レースを追加</Text>
+              <Text style={styles.modalTitle}>{t('plan.addRace')}</Text>
               <Pressable onPress={() => setShowSubRaceModal(false)}>
                 <Ionicons name="close" size={24} color={COLORS.text.primary} />
               </Pressable>
@@ -2003,25 +2005,25 @@ export default function PlanScreen() {
             <ScrollView style={styles.modalBody}>
               {/* レース名 */}
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>レース名</Text>
+                <Text style={styles.inputLabel}>{t('plan.raceName')}</Text>
                 <TextInput
                   style={styles.input}
                   value={subRaceName}
                   onChangeText={setSubRaceName}
-                  placeholder="例: 県選手権"
+                  placeholder={t('plan.subRaceNamePlaceholder')}
                   placeholderTextColor={COLORS.text.muted}
                 />
               </View>
 
               {/* レース日 */}
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>レース日</Text>
+                <Text style={styles.inputLabel}>{t('plan.raceDate')}</Text>
                 <Pressable
                   style={styles.inputButton}
                   onPress={() => setShowSubRaceDatePicker(true)}
                 >
                   <Text style={[styles.inputButtonText, !subRaceDate && styles.inputPlaceholder]}>
-                    {subRaceDate ? formatDateDisplay(subRaceDate) : '日付を選択'}
+                    {subRaceDate ? formatDateDisplay(subRaceDate) : t('plan.selectDate')}
                   </Text>
                   <Ionicons name="calendar-outline" size={20} color={COLORS.text.muted} />
                 </Pressable>
@@ -2029,7 +2031,7 @@ export default function PlanScreen() {
 
               {/* 種目 */}
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>種目</Text>
+                <Text style={styles.inputLabel}>{t('plan.event')}</Text>
                 <View style={styles.distanceSelector}>
                   {RACE_DISTANCE_OPTIONS.map((opt) => (
                     <Pressable
@@ -2038,7 +2040,7 @@ export default function PlanScreen() {
                       onPress={() => setSubRaceDistance(opt.value)}
                     >
                       <Text style={[styles.distanceOptionText, subRaceDistance === opt.value && styles.distanceOptionTextActive]}>
-                        {opt.label}
+                        {t(opt.labelKey)}
                       </Text>
                     </Pressable>
                   ))}
@@ -2048,7 +2050,7 @@ export default function PlanScreen() {
                     style={[styles.input, { marginTop: 8 }]}
                     value={subRaceCustomDistance}
                     onChangeText={setSubRaceCustomDistance}
-                    placeholder="距離をメートルで入力（例: 1000）"
+                    placeholder={t('plan.customDistancePlaceholder')}
                     placeholderTextColor={COLORS.text.muted}
                     keyboardType="numeric"
                   />
@@ -2057,12 +2059,12 @@ export default function PlanScreen() {
 
               {/* 重要度 */}
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>重要度</Text>
+                <Text style={styles.inputLabel}>{t('plan.priority')}</Text>
                 <View style={styles.prioritySelector}>
                   {([
-                    { key: 'high' as const, label: '重要', desc: 'しっかり調整して臨むレース', color: '#EF4444' },
-                    { key: 'medium' as const, label: '中程度', desc: '軽い調整で臨むレース', color: '#EAB308' },
-                    { key: 'low' as const, label: '練習レース', desc: '調整なし・練習の一環', color: '#9CA3AF' },
+                    { key: 'high' as const, labelKey: 'plan.priorityHigh', descKey: 'plan.priorityHighDesc', color: '#EF4444' },
+                    { key: 'medium' as const, labelKey: 'plan.priorityMedium', descKey: 'plan.priorityMediumDesc', color: '#EAB308' },
+                    { key: 'low' as const, labelKey: 'plan.priorityLow', descKey: 'plan.priorityLowDesc', color: '#9CA3AF' },
                   ]).map((p) => (
                     <Pressable
                       key={p.key}
@@ -2071,8 +2073,8 @@ export default function PlanScreen() {
                     >
                       <View style={[styles.subRacePriorityDot, { backgroundColor: p.color }]} />
                       <View>
-                        <Text style={[styles.priorityOptionText, subRacePriority === p.key && { color: COLORS.text.primary }]}>{p.label}</Text>
-                        <Text style={styles.priorityOptionDesc}>{p.desc}</Text>
+                        <Text style={[styles.priorityOptionText, subRacePriority === p.key && { color: COLORS.text.primary }]}>{t(p.labelKey)}</Text>
+                        <Text style={styles.priorityOptionDesc}>{t(p.descKey)}</Text>
                       </View>
                     </Pressable>
                   ))}
@@ -2094,7 +2096,7 @@ export default function PlanScreen() {
                 const srDateOnly = new Date(subRaceDate);
                 srDateOnly.setHours(0, 0, 0, 0);
                 if (srDateOnly <= today) {
-                  Alert.alert('エラー', '過去の日付にはサブレースを設定できません。\n明日以降の日付を選択してください。');
+                  Alert.alert(t('common.error'), t('plan.errorSubRacePast'));
                   return;
                 }
                 // 完了済みの日には設定不可
@@ -2107,21 +2109,21 @@ export default function PlanScreen() {
                 if (targetWeek) {
                   const targetDay = targetWeek.days[srDayOfWeek];
                   if (targetDay?.completed) {
-                    Alert.alert('エラー', 'この日は既にトレーニングが完了しています。\n完了済みの日にはサブレースを設定できません。');
+                    Alert.alert(t('common.error'), t('plan.errorSubRaceCompleted'));
                     return;
                   }
                 }
                 if (planStart && srDateStr < planStart) {
-                  Alert.alert('エラー', '計画開始日より前の日付は設定できません');
+                  Alert.alert(t('common.error'), t('plan.errorSubRaceBeforeStart'));
                   return;
                 }
                 if (srDateStr >= raceEnd) {
-                  Alert.alert('エラー', 'ターゲットレース日以降の日付は設定できません');
+                  Alert.alert(t('common.error'), t('plan.errorSubRaceAfterTarget'));
                   return;
                 }
                 const subCustomDist = subRaceDistance === 'custom' ? parseInt(subRaceCustomDistance, 10) : undefined;
                 if (subRaceDistance === 'custom' && (!subRaceCustomDistance || !subCustomDist || subCustomDist <= 0)) {
-                  Alert.alert('エラー', '任意距離を入力してください');
+                  Alert.alert(t('common.error'), t('plan.errorCustomDistance'));
                   return;
                 }
                 addSubRace({
@@ -2141,7 +2143,7 @@ export default function PlanScreen() {
               }}
               disabled={!subRaceName || !subRaceDate}
             >
-              <Text style={styles.createButtonText}>追加</Text>
+              <Text style={styles.createButtonText}>{t('common.add')}</Text>
             </Pressable>
           </View>
           </View>
@@ -2152,7 +2154,7 @@ export default function PlanScreen() {
           onClose={() => setShowSubRaceDatePicker(false)}
           onSelect={(date) => setSubRaceDate(date)}
           value={subRaceDate || undefined}
-          title="レース日を選択"
+          title={t('plan.selectRaceDate')}
         />
       </Modal>
     </SafeAreaView>
@@ -2201,6 +2203,7 @@ function RecordResultModal({
   title,
   onDelete,
 }: RecordResultModalProps) {
+  const { t } = useTranslation();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView
@@ -2211,7 +2214,7 @@ function RecordResultModal({
           <Pressable style={styles.modalContainer} onPress={(e) => e.stopPropagation()}>
             {/* ヘッダー */}
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{title || '結果を記録'}</Text>
+              <Text style={styles.modalTitle}>{title || t('plan.recordResult')}</Text>
               <Pressable onPress={onClose}>
                 <Ionicons name="close" size={24} color={COLORS.text.secondary} />
               </Pressable>
@@ -2221,7 +2224,7 @@ function RecordResultModal({
               {/* 距離（メニューから自動取得・読み取り専用） */}
               {distance ? (
                 <View style={styles.modalInputGroup}>
-                  <Text style={styles.modalInputLabel}>走行距離</Text>
+                  <Text style={styles.modalInputLabel}>{t('plan.distance')}</Text>
                   <View style={[styles.modalInput, { backgroundColor: COLORS.background, justifyContent: 'center' }]}>
                     <Text style={{ color: COLORS.text.primary, fontSize: 15 }}>
                       {Number(distance) >= 1000 ? `${(Number(distance) / 1000).toFixed(1)} km` : `${distance} m`}
@@ -2232,7 +2235,7 @@ function RecordResultModal({
 
               {/* 体感 */}
               <View style={styles.modalInputGroup}>
-                <Text style={styles.modalInputLabel}>体感</Text>
+                <Text style={styles.modalInputLabel}>{t('plan.feeling')}</Text>
                 <View style={styles.feelingSelector}>
                   {(Object.keys(FEELING_CONFIG) as FeelingLevel[]).map((key) => {
                     const config = FEELING_CONFIG[key];
@@ -2245,7 +2248,7 @@ function RecordResultModal({
                       >
                         <Ionicons name={config.icon as any} size={18} color={isActive ? config.color : COLORS.text.muted} />
                         <Text style={[styles.feelingOptionText, isActive && { color: config.color }]}>
-                          {config.label}
+                          {t(config.labelKey)}
                         </Text>
                       </Pressable>
                     );
@@ -2255,12 +2258,12 @@ function RecordResultModal({
 
               {/* メモ */}
               <View style={styles.modalInputGroup}>
-                <Text style={styles.modalInputLabel}>メモ</Text>
+                <Text style={styles.modalInputLabel}>{t('plan.notes')}</Text>
                 <TextInput
                   style={[styles.modalInput, styles.modalInputMultiline]}
                   value={notes}
                   onChangeText={setNotes}
-                  placeholder="練習の感想や気づきなど"
+                  placeholder={t('plan.notesPlaceholder')}
                   placeholderTextColor={COLORS.text.muted}
                   multiline
                   numberOfLines={3}
@@ -2271,11 +2274,11 @@ function RecordResultModal({
             {/* ボタン */}
             <View style={styles.modalButtons}>
               <Pressable style={styles.modalCancelButton} onPress={onClose}>
-                <Text style={styles.modalCancelButtonText}>キャンセル</Text>
+                <Text style={styles.modalCancelButtonText}>{t('common.cancel')}</Text>
               </Pressable>
               <Pressable style={styles.modalSaveButton} onPress={onSave}>
                 <Ionicons name="checkmark" size={18} color="#fff" />
-                <Text style={styles.modalSaveButtonText}>保存</Text>
+                <Text style={styles.modalSaveButtonText}>{t('common.save')}</Text>
               </Pressable>
             </View>
             {onDelete && (
@@ -2283,17 +2286,17 @@ function RecordResultModal({
                 style={styles.modalDeleteButton}
                 onPress={() => {
                   Alert.alert(
-                    '記録を削除',
-                    'この記録を削除して未完了に戻しますか？',
+                    t('plan.deleteRecord'),
+                    t('plan.deleteRecordConfirm'),
                     [
-                      { text: 'キャンセル', style: 'cancel' },
-                      { text: '削除', style: 'destructive', onPress: onDelete },
+                      { text: t('common.cancel'), style: 'cancel' },
+                      { text: t('common.delete'), style: 'destructive', onPress: onDelete },
                     ],
                   );
                 }}
               >
                 <Ionicons name="trash-outline" size={16} color="#EF4444" />
-                <Text style={styles.modalDeleteButtonText}>記録を削除して未完了に戻す</Text>
+                <Text style={styles.modalDeleteButtonText}>{t('plan.deleteRecordRevert')}</Text>
               </Pressable>
             )}
           </Pressable>

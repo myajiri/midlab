@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useProfileStore, useSettingsStore } from '../../src/stores/useAppStore';
 import { formatTime, formatKmPace, calculateEtp, estimateLimiterFromPBs } from '../../src/utils';
 import { AgeCategory, Experience, PBs } from '../../src/types';
@@ -22,34 +23,35 @@ import { FadeIn, SlideIn } from '../../src/components/ui/Animated';
 import { COLORS, PB_COEFFICIENTS } from '../../src/constants';
 
 // 年齢カテゴリ（7分割：年齢に応じた回復サイクル・ETP補正に使用）
-const AGE_CATEGORIES: { key: AgeCategory; label: string; icon: string }[] = [
-  { key: 'junior_high', label: '中学生', icon: 'school' },
-  { key: 'high_school', label: '高校生', icon: 'school' },
-  { key: 'collegiate', label: '大学生', icon: 'library' },
-  { key: 'senior', label: '一般', icon: 'person' },
-  { key: 'masters_40', label: '40代', icon: 'star' },
-  { key: 'masters_50', label: '50代', icon: 'star' },
-  { key: 'masters_60', label: '60歳〜', icon: 'star' },
+const AGE_CATEGORIES: { key: AgeCategory; labelKey: string; icon: string }[] = [
+  { key: 'junior_high', labelKey: 'constants.ageCategories.junior_high.label', icon: 'school' },
+  { key: 'high_school', labelKey: 'constants.ageCategories.high_school.label', icon: 'school' },
+  { key: 'collegiate', labelKey: 'constants.ageCategories.collegiate.label', icon: 'library' },
+  { key: 'senior', labelKey: 'constants.ageCategories.senior.label', icon: 'person' },
+  { key: 'masters_40', labelKey: 'constants.ageCategories.masters_40.label', icon: 'star' },
+  { key: 'masters_50', labelKey: 'constants.ageCategories.masters_50.label', icon: 'star' },
+  { key: 'masters_60', labelKey: 'constants.ageCategories.masters_60.label', icon: 'star' },
 ];
 
 // 簡略化した経験レベル
-const EXPERIENCE_LEVELS: { key: Experience; label: string; desc: string }[] = [
-  { key: 'beginner', label: '初心者', desc: '1年未満' },
-  { key: 'intermediate', label: '中級者', desc: '1-3年' },
-  { key: 'advanced', label: '上級者', desc: '3年以上' },
+const EXPERIENCE_LEVELS: { key: Experience; labelKey: string; descKey: string }[] = [
+  { key: 'beginner', labelKey: 'constants.experience.beginner.label', descKey: 'constants.experience.beginner.desc' },
+  { key: 'intermediate', labelKey: 'constants.experience.intermediate.label', descKey: 'constants.experience.intermediate.desc' },
+  { key: 'advanced', labelKey: 'constants.experience.advanced.label', descKey: 'constants.experience.advanced.desc' },
 ];
 
 // PB距離設定（200m〜5000m：初回プロファイリングでリミッター分類に使用）
-const PB_DISTANCES: { key: keyof PBs; label: string; minMinutes: number; maxMinutes: number; title: string }[] = [
-  { key: 'm200', label: '200m', minMinutes: 0, maxMinutes: 1, title: '200mベストタイム' },
-  { key: 'm400', label: '400m', minMinutes: 0, maxMinutes: 2, title: '400mベストタイム' },
-  { key: 'm800', label: '800m', minMinutes: 1, maxMinutes: 5, title: '800mベストタイム' },
-  { key: 'm1500', label: '1500m', minMinutes: 3, maxMinutes: 8, title: '1500mベストタイム' },
-  { key: 'm3000', label: '3000m', minMinutes: 7, maxMinutes: 18, title: '3000mベストタイム' },
-  { key: 'm5000', label: '5000m', minMinutes: 12, maxMinutes: 30, title: '5000mベストタイム' },
+const PB_DISTANCES: { key: keyof PBs; label: string; minMinutes: number; maxMinutes: number; titleKey: string }[] = [
+  { key: 'm200', label: '200m', minMinutes: 0, maxMinutes: 1, titleKey: 'onboarding.pbTitle.m200' },
+  { key: 'm400', label: '400m', minMinutes: 0, maxMinutes: 2, titleKey: 'onboarding.pbTitle.m400' },
+  { key: 'm800', label: '800m', minMinutes: 1, maxMinutes: 5, titleKey: 'onboarding.pbTitle.m800' },
+  { key: 'm1500', label: '1500m', minMinutes: 3, maxMinutes: 8, titleKey: 'onboarding.pbTitle.m1500' },
+  { key: 'm3000', label: '3000m', minMinutes: 7, maxMinutes: 18, titleKey: 'onboarding.pbTitle.m3000' },
+  { key: 'm5000', label: '5000m', minMinutes: 12, maxMinutes: 30, titleKey: 'onboarding.pbTitle.m5000' },
 ];
 
 export default function OnboardingMain() {
+  const { t } = useTranslation();
   const router = useRouter();
   const updateAttributes = useProfileStore((state) => state.updateAttributes);
   const updatePBs = useProfileStore((state) => state.updatePBs);
@@ -116,25 +118,25 @@ export default function OnboardingMain() {
               <View style={styles.logoIcon}>
                 <Ionicons name="flash" size={40} color={COLORS.primary} />
               </View>
-              <Text style={styles.appName}>ミドラボ</Text>
-              <Text style={styles.tagline}>中距離ランナーのための{'\n'}トレーニングアプリ</Text>
+              <Text style={styles.appName}>{t('onboarding.appName')}</Text>
+              <Text style={styles.tagline}>{t('onboarding.tagline')}</Text>
             </View>
           </FadeIn>
 
           <SlideIn delay={200} direction="up">
             <View style={styles.features}>
               {[
-                { icon: 'analytics', color: '#3B82F6', title: 'ETPテスト', desc: '持久力タイプを科学的に判定' },
-                { icon: 'speedometer', color: '#22C55E', title: 'ゾーン計算', desc: '最適なペースを自動算出' },
-                { icon: 'fitness', color: '#8B5CF6', title: 'パーソナライズ', desc: 'あなた専用のトレーニング' },
+                { icon: 'analytics', color: '#3B82F6', titleKey: 'onboarding.feature1Title', descKey: 'onboarding.feature1Desc' },
+                { icon: 'speedometer', color: '#22C55E', titleKey: 'onboarding.feature2Title', descKey: 'onboarding.feature2Desc' },
+                { icon: 'fitness', color: '#8B5CF6', titleKey: 'onboarding.feature3Title', descKey: 'onboarding.feature3Desc' },
               ].map((f, i) => (
                 <View key={i} style={styles.featureRow}>
                   <View style={[styles.featureIcon, { backgroundColor: f.color + '20' }]}>
                     <Ionicons name={f.icon as any} size={20} color={f.color} />
                   </View>
                   <View style={styles.featureText}>
-                    <Text style={styles.featureTitle}>{f.title}</Text>
-                    <Text style={styles.featureDesc}>{f.desc}</Text>
+                    <Text style={styles.featureTitle}>{t(f.titleKey)}</Text>
+                    <Text style={styles.featureDesc}>{t(f.descKey)}</Text>
                   </View>
                 </View>
               ))}
@@ -145,10 +147,10 @@ export default function OnboardingMain() {
         <SlideIn delay={400} direction="up">
           <View style={styles.buttonArea}>
             <Pressable style={styles.primaryButton} onPress={handleStart}>
-              <Text style={styles.primaryButtonText}>はじめる</Text>
+              <Text style={styles.primaryButtonText}>{t('onboarding.start')}</Text>
             </Pressable>
             <Pressable style={styles.secondaryButton} onPress={handleSkip}>
-              <Text style={styles.secondaryButtonText}>スキップ</Text>
+              <Text style={styles.secondaryButtonText}>{t('onboarding.skip')}</Text>
             </Pressable>
           </View>
         </SlideIn>
@@ -173,14 +175,14 @@ export default function OnboardingMain() {
             </Pressable>
           </View>
 
-          <Text style={styles.title}>かんたん設定</Text>
-          <Text style={styles.subtitle}>2つの質問に答えるだけ</Text>
+          <Text style={styles.title}>{t('onboarding.setupTitle')}</Text>
+          <Text style={styles.subtitle}>{t('onboarding.setupSubtitle')}</Text>
         </FadeIn>
 
         {/* 年齢カテゴリ */}
         <SlideIn delay={100} direction="up">
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>年齢</Text>
+            <Text style={styles.sectionLabel}>{t('onboarding.ageLabel')}</Text>
             <View style={styles.ageGrid}>
               {AGE_CATEGORIES.map((cat) => (
                 <Pressable
@@ -194,7 +196,7 @@ export default function OnboardingMain() {
                     color={ageCategory === cat.key ? COLORS.primary : COLORS.text.muted}
                   />
                   <Text style={[styles.ageLabel, ageCategory === cat.key && styles.ageLabelActive]}>
-                    {cat.label}
+                    {t(cat.labelKey)}
                   </Text>
                 </Pressable>
               ))}
@@ -205,7 +207,7 @@ export default function OnboardingMain() {
         {/* 経験レベル */}
         <SlideIn delay={200} direction="up">
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>走歴</Text>
+            <Text style={styles.sectionLabel}>{t('onboarding.experienceLabel')}</Text>
             <View style={styles.expGrid}>
               {EXPERIENCE_LEVELS.map((exp) => (
                 <Pressable
@@ -214,9 +216,9 @@ export default function OnboardingMain() {
                   onPress={() => setExperience(exp.key)}
                 >
                   <Text style={[styles.expLabel, experience === exp.key && styles.expLabelActive]}>
-                    {exp.label}
+                    {t(exp.labelKey)}
                   </Text>
-                  <Text style={styles.expDesc}>{exp.desc}</Text>
+                  <Text style={styles.expDesc}>{t(exp.descKey)}</Text>
                 </Pressable>
               ))}
             </View>
@@ -226,7 +228,7 @@ export default function OnboardingMain() {
         {/* 自己ベスト（オプション） */}
         <SlideIn delay={300} direction="up">
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>自己ベスト（任意）</Text>
+            <Text style={styles.sectionLabel}>{t('onboarding.pbLabel')}</Text>
             <View style={styles.pbGrid}>
               {PB_DISTANCES.map((dist) => {
                 const pbValue = pbs[dist.key];
@@ -249,7 +251,7 @@ export default function OnboardingMain() {
                           </Pressable>
                         </View>
                       ) : (
-                        <Text style={styles.pbPlaceholder}>未設定</Text>
+                        <Text style={styles.pbPlaceholder}>{t('common.notSet')}</Text>
                       )}
                     </Pressable>
                   </View>
@@ -261,7 +263,7 @@ export default function OnboardingMain() {
               <View style={styles.etpPreview}>
                 <Ionicons name="flash" size={14} color={COLORS.primary} />
                 <Text style={styles.etpPreviewText}>
-                  推定ETP: {formatKmPace(estimatedEtp)} ({estimatedEtp}秒/400m)
+                  {t('onboarding.estimatedEtp', { pace: formatKmPace(estimatedEtp), seconds: estimatedEtp })}
                 </Text>
               </View>
             )}
@@ -271,17 +273,17 @@ export default function OnboardingMain() {
         {/* 月間上限走行距離（任意） */}
         <SlideIn delay={400} direction="up">
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>月間上限走行距離（任意）</Text>
+            <Text style={styles.sectionLabel}>{t('onboarding.monthlyMileageLabel')}</Text>
             <TextInput
               style={styles.mileageInput}
               value={monthlyMileage}
               onChangeText={setMonthlyMileage}
-              placeholder="例: 200"
+              placeholder={t('onboarding.mileagePlaceholder')}
               placeholderTextColor={COLORS.text.muted}
               keyboardType="numeric"
             />
             <Text style={styles.mileageHint}>
-              ターゲットレースまでの期間で可能な月間走行距離の上限（km）を入力してください。メニューはこの上限を超えないよう生成されます。基礎構築期は上限付近のボリュームとなり、そこから徐々に調整されます。
+              {t('onboarding.mileageHint')}
             </Text>
           </View>
         </SlideIn>
@@ -290,7 +292,7 @@ export default function OnboardingMain() {
       <SlideIn delay={400} direction="up">
         <View style={styles.buttonArea}>
           <Pressable style={styles.primaryButton} onPress={handleComplete}>
-            <Text style={styles.primaryButtonText}>完了</Text>
+            <Text style={styles.primaryButtonText}>{t('common.done')}</Text>
           </Pressable>
         </View>
       </SlideIn>
@@ -304,7 +306,7 @@ export default function OnboardingMain() {
           }
         }}
         value={activePickerDistance ? (pbs[activePickerDistance] || undefined) : undefined}
-        title={activePickerConfig?.title || 'ベストタイム'}
+        title={activePickerConfig ? t(activePickerConfig.titleKey) : t('onboarding.bestTime')}
         minMinutes={activePickerConfig?.minMinutes ?? 1}
         maxMinutes={activePickerConfig?.maxMinutes ?? 30}
       />

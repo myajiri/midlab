@@ -34,68 +34,70 @@ import Constants from 'expo-constants';
 import { useIsPremium, useSubscriptionStore } from '../../store/useSubscriptionStore';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { useIsFocused } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
+import i18next, { changeLanguage, getCurrentLanguageSetting, type AppLanguage } from '../../src/i18n';
 
 // ============================================
 // 定数（簡素化）
 // ============================================
 
-const AGE_OPTIONS: { key: AgeCategory; label: string }[] = [
-  { key: 'junior_high', label: '中学生' },
-  { key: 'high_school', label: '高校生' },
-  { key: 'collegiate', label: '大学生' },
-  { key: 'senior', label: '一般' },
-  { key: 'masters_40', label: '40代' },
-  { key: 'masters_50', label: '50代' },
-  { key: 'masters_60', label: '60歳〜' },
+const getAgeOptions = (): { key: AgeCategory; label: string }[] => [
+  { key: 'junior_high', label: i18next.t('settings.ageJuniorHigh') },
+  { key: 'high_school', label: i18next.t('settings.ageHighSchool') },
+  { key: 'collegiate', label: i18next.t('settings.ageCollegiate') },
+  { key: 'senior', label: i18next.t('settings.ageSenior') },
+  { key: 'masters_40', label: i18next.t('settings.ageMasters40') },
+  { key: 'masters_50', label: i18next.t('settings.ageMasters50') },
+  { key: 'masters_60', label: i18next.t('settings.ageMasters60') },
 ];
 
-const EXPERIENCE_OPTIONS: { key: Experience; label: string }[] = [
-  { key: 'beginner', label: '初心者' },
-  { key: 'intermediate', label: '中級者' },
-  { key: 'advanced', label: '上級者' },
+const getExperienceOptions = (): { key: Experience; label: string }[] => [
+  { key: 'beginner', label: i18next.t('settings.expBeginner') },
+  { key: 'intermediate', label: i18next.t('settings.expIntermediate') },
+  { key: 'advanced', label: i18next.t('settings.expAdvanced') },
 ];
 
-const LIMITER_OPTIONS: { key: LimiterType; icon: string; label: string }[] = [
-  { key: 'cardio', icon: 'fitness', label: '心肺' },
-  { key: 'balanced', icon: 'scale', label: 'バランス' },
-  { key: 'muscular', icon: 'barbell', label: '筋持久力' },
+const getLimiterOptions = (): { key: LimiterType; icon: string; label: string }[] => [
+  { key: 'cardio', icon: 'fitness', label: i18next.t('settings.limiterCardio') },
+  { key: 'balanced', icon: 'scale', label: i18next.t('settings.limiterBalanced') },
+  { key: 'muscular', icon: 'barbell', label: i18next.t('settings.limiterMuscular') },
 ];
 
 // PB距離設定（200m〜5000m：初回プロファイリングでリミッター分類に使用）
-const PB_DISTANCES: { key: keyof PBs; label: string; minMinutes: number; maxMinutes: number; title: string }[] = [
-  { key: 'm200', label: '200m PB', minMinutes: 0, maxMinutes: 1, title: '200mベストタイム' },
-  { key: 'm400', label: '400m PB', minMinutes: 0, maxMinutes: 2, title: '400mベストタイム' },
-  { key: 'm800', label: '800m PB', minMinutes: 1, maxMinutes: 5, title: '800mベストタイム' },
-  { key: 'm1500', label: '1500m PB', minMinutes: 3, maxMinutes: 8, title: '1500mベストタイム' },
-  { key: 'm3000', label: '3000m PB', minMinutes: 7, maxMinutes: 18, title: '3000mベストタイム' },
-  { key: 'm5000', label: '5000m PB', minMinutes: 12, maxMinutes: 30, title: '5000mベストタイム' },
+const getPbDistances = (): { key: keyof PBs; label: string; minMinutes: number; maxMinutes: number; title: string }[] => [
+  { key: 'm200', label: '200m PB', minMinutes: 0, maxMinutes: 1, title: i18next.t('settings.pbTitle200m') },
+  { key: 'm400', label: '400m PB', minMinutes: 0, maxMinutes: 2, title: i18next.t('settings.pbTitle400m') },
+  { key: 'm800', label: '800m PB', minMinutes: 1, maxMinutes: 5, title: i18next.t('settings.pbTitle800m') },
+  { key: 'm1500', label: '1500m PB', minMinutes: 3, maxMinutes: 8, title: i18next.t('settings.pbTitle1500m') },
+  { key: 'm3000', label: '3000m PB', minMinutes: 7, maxMinutes: 18, title: i18next.t('settings.pbTitle3000m') },
+  { key: 'm5000', label: '5000m PB', minMinutes: 12, maxMinutes: 30, title: i18next.t('settings.pbTitle5000m') },
 ];
 
-// 用語ヘルプ定義
-const HELP_ITEMS: { term: string; description: string }[] = [
+// 用語ヘルプ定義（i18n対応）
+const getHelpItems = (): { term: string; description: string }[] => [
   {
-    term: 'ETP（Estimated Threshold Pace）',
-    description: '400mあたりの推定閾値ペース（秒）。ETPテストまたは自己ベストから算出されます。値が小さいほど走力が高いことを意味します。',
+    term: i18next.t('settings.helpEtpTerm'),
+    description: i18next.t('settings.helpEtpDesc'),
   },
   {
-    term: 'リミッタータイプ',
-    description: '持久力の制限要因を3タイプに分類したもの。心肺リミッター型（呼吸が先に限界）、筋持久力リミッター型（脚が先に限界）、バランス型（均等）の3種類があり、タイプに応じてトレーニングの重点が変わります。',
+    term: i18next.t('settings.helpLimiterTerm'),
+    description: i18next.t('settings.helpLimiterDesc'),
   },
   {
-    term: 'トレーニングゾーン',
-    description: 'ETPから算出された6段階の強度帯。ジョグ・イージー・マラソン・閾値・インターバル・レペティションの各ゾーンペースでトレーニングを行います。',
+    term: i18next.t('settings.helpZoneTerm'),
+    description: i18next.t('settings.helpZoneDesc'),
   },
   {
-    term: '推定VO2max',
-    description: '最大酸素摂取量の推定値（ml/kg/min）。ETPから簡易推定した有酸素能力の指標です。あくまで参考値です。',
+    term: i18next.t('settings.helpVO2maxTerm'),
+    description: i18next.t('settings.helpVO2maxDesc'),
   },
   {
-    term: 'ETPテスト',
-    description: 'レベルに応じた一定ペースで400mを繰り返し、持久力タイプとETPを測定するフィールドテスト。結果からリミッタータイプとトレーニングゾーンが自動算出されます。',
+    term: i18next.t('settings.helpTestTerm'),
+    description: i18next.t('settings.helpTestDesc'),
   },
   {
-    term: 'フェーズ（基礎期・強化期・試合期・テーパー）',
-    description: 'トレーニング計画を期分けした各段階。基礎期で土台を作り、強化期で負荷を上げ、試合期でレース特化し、テーパーで疲労を抜いてレースに臨みます。',
+    term: i18next.t('settings.helpPhaseTerm'),
+    description: i18next.t('settings.helpPhaseDesc'),
   },
 ];
 
@@ -104,8 +106,14 @@ const HELP_ITEMS: { term: string; description: string }[] = [
 // ============================================
 
 export default function SettingsScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const isPremium = useIsPremium();
+  const [currentLang, setCurrentLang] = useState<AppLanguage>('system');
+
+  useEffect(() => {
+    getCurrentLanguageSetting().then(setCurrentLang);
+  }, []);
   const { restore, applyPremiumStatus } = useSubscriptionStore();
   const setSubScreenOpen = useSetSubScreenOpen();
   const isFocused = useIsFocused();
@@ -138,7 +146,7 @@ export default function SettingsScreen() {
   // アクティブなピッカーの設定を取得
   const activePickerConfig = useMemo(() => {
     if (!activePickerDistance) return null;
-    return PB_DISTANCES.find(d => d.key === activePickerDistance) || null;
+    return getPbDistances().find(d => d.key === activePickerDistance) || null;
   }, [activePickerDistance]);
 
   // 複数PBからの推定eTP
@@ -190,12 +198,12 @@ export default function SettingsScreen() {
   // リセット処理
   const handleResetAll = useCallback(() => {
     Alert.alert(
-      'データをリセット',
-      'すべてのデータが削除されます。',
+      t('settings.resetDataTitle'),
+      t('settings.resetDataMessage'),
       [
-        { text: 'キャンセル', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'リセット',
+          text: t('common.reset'),
           style: 'destructive',
           onPress: () => {
             resetProfile();
@@ -213,7 +221,7 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <FadeIn>
-          <Text style={styles.title}>設定</Text>
+          <Text style={styles.title}>{t('settings.title')}</Text>
         </FadeIn>
 
         {/* サブスクリプション */}
@@ -227,7 +235,7 @@ export default function SettingsScreen() {
                   color={isPremium ? '#F59E0B' : COLORS.text.muted}
                 />
                 <Text style={styles.subLabel}>
-                  {isPremium ? 'プレミアム会員' : '無料プラン'}
+                  {isPremium ? t('settings.premiumMember') : t('settings.freePlan')}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
@@ -243,12 +251,12 @@ export default function SettingsScreen() {
                     });
                   }
                   Alert.alert(
-                    restored ? '復元完了' : '復元結果',
-                    restored ? '購入が復元されました' : '復元可能な購入がありません'
+                    restored ? t('settings.restoreSuccess') : t('settings.restoreResult'),
+                    restored ? t('settings.restoreSuccessMsg') : t('settings.restoreFailMsg')
                   );
                 }}
               >
-                <Text style={styles.restoreText}>購入を復元</Text>
+                <Text style={styles.restoreText}>{t('settings.restorePurchase')}</Text>
               </Pressable>
             )}
           </Pressable>
@@ -257,13 +265,13 @@ export default function SettingsScreen() {
         {/* プロフィール */}
         <SlideIn delay={200} direction="up">
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>プロフィール</Text>
+            <Text style={styles.sectionTitle}>{t('settings.profile')}</Text>
 
             {/* 年齢 */}
             <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>年齢</Text>
+              <Text style={styles.fieldLabel}>{t('settings.age')}</Text>
               <View style={styles.optionRow}>
-                {AGE_OPTIONS.map((opt) => (
+                {getAgeOptions().map((opt) => (
                   <Pressable
                     key={opt.key}
                     style={[styles.optionBtn, profile.ageCategory === opt.key && styles.optionBtnActive]}
@@ -279,9 +287,9 @@ export default function SettingsScreen() {
 
             {/* 経験 */}
             <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>走歴</Text>
+              <Text style={styles.fieldLabel}>{t('settings.experience')}</Text>
               <View style={styles.optionRow}>
-                {EXPERIENCE_OPTIONS.map((opt) => (
+                {getExperienceOptions().map((opt) => (
                   <Pressable
                     key={opt.key}
                     style={[styles.optionBtn, styles.optionBtnFlex, profile.experience === opt.key && styles.optionBtnActive]}
@@ -297,9 +305,9 @@ export default function SettingsScreen() {
 
             {/* 自己ベスト（PB） */}
             <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>自己ベスト（PB）</Text>
+              <Text style={styles.fieldLabel}>{t('settings.personalBests')}</Text>
               <View style={styles.pbGrid}>
-                {PB_DISTANCES.map((dist) => {
+                {getPbDistances().map((dist) => {
                   const pbValue = profile.pbs[dist.key];
                   return (
                     <View key={dist.key} style={styles.pbGridItem}>
@@ -309,7 +317,7 @@ export default function SettingsScreen() {
                         onPress={() => setActivePickerDistance(dist.key)}
                       >
                         <Text style={[styles.pbValue, !pbValue && styles.pbPlaceholder]}>
-                          {pbValue ? formatTime(pbValue) : '未設定'}
+                          {pbValue ? formatTime(pbValue) : t('common.notSet')}
                         </Text>
                         {pbValue ? (
                           <Pressable
@@ -326,7 +334,7 @@ export default function SettingsScreen() {
               </View>
               {estimatedEtp && !profile.current && (
                 <Text style={styles.etpHint}>
-                  推定ETP: {formatKmPace(estimatedEtp)} ({estimatedEtp}秒/400m)
+                  {t('settings.estimatedEtp', { kmPace: formatKmPace(estimatedEtp), etp: estimatedEtp })}
                 </Text>
               )}
               {/* スピード指標（800m + 1500m PBがある場合） */}
@@ -334,7 +342,7 @@ export default function SettingsScreen() {
                 <View style={styles.speedIndexRow}>
                   <Ionicons name="analytics" size={14} color={COLORS.secondary} />
                   <Text style={styles.speedIndexText}>
-                    スピード指標: {speedIndex.value.toFixed(2)} → {limiterFromPbs.reason}（自動設定）
+                    {t('settings.speedIndex', { value: speedIndex.value.toFixed(2), reason: limiterFromPbs.reason })}
                   </Text>
                 </View>
               )}
@@ -343,15 +351,15 @@ export default function SettingsScreen() {
             {/* リミッター */}
             <View style={styles.fieldRow}>
               <View style={styles.limiterHeader}>
-                <Text style={styles.fieldLabel}>リミッタータイプ</Text>
+                <Text style={styles.fieldLabel}>{t('settings.limiterType')}</Text>
                 {source === 'measured' && (
                   <View style={styles.measuredBadge}>
-                    <Text style={styles.measuredText}>テスト判定</Text>
+                    <Text style={styles.measuredText}>{t('settings.testDetermined')}</Text>
                   </View>
                 )}
               </View>
               <View style={styles.limiterRow}>
-                {LIMITER_OPTIONS.map((opt) => (
+                {getLimiterOptions().map((opt) => (
                   <Pressable
                     key={opt.key}
                     style={[styles.limiterBtn, limiter === opt.key && styles.limiterBtnActive]}
@@ -372,7 +380,7 @@ export default function SettingsScreen() {
 
             {/* 月間上限走行距離 */}
             <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>月間上限走行距離（km）</Text>
+              <Text style={styles.fieldLabel}>{t('settings.monthlyMileage')}</Text>
               <TextInput
                 style={styles.mileageInput}
                 value={profile.monthlyMileage ? String(profile.monthlyMileage) : ''}
@@ -384,13 +392,40 @@ export default function SettingsScreen() {
                     updateAttributes({ monthlyMileage: undefined });
                   }
                 }}
-                placeholder="例: 200"
+                placeholder={t('settings.monthlyMileagePlaceholder')}
                 placeholderTextColor={COLORS.text.muted}
                 keyboardType="numeric"
               />
               <Text style={styles.mileageHint}>
-                メニューのボリュームが自動調整されます
+                {t('settings.monthlyMileageHint')}
               </Text>
+            </View>
+          </View>
+        </SlideIn>
+
+        {/* 言語設定 */}
+        <SlideIn delay={250} direction="up">
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>{t('settings.language')}</Text>
+            <View style={styles.optionRow}>
+              {([
+                { key: 'system', label: t('settings.languageSystem') },
+                { key: 'ja', label: '日本語' },
+                { key: 'en', label: 'English' },
+              ] as { key: AppLanguage; label: string }[]).map((option) => (
+                <Pressable
+                  key={option.key}
+                  style={[styles.optionBtn, styles.optionBtnFlex, currentLang === option.key && styles.optionBtnActive]}
+                  onPress={async () => {
+                    setCurrentLang(option.key);
+                    await changeLanguage(option.key);
+                  }}
+                >
+                  <Text style={[styles.optionText, currentLang === option.key && styles.optionTextActive]}>
+                    {option.label}
+                  </Text>
+                </Pressable>
+              ))}
             </View>
           </View>
         </SlideIn>
@@ -400,14 +435,14 @@ export default function SettingsScreen() {
           <View style={styles.card}>
             <View style={styles.helpHeader}>
               <Ionicons name="help-circle-outline" size={18} color={COLORS.text.muted} />
-              <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>用語ヘルプ</Text>
+              <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>{t('settings.glossary')}</Text>
             </View>
-            {HELP_ITEMS.map((item, index) => {
+            {getHelpItems().map((item, index) => {
               const isExpanded = expandedHelp === index;
               return (
                 <Pressable
                   key={index}
-                  style={[styles.helpItem, index < HELP_ITEMS.length - 1 && styles.helpItemBorder]}
+                  style={[styles.helpItem, index < getHelpItems().length - 1 && styles.helpItemBorder]}
                   onPress={() => setExpandedHelp(isExpanded ? null : index)}
                 >
                   <View style={styles.helpTermRow}>
@@ -432,9 +467,9 @@ export default function SettingsScreen() {
           <View style={styles.card}>
             <View style={styles.philosophyHeader}>
               <Ionicons name="school-outline" size={18} color="#EAB308" />
-              <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>トレーニング哲学</Text>
+              <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>{t('settings.philosophy')}</Text>
             </View>
-            <Text style={styles.philosophyIntro}>MidLabのメニュー設計の理論的背景</Text>
+            <Text style={styles.philosophyIntro}>{t('settings.philosophyIntro')}</Text>
             {TRAINING_PHILOSOPHY.map((item, index) => {
               const isExpanded = expandedPhilosophy === index;
               return (
@@ -466,11 +501,11 @@ export default function SettingsScreen() {
           <View style={styles.dangerCard}>
             <View style={styles.dangerHeader}>
               <Ionicons name="trash-outline" size={18} color="#EF4444" />
-              <Text style={styles.dangerTitle}>データ管理</Text>
-              <Text style={styles.testCount}>テスト結果: {testResults?.length || 0}件</Text>
+              <Text style={styles.dangerTitle}>{t('settings.dataManagement')}</Text>
+              <Text style={styles.testCount}>{t('settings.testResultCount', { count: testResults?.length || 0 })}</Text>
             </View>
             <Pressable style={styles.resetBtn} onPress={handleResetAll}>
-              <Text style={styles.resetText}>全データ削除</Text>
+              <Text style={styles.resetText}>{t('settings.deleteAllData')}</Text>
             </Pressable>
           </View>
         </SlideIn>
@@ -478,14 +513,14 @@ export default function SettingsScreen() {
         {/* 法的情報 */}
         <SlideIn delay={500} direction="up">
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>法的情報</Text>
+            <Text style={styles.sectionTitle}>{t('settings.legal')}</Text>
             <Pressable
               style={styles.legalItem}
               onPress={() => Linking.openURL('https://myajiri.github.io/midlab/privacy.html')}
             >
               <View style={styles.legalItemRow}>
                 <Ionicons name="shield-checkmark-outline" size={18} color={COLORS.text.muted} />
-                <Text style={styles.legalItemText}>プライバシーポリシー</Text>
+                <Text style={styles.legalItemText}>{t('settings.privacyPolicy')}</Text>
               </View>
               <Ionicons name="open-outline" size={16} color={COLORS.text.muted} />
             </Pressable>
@@ -495,7 +530,7 @@ export default function SettingsScreen() {
             >
               <View style={styles.legalItemRow}>
                 <Ionicons name="document-text-outline" size={18} color={COLORS.text.muted} />
-                <Text style={styles.legalItemText}>利用規約</Text>
+                <Text style={styles.legalItemText}>{t('settings.termsOfService')}</Text>
               </View>
               <Ionicons name="open-outline" size={16} color={COLORS.text.muted} />
             </Pressable>
@@ -515,7 +550,7 @@ export default function SettingsScreen() {
         onClose={() => setActivePickerDistance(null)}
         onSelect={handlePbChange}
         value={activePickerDistance ? (profile.pbs[activePickerDistance] || undefined) : undefined}
-        title={activePickerConfig?.title || 'ベストタイム'}
+        title={activePickerConfig?.title || t('settings.bestTime')}
         minMinutes={activePickerConfig?.minMinutes ?? 1}
         maxMinutes={activePickerConfig?.maxMinutes ?? 30}
       />
