@@ -146,6 +146,24 @@ Scientifically measure your fitness with ETP tests and auto-generate optimal tra
 
 ## What's New（リリースノート）
 
+### v1.0.11 日本語
+```
+・サブレース管理の改善と不具合修正
+・レースカテゴリ追加（ゾーン別距離の記録対応）
+・トレーニング分析に期間フィルタを追加
+・トレーニング記録に予定距離を表示
+・その他、安定性の向上
+```
+
+### v1.0.11 英語
+```
+- Improved sub-race management and bug fixes
+- Added race category with zone-based distance tracking
+- Added period filter to training analytics
+- Show expected distance on training log entries
+- General stability improvements
+```
+
 ### v1.0.0 日本語
 ```
 MidLab（ミドラボ）初回リリース！
