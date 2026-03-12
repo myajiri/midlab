@@ -116,6 +116,7 @@ const ja = {
 
     // レース予測
     racePredictions: 'レース予測 & PB',
+    pbLabel: 'PB: {{time}}',
 
     // ゾーン
     trainingZones: 'トレーニングゾーン',
@@ -349,6 +350,7 @@ const ja = {
     weekPhase: '第{{week}}週 {{phase}}',
     weekDayLabel: '第{{week}}週 {{day}}',
     weekGoal: '今週のポイント',
+    keyBadge: 'キー',
     thisWeek: '今週',
     today: '今日',
     phaseLabel: '{{phase}}',

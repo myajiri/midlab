@@ -339,7 +339,7 @@ export default function HomeScreen() {
                           pbStatus === 'faster' && styles.pbFaster,
                           pbStatus === 'slower' && styles.pbSlower,
                         ]}>
-                          PB: {formatTime(pb)}
+                          {t('home.pbLabel', { time: formatTime(pb) })}
                         </Text>
                         {pbStatus === 'faster' && (
                           <Ionicons name="trending-up" size={12} color={COLORS.success} />
@@ -373,7 +373,7 @@ export default function HomeScreen() {
                       ]}
                     />
                     <Text style={styles.zoneName}>
-                      {ZONE_COEFFICIENTS_V3[zone].label}
+                      {t(`constants.zones.${zone}.label`)}
                     </Text>
                   </View>
                   <View style={styles.zonePaces}>

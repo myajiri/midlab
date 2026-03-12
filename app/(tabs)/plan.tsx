@@ -61,6 +61,31 @@ import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
 import { useIsFocused } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
+import i18next from 'i18next';
+
+// ワークアウトラベルのi18n変換ヘルパー
+const getTranslatedLabel = (workoutId: string | undefined, fallbackLabel: string): string => {
+  if (!workoutId) return fallbackLabel;
+  const key = `workouts.${workoutId}.name`;
+  const translated = i18next.t(key, { defaultValue: '' });
+  if (!translated || translated === key) return fallbackLabel;
+  return translated;
+};
+
+// カテゴリ名のi18n変換ヘルパー（定数の日本語カテゴリ名→翻訳キー）
+const CATEGORY_KEY_MAP: Record<string, string> = {
+  '有酸素ベース': 'constants.categories.aerobicBase',
+  '乳酸閾値': 'constants.categories.lactateThreshold',
+  'VO2max': 'constants.categories.VO2max',
+  'スピード・スプリント': 'constants.categories.speedSprint',
+  '総合': 'constants.categories.general',
+  'レース': 'constants.categories.race',
+  'オリジナル': 'constants.categories.original',
+};
+const getTranslatedCategory = (category: string): string => {
+  const key = CATEGORY_KEY_MAP[category];
+  return key ? i18next.t(key) : category;
+};
 
 // タイムゾーン安全なローカル日付文字列ヘルパー（YYYY-MM-DD）
 const toLocalDateStr = (d: Date): string => {
@@ -791,7 +816,7 @@ export default function PlanScreen() {
                 <Ionicons name="chevron-back" size={20} color={selectedWeek <= 1 ? COLORS.text.muted : COLORS.text.primary} />
               </Pressable>
               <View style={styles.weekNavCenter}>
-                <Text style={styles.weekNavLabel}>{phase?.label}</Text>
+                <Text style={styles.weekNavLabel}>{t(`constants.phases.${weekPlan.phaseType}.label`)}</Text>
                 {isCurrentWeek && <View style={styles.currentWeekBadge}><Text style={styles.currentWeekBadgeText}>{t('plan.thisWeek')}</Text></View>}
               </View>
               <Pressable
@@ -864,7 +889,7 @@ export default function PlanScreen() {
               {!weekPlan.isRecoveryWeek && !weekPlan.isRampTestWeek && (
                 <View style={styles.weekRationaleLimiterRow}>
                   <Ionicons name={WORKOUT_LIMITER_CONFIG[activePlan.baseline.limiterType].icon as any} size={14} color={WORKOUT_LIMITER_CONFIG[activePlan.baseline.limiterType].color} />
-                  <Text style={styles.weekRationaleLimiterText}>{LIMITER_RATIONALE[activePlan.baseline.limiterType].summary}</Text>
+                  <Text style={styles.weekRationaleLimiterText}>{t(`rationale.limiter.${activePlan.baseline.limiterType}.summary`)}</Text>
                 </View>
               )}
             </View>
@@ -918,11 +943,11 @@ export default function PlanScreen() {
                       </View>
                       <View style={styles.dayCenter}>
                         <View style={styles.dayLabelRow}>
-                          <Text style={[styles.dayLabel, day.isKey && styles.dayLabelKey]} numberOfLines={1}>{day.label}</Text>
-                          {day.isKey && <Text style={styles.keyBadge}>Key</Text>}
+                          <Text style={[styles.dayLabel, day.isKey && styles.dayLabelKey]} numberOfLines={1}>{getTranslatedLabel(day.workoutId, day.label)}</Text>
+                          {day.isKey && <Text style={styles.keyBadge}>{t('plan.keyBadge')}</Text>}
                         </View>
                         {day.isKey && limiterConnection && (
-                          <Text style={styles.dayRationaleHint} numberOfLines={1}>{focusInfo?.description || ''}</Text>
+                          <Text style={styles.dayRationaleHint} numberOfLines={1}>{day.focusKey ? t(`constants.focusCategories.${day.focusKey}.description`) : ''}</Text>
                         )}
                       </View>
                     </Pressable>
@@ -966,7 +991,7 @@ export default function PlanScreen() {
                               setActualDataTarget({
                                 weekNumber: weekPlan.weekNumber,
                                 dayId: day.id,
-                                label: day.label,
+                                label: getTranslatedLabel(day.workoutId, day.label),
                                 zoneDistances: Object.keys(plannedZones).length > 0 ? plannedZones : undefined,
                               });
                               setActualZoneInputs({});
@@ -1031,7 +1056,7 @@ export default function PlanScreen() {
                     <View key={zone} style={styles.actualDataZoneRow}>
                       <View style={styles.actualDataZoneLabel}>
                         <View style={[styles.actualDataZoneDot, { backgroundColor: zoneInfo.color }]} />
-                        <Text style={styles.actualDataZoneName}>{zoneInfo.name}</Text>
+                        <Text style={styles.actualDataZoneName}>{t(`constants.zones.${zone}.name`)}</Text>
                         {planned ? <Text style={styles.actualDataZonePlanned}>{t('plan.planned', { distance: planned })}</Text> : null}
                         {hasDiff ? (
                           <Text style={[styles.actualDataZonePlanned, { color: diffColor, fontWeight: '600' }]}>
@@ -1195,8 +1220,8 @@ export default function PlanScreen() {
                     <View key={log.id} style={styles.logCard}>
                       <View style={styles.logCardHeader}>
                         <View style={styles.logCardInfo}>
-                          <Text style={styles.logCardName}>{log.workoutName}</Text>
-                          <Text style={styles.logCardCategory}>{log.workoutCategory}</Text>
+                          <Text style={styles.logCardName}>{getTranslatedLabel(log.workoutId, log.workoutName)}</Text>
+                          <Text style={styles.logCardCategory}>{getTranslatedCategory(log.workoutCategory)}</Text>
                         </View>
                         <View style={[styles.logStatusBadge, styles.logStatusPlanned]}>
                           <Text style={styles.logStatusText}>{t('plan.statusPlanned')}</Text>
@@ -1278,7 +1303,7 @@ export default function PlanScreen() {
                           {logs.map((log) => (
                             <View key={log.id} style={styles.logTimelineCard}>
                               <View style={styles.logTimelineCardHeader}>
-                                <Text style={styles.logTimelineCardName}>{log.workoutName}</Text>
+                                <Text style={styles.logTimelineCardName}>{getTranslatedLabel(log.workoutId, log.workoutName)}</Text>
                                 <View style={[
                                   styles.logStatusBadge,
                                   log.status === 'completed' && styles.logStatusCompleted,
@@ -1290,7 +1315,7 @@ export default function PlanScreen() {
                                   </Text>
                                 </View>
                               </View>
-                              <Text style={styles.logTimelineCardCategory}>{log.workoutCategory}</Text>
+                              <Text style={styles.logTimelineCardCategory}>{getTranslatedCategory(log.workoutCategory)}</Text>
                               {/* 記録距離がない場合、ワークアウトIDから予定距離を表示 */}
                               {!log.result?.distance && log.workoutId && (() => {
                                 const zd = getWorkoutZoneDistances(log.workoutId, limiter, customWorkoutsAsTemplates);
@@ -1494,7 +1519,7 @@ export default function PlanScreen() {
                           menuSelectCategory === cat && styles.menuSelectCategoryChipTextActive,
                         ]}
                       >
-                        {cat === 'all' ? t('plan.all') : cat}
+                        {cat === 'all' ? t('plan.all') : getTranslatedCategory(cat)}
                       </Text>
                     </Pressable>
                   ))}
@@ -1509,8 +1534,8 @@ export default function PlanScreen() {
                       onPress={() => handleAddMenuToDate(workout)}
                     >
                       <View style={styles.menuSelectItemInfo}>
-                        <Text style={styles.menuSelectItemName}>{workout.name}</Text>
-                        <Text style={styles.menuSelectItemCategory}>{workout.category}</Text>
+                        <Text style={styles.menuSelectItemName}>{getTranslatedLabel(workout.id, workout.name)}</Text>
+                        <Text style={styles.menuSelectItemCategory}>{getTranslatedCategory(workout.category)}</Text>
                       </View>
                       <Ionicons name="add-circle" size={24} color={COLORS.primary} />
                     </Pressable>
@@ -1632,7 +1657,7 @@ export default function PlanScreen() {
                 {activePlan.phases.map((phase, i) => (
                   <View key={i} style={styles.phaseLegendItem}>
                     <View style={[styles.phaseDot, { backgroundColor: PHASE_CONFIG[phase.type].color }]} />
-                    <Text style={styles.phaseLegendText}>{PHASE_CONFIG[phase.type].label}</Text>
+                    <Text style={styles.phaseLegendText}>{t(`constants.phases.${phase.type}.label`)}</Text>
                   </View>
                 ))}
               </View>
@@ -1651,7 +1676,7 @@ export default function PlanScreen() {
                 <View>
                   <Text style={styles.thisWeekLabel}>{t('plan.thisWeek')}</Text>
                   <Text style={styles.thisWeekPhase}>
-                    {t('plan.weekPhase', { week: currentWeekNumber, phase: PHASE_CONFIG[currentWeekPlan.phaseType].label })}
+                    {t('plan.weekPhase', { week: currentWeekNumber, phase: t(`constants.phases.${currentWeekPlan.phaseType}.label`) })}
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={24} color={COLORS.text.muted} />
@@ -1667,7 +1692,7 @@ export default function PlanScreen() {
                     <View key={i} style={styles.keyWorkoutItem}>
                       <Ionicons name={iconInfo.name as any} size={14} color={iconInfo.color} />
                       <Text style={styles.keyWorkoutDay}>{dayNames[d.dayOfWeek]}</Text>
-                      <Text style={styles.keyWorkoutLabel}>{d.label}</Text>
+                      <Text style={styles.keyWorkoutLabel}>{getTranslatedLabel(d.workoutId, d.label)}</Text>
                       {d.completed && <Ionicons name="checkmark-circle" size={16} color={COLORS.success} />}
                     </View>
                   );

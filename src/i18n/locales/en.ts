@@ -116,6 +116,7 @@ const en = {
 
     // レース予測
     racePredictions: 'Race Predictions & PB',
+    pbLabel: 'PB: {{time}}',
 
     // ゾーン
     trainingZones: 'Training Zones',
@@ -349,6 +350,7 @@ const en = {
     weekPhase: 'Week {{week}} {{phase}}',
     weekDayLabel: 'Week {{week}} {{day}}',
     weekGoal: "This Week's Focus",
+    keyBadge: 'Key',
     thisWeek: 'This Week',
     today: 'Today',
     phaseLabel: '{{phase}}',
