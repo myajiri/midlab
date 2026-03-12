@@ -11,6 +11,7 @@ import {
   TestResult,
   RacePlan,
   SubRace,
+  ScheduledWorkout,
   WorkoutLog,
   TrainingLog,
   FeelingLevel,
@@ -26,6 +27,98 @@ import {
 import { STORAGE_KEYS } from '../constants';
 import { calculateEtp, calculateZonesV3, getEffectiveValues, getUserStage, estimateLimiterFromPBs } from '../utils';
 import { generatePlan } from '../utils/planGenerator';
+
+// サブレースの優先度に応じてレース前の日を調整するヘルパー
+// 返り値: { days: 調整後のdays配列, originalDays: 変更前の元データ }
+function applySubRaceAdjustments(
+  days: Array<ScheduledWorkout | null>,
+  srDayOfWeek: number,
+  subRace: SubRace,
+): { days: Array<ScheduledWorkout | null>; originalDays: { [dayIndex: number]: ScheduledWorkout | null } } {
+  const newDays = [...days];
+  const originalDays: { [dayIndex: number]: ScheduledWorkout | null } = {};
+
+  // 全優先度共通：レース日をレースメニューに変更
+  if (newDays[srDayOfWeek]) {
+    originalDays[srDayOfWeek] = { ...newDays[srDayOfWeek]! };
+    newDays[srDayOfWeek] = {
+      ...newDays[srDayOfWeek]!,
+      type: 'race' as const,
+      label: subRace.name || 'レース',
+      isKey: true,
+      workoutId: undefined,
+      focusKey: undefined,
+      focusCategory: undefined,
+    };
+  }
+
+  const isActive = (d: ScheduledWorkout | null): d is ScheduledWorkout =>
+    d !== null && d.type !== 'rest';
+
+  if (subRace.priority === 'high') {
+    // 重要レース：R-1〜R-3 を調整
+    // R-1: イージー（レース前調整）
+    const r1 = (srDayOfWeek - 1 + 7) % 7;
+    if (isActive(newDays[r1])) {
+      originalDays[r1] = { ...newDays[r1]! };
+      newDays[r1] = {
+        ...newDays[r1]!,
+        type: 'easy',
+        label: 'イージー（レース前調整）',
+        isKey: false,
+        workoutId: undefined,
+        focusKey: 'aerobic',
+        focusCategory: '有酸素ベース',
+      };
+    }
+    // R-2: イージー（レース前調整）
+    const r2 = (srDayOfWeek - 2 + 7) % 7;
+    if (isActive(newDays[r2])) {
+      originalDays[r2] = { ...newDays[r2]! };
+      newDays[r2] = {
+        ...newDays[r2]!,
+        type: 'easy',
+        label: 'イージー（レース前調整）',
+        isKey: false,
+        workoutId: undefined,
+        focusKey: 'aerobic',
+        focusCategory: '有酸素ベース',
+      };
+    }
+    // R-3: Mペース刺激+WS（軽めの質的練習）
+    const r3 = (srDayOfWeek - 3 + 7) % 7;
+    if (isActive(newDays[r3])) {
+      originalDays[r3] = { ...newDays[r3]! };
+      newDays[r3] = {
+        ...newDays[r3]!,
+        type: 'easy',
+        label: 'Mペース刺激 8-10km + WS（レース前調整）',
+        isKey: false,
+        workoutId: undefined,
+        focusKey: 'aerobic',
+        focusCategory: '有酸素ベース',
+      };
+    }
+  } else if (subRace.priority === 'medium') {
+    // 中程度レース：R-1 をリカバリーに変更
+    const r1 = (srDayOfWeek - 1 + 7) % 7;
+    if (isActive(newDays[r1])) {
+      originalDays[r1] = { ...newDays[r1]! };
+      newDays[r1] = {
+        ...newDays[r1]!,
+        type: 'recovery',
+        label: 'リカバリー（レース前調整）',
+        isKey: false,
+        workoutId: undefined,
+        focusKey: 'aerobic',
+        focusCategory: '有酸素ベース',
+      };
+    }
+  }
+  // 低（練習レース）：レース日のみ変更、他は通常トレーニング維持
+
+  return { days: newDays, originalDays };
+}
 
 // ============================================
 // Profile Store
@@ -309,7 +402,7 @@ export const usePlanStore = create<PlanState>()(
           (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
         );
 
-        // サブレースを週間プランに反映 + レース日/前日のメニュー調整
+        // サブレースを週間プランに反映 + 優先度に応じたメニュー調整
         const updatedWeeklyPlans = plan.weeklyPlans.map((week) => {
           const weekStart = new Date(week.startDate);
           const weekEnd = new Date(week.endDate);
@@ -320,48 +413,16 @@ export const usePlanStore = create<PlanState>()(
 
           if (!subRaceInWeek) return { ...week, subRace: undefined };
 
-          // サブレース日の曜日を計算（0=月〜6=日）
           const srDate = new Date(subRaceInWeek.date);
           const srDayOfWeek = (srDate.getDay() + 6) % 7;
-
-          const newDays = [...week.days];
-          // 変更前の元データを保存（削除時の復元用）
-          const originalDays: { [dayIndex: number]: typeof newDays[number] } = {};
-          // レース日をレースメニューに変更（休養日でもサブレースを優先）
-          if (newDays[srDayOfWeek]) {
-            originalDays[srDayOfWeek] = { ...newDays[srDayOfWeek]! };
-            newDays[srDayOfWeek] = {
-              ...newDays[srDayOfWeek]!,
-              type: 'race' as const,
-              label: subRaceInWeek.name || 'レース',
-              isKey: true,
-              workoutId: undefined,
-              focusKey: undefined,
-              focusCategory: undefined,
-            };
-          }
-          // 前日の高強度を回避
-          const prevDay = (srDayOfWeek - 1 + 7) % 7;
-          const prevWorkout = newDays[prevDay];
-          if (prevWorkout && (prevWorkout.type === 'workout' || prevWorkout.isKey) && prevWorkout.type !== 'rest') {
-            originalDays[prevDay] = { ...prevWorkout };
-            newDays[prevDay] = {
-              ...prevWorkout,
-              type: 'easy',
-              label: 'イージー（レース前調整）',
-              isKey: false,
-              focusKey: 'aerobic',
-              focusCategory: '有酸素ベース',
-            };
-          }
-          // サブレースに元データを保存
-          subRaceInWeek.originalDays = originalDays;
+          const result = applySubRaceAdjustments(week.days, srDayOfWeek, subRaceInWeek);
+          subRaceInWeek.originalDays = result.originalDays;
 
           return {
             ...week,
             subRace: subRaceInWeek,
-            days: newDays,
-            workouts: newDays.filter((d): d is NonNullable<typeof d> => d !== null),
+            days: result.days,
+            workouts: result.days.filter((d): d is NonNullable<typeof d> => d !== null),
           };
         });
 
@@ -525,37 +586,12 @@ export const usePlanStore = create<PlanState>()(
           if (subRaceInWeek) {
             const srDate = new Date(subRaceInWeek.date);
             const srDayOfWeek = (srDate.getDay() + 6) % 7;
-            // 変更前の元データを保存（削除時の復元用）
-            const originalDays: { [dayIndex: number]: typeof newDays[number] } = {};
-            // レース日をレースメニューに変更（休養日でもサブレースを優先）
-            if (newDays[srDayOfWeek]) {
-              originalDays[srDayOfWeek] = { ...newDays[srDayOfWeek]! };
-              newDays[srDayOfWeek] = {
-                ...newDays[srDayOfWeek]!,
-                type: 'race' as const,
-                label: subRaceInWeek.name || 'レース',
-                isKey: true,
-                workoutId: undefined,
-                focusKey: undefined,
-                focusCategory: undefined,
-              };
+            const result = applySubRaceAdjustments(newDays, srDayOfWeek, subRaceInWeek);
+            subRaceInWeek.originalDays = result.originalDays;
+            // resultのdaysを反映
+            for (let i = 0; i < result.days.length; i++) {
+              newDays[i] = result.days[i];
             }
-            // 前日の高強度を回避
-            const prevDay = (srDayOfWeek - 1 + 7) % 7;
-            const prevWorkout = newDays[prevDay];
-            if (prevWorkout && (prevWorkout.type === 'workout' || prevWorkout.isKey) && prevWorkout.type !== 'rest') {
-              originalDays[prevDay] = { ...prevWorkout };
-              newDays[prevDay] = {
-                ...prevWorkout,
-                type: 'easy',
-                label: 'イージー（レース前調整）',
-                isKey: false,
-                focusKey: 'aerobic',
-                focusCategory: '有酸素ベース',
-              };
-            }
-            // サブレースに元データを保存
-            subRaceInWeek.originalDays = originalDays;
           }
 
           return {
