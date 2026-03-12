@@ -33,6 +33,7 @@ const en = {
     create: 'Create',
     edit: 'Edit',
     ok: 'OK',
+    add: 'Add',
     notSet: 'Not set',
     example: 'e.g.',
     seconds: 's',
@@ -74,6 +75,10 @@ const en = {
 
     // ダッシュボード
     dashboard: 'Dashboard',
+    estimated: 'Estimated',
+    measured: 'Measured',
+    default: 'Default',
+    etpSeconds: '{{seconds}}s',
     etpSourceEstimated: 'Estimated',
     etpSourceMeasured: 'Measured',
     etpSourceDefault: 'Default',
@@ -93,16 +98,20 @@ const en = {
     nextSteps: 'Next Steps',
     runEtpTest: 'Take ETP Test',
     runEtpTestDesc: 'Measure your exact ETP and limiter type',
+    recommended: 'Recommended',
     createPlan: 'Create Training Plan',
     createPlanDesc: 'Auto-generate a weekly plan for your target race',
 
     // 計画カード
     targetRace: 'Target Race',
+    halfMarathon: 'Half Marathon',
+    marathon: 'Marathon',
     todayWorkout: "Today's Workout",
     tapForDetails: 'Tap for details \u2192',
 
     // 週間進捗
     weekProgress: 'This Week',
+    ofWorkouts: 'of {{total}} workouts',
     weekProgressSubtitle: 'of {{total}} workouts',
 
     // レース予測
@@ -110,7 +119,8 @@ const en = {
 
     // ゾーン
     trainingZones: 'Training Zones',
-    etpBadge: 'ETP: {{kmPace}} ({{etp}}s/400m)',
+    etpBadge: 'ETP: {{pace}} ({{seconds}}s/400m)',
+    pacePerLap: '{{seconds}}s/400m',
   },
 
   // ============================================
@@ -127,20 +137,36 @@ const en = {
     featurePersonalize: 'Personalize',
     featurePersonalizeDesc: 'Training tailored to you',
     getStarted: 'Get Started',
+    start: 'Get Started',
     skip: 'Skip',
 
     // セットアップ
+    setupTitle: 'Quick Setup',
+    setupSubtitle: 'Just two quick questions',
     quickSetup: 'Quick Setup',
     twoQuestions: 'Just two quick questions',
     ageLabel: 'Age',
     experienceLabel: 'Running Experience',
     pbLabel: 'Personal Bests (optional)',
+    estimatedEtp: 'Estimated ETP: {{pace}} ({{seconds}}s/400m)',
     pbEstimatedEtp: 'Estimated ETP: {{kmPace}} ({{etp}}s/400m)',
     monthlyMileageLabel: 'Monthly Mileage Cap (optional)',
+    mileagePlaceholder: 'e.g. 200',
+    mileageHint: 'Enter the maximum monthly distance (km) you can run during your training period. Workouts will be generated to stay within this limit. Base phase will be near the cap, then gradually adjusted.',
     monthlyMileagePlaceholder: 'e.g. 200',
     monthlyMileageHint: 'Enter the maximum monthly distance (km) you can run during your training period. Workouts will be generated to stay within this limit. Base phase will be near the cap, then gradually adjusted.',
     complete: 'Done',
     bestTime: 'Best Time',
+
+    // PBタイトル
+    pbTitle: {
+      m200: '200m Best Time',
+      m400: '400m Best Time',
+      m800: '800m Best Time',
+      m1500: '1500m Best Time',
+      m3000: '3000m Best Time',
+      m5000: '5000m Best Time',
+    },
 
     // 結果
     resultEstimated: 'ETP estimated from PBs',
@@ -155,6 +181,8 @@ const en = {
   // ============================================
   test: {
     // メイン
+    title: 'ETP Test',
+    subtitle: 'Measure your ETP and calculate training zones',
     pageTitle: 'ETP Test',
     pageSubtitle: 'Measure your ETP and calculate training zones',
 
@@ -163,18 +191,27 @@ const en = {
     pbEstimateDesc: 'You can estimate your ETP from personal bests without taking the test',
 
     // スタートカード
+    runTest: 'Take the Test',
+    runTestHint: 'Perform on a 400m track',
     startTest: 'Take the Test',
     startTestHint: 'Perform on a 400m track',
     levelSelect: 'Select Level',
     startPace: 'Starting Pace',
     maxLaps: 'Max Laps',
+    lapsCount: '{{count}} laps',
     maxLapsValue: '{{laps}} laps',
     acceleration: 'Acceleration',
+    perLapDecrement: '-{{seconds}}s per lap',
     accelerationValue: '-{{increment}}s per lap',
+    inputResults: 'Enter Test Results',
     enterResults: 'Enter Test Results',
+    secondsSuffix: 's',
+    secPer400m: 's/400m',
 
     // 進行表
     scheduleTitle: 'Level {{level}} Schedule',
+    lap: 'Lap',
+    pacePerKm: 'Pace/km',
     tableHeaderLap: 'Lap',
     tableHeaderPaceKm: 'Pace/km',
     tableHeaderPace400: '400m',
@@ -195,23 +232,35 @@ const en = {
 
     // 入力画面
     inputTitle: 'Enter Results',
+    executedLevel: 'Test Level',
+    completedLaps: 'Laps Completed',
     inputLevel: 'Test Level',
     inputLaps: 'Laps Completed',
-    lastPace: 'Last Pace: {{kmPace}} ({{pace}}s/400m)',
+    lastPace: 'Last Pace: {{pace}} ({{seconds}}s/400m)',
     whyStopped: 'Why did you stop?',
+    reasonBreath: 'Breathing',
+    reasonLegs: 'Legs',
+    reasonBoth: 'Both',
     breathHard: 'Breathing',
     legsHeavy: 'Legs',
     both: 'Both',
+    recoveryTime: 'Time to catch breath',
+    recoveryUnder30: 'Under 30s',
+    recovery30to60: '30-60s',
+    recoveryOver60: 'Over 60s',
     breathRecovery: 'Time to catch breath',
     breathRecoveryUnder30: 'Under 30s',
     breathRecovery3060: '30-60s',
     breathRecoveryOver60: 'Over 60s',
+    calculateResult: 'Calculate Results',
     calculateResults: 'Calculate Results',
 
     // 結果画面
     resultTitle: 'Test Results',
     testComplete: 'Test Complete',
     yourEtp: 'Your ETP',
+    trainingZones: 'Training Zones',
+    racePredictions: 'Race Predictions',
     etpSuffix: 's',
   },
 
@@ -222,20 +271,39 @@ const en = {
     // 作成画面
     pageTitle: 'Training Plan',
     pageSubtitle: 'Set your most important race (target race) within 6 months.\nIntermediate races can be added after plan creation.',
+    createTitle: 'Training Plan',
+    createSubtitle: 'Set your most important race (target race) within 6 months.\nIntermediate races can be added after plan creation.',
     raceName: 'Race Name',
     raceNamePlaceholder: 'e.g. Regional Championships',
     raceDate: 'Race Date',
     selectDate: 'Select date',
     raceDistance: 'Race Distance',
+    event: 'Race Distance',
     customDistancePlaceholder: 'Enter distance in meters (e.g. 1000)',
     trainingDays: 'Training Days',
+    restDay: 'Rest Day',
     restDayFrequency: 'Rest Day Frequency',
+    keyWorkoutDays: 'Key Workout Days',
+    monthlyMileage: 'Monthly Mileage Cap (km)',
     monthlyMileageLabel: 'Monthly Mileage Cap (km)',
+    mileagePlaceholder: 'e.g. 200',
+    mileageHint: 'Workout volume will be automatically adjusted',
     monthlyMileagePlaceholder: 'e.g. 200',
     monthlyMileageHint: 'Workout volume will be automatically adjusted',
     createPlan: 'Create Plan',
+    generate: 'Create Plan',
     selectRaceDate: 'Select Race Date',
+    featureName: 'Training Plan',
     premiumFeatureName: 'Training Plan',
+
+    // 曜日
+    mon: 'Mon',
+    tue: 'Tue',
+    wed: 'Wed',
+    thu: 'Thu',
+    fri: 'Fri',
+    sat: 'Sat',
+    sun: 'Sun',
 
     // バリデーション
     errorPastDate: 'Date is in the past',
@@ -245,24 +313,43 @@ const en = {
     errorCustomDistance: 'Please enter a custom distance',
 
     // 概要画面
+    noPlan: 'No Plan Yet',
+    noPlanSubtitle: 'Set a target race and\ncreate a training plan',
     emptyTitle: 'No Plan Yet',
     emptySubtitle: 'Set a target race and\ncreate a training plan',
+    noData: 'No data',
     deletePlan: 'Delete Plan',
     deletePlanConfirm: 'Are you sure you want to delete this plan?',
     newPlan: 'Create New Plan',
+    newPlanDesc: 'Create a new plan by overwriting the current one. Training logs and test results will be preserved.',
     newPlanConfirm: 'Create a new plan by overwriting the current one. Training logs and test results will be preserved.',
     newPlanAction: 'Create',
+    create: 'Create',
 
     // メニュー更新
     updateMenu: 'Update Menu',
     updateMenuDesc: 'Regenerate the plan with the latest menus. Completion marks will be preserved.',
     updateAction: 'Update',
+    update: 'Update',
+    menuUpdated: 'Menu Updated',
+    menuUpdatedDesc: 'Updated workout menus are available',
+    later: 'Later',
 
     // 週間表示
     weekLabel: 'Week {{number}}',
+    weekNumber: 'Week {{week}}',
+    weeklySchedule: 'Weekly Schedule',
+    weekProgress: 'Week {{current}} / {{total}}',
+    weekPhase: 'Week {{week}} {{phase}}',
+    weekDayLabel: 'Week {{week}} {{day}}',
+    weekGoal: "This Week's Focus",
+    thisWeek: 'This Week',
+    today: 'Today',
     phaseLabel: '{{phase}}',
     recoveryWeek: 'Recovery Week',
     testWeek: 'ETP Test Week',
+    trainingPhase: 'Training Phase',
+    daysUntilRace: '{{days}} days to go',
 
     // 体感
     feelingGreat: 'Great',
@@ -278,28 +365,72 @@ const en = {
 
     // トレーニングログ
     trainingLog: 'Training Log',
+    trainingRecord: 'Training Record',
+    recordCount: '{{count}} records',
     logCount: '{{count}} records',
     logCompleted: 'Completed',
     logSkipped: 'Skipped',
     logPlanned: 'Planned',
+    todayPlanned: "Today's Plan",
+    addMenu: 'Add Workout',
+    skip: 'Skip',
     skipConfirm: 'Skip this workout?',
+    recordsUntilRace: 'Records until race',
+    allRecords: 'All records',
+    noRecords: 'No records',
+    noRecordsHint: 'Start recording your training',
     deleteRecord: 'Delete Record',
     deleteRecordConfirm: 'Delete this record and mark as incomplete?',
+    deleteRecordCompleted: 'Delete completed record and mark as incomplete?',
+    deleteRecordRevert: 'Delete and revert',
     deleteRecordConfirmGeneral: 'Delete this record?',
     recordDeleted: 'Record deleted',
     recordUpdated: 'Record updated',
     recordNotePlaceholder: 'Notes on how you felt, pacing, etc.',
+    statusCompleted: 'Completed',
+    statusSkipped: 'Skipped',
+    statusPlanned: 'Planned',
+    completionHint: 'Check button to complete, long press to record details',
+    actualDataHint: 'You can enter actual distances per zone (optional)',
+    planned: 'Planned: {{distance}}m',
+    durationFormat: '{{min}}m {{sec}}s',
+    record: 'Record',
+    recordAndComplete: 'Record & Complete',
+    completeWithoutRecord: 'Complete without recording',
+    editRecord: 'Edit Record',
+    selectRecordDate: 'Select Record Date',
+    customWorkout: 'Custom',
 
     // 分析
     allPeriod: 'All',
     thirtyDays: '30 days',
     sevenDays: '7 days',
+    trainingAnalytics: 'Training Analytics',
+    weeklyKm: 'Weekly km',
+    monthlyKm: 'Monthly km',
+    completionRate: 'Completion Rate',
+    overallProgress: 'Overall Progress',
+    zoneStimulus: 'Zone Stimulus',
+    zoneRatio: 'Zone Ratio',
+    targetLine100: '100% target',
+    all: 'All',
+
+    // レーススケジュール
+    raceSchedule: 'Race Schedule',
+    targetRace: 'Target Race',
+    finished: 'Finished',
 
     // サブレース
+    addRace: 'Add Race',
     subRace: 'Intermediate Race',
+    subRaceEmptyText: 'No intermediate races added yet',
     subRacePriorityHigh: 'Important',
     subRacePriorityMedium: 'Moderate',
     subRacePriorityLow: 'Practice Race',
+    priorityHigh: 'Important',
+    priorityMedium: 'Moderate',
+    priorityLow: 'Practice Race',
+    priority: 'Priority',
     subRacePriorityHighDesc: 'Race you want to peak for',
     subRacePriorityMediumDesc: 'Light taper before racing',
     subRacePriorityLowDesc: 'No taper, treat as training',
@@ -313,19 +444,27 @@ const en = {
     subRaceErrorBeforePlan: 'Cannot set a date before the plan start date',
     subRaceErrorAfterTarget: 'Cannot set a date on or after the target race date',
     subRaceErrorCustomDistance: 'Please enter a custom distance',
+    errorSubRacePast: 'Cannot set an intermediate race on a past date',
+    errorSubRaceCompleted: 'This day already has a completed workout',
+    errorSubRaceBeforeStart: 'Cannot set a date before the plan start date',
+    errorSubRaceAfterTarget: 'Cannot set a date on or after the target race date',
 
     // 結果記録モーダル
     recordResult: 'Record Result',
     recordResultTitle: '{{title}}',
+    distance: 'Distance (m)',
     distanceLabel: 'Distance (m)',
     durationLabel: 'Duration',
     minuteLabel: 'min',
     secondLabel: 'sec',
+    feeling: 'Feeling',
     feelingLabel: 'How did it feel?',
+    notes: 'Notes',
     notesLabel: 'Notes',
     notesPlaceholder: 'Thoughts on the workout, pacing, etc.',
     deleteAndRevert: 'Delete Record',
     deleteAndRevertConfirm: 'Delete this record and mark as incomplete?',
+    date: 'Date',
 
     // 曜日表示
     dayNames: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],

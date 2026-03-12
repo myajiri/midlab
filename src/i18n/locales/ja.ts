@@ -33,6 +33,7 @@ const ja = {
     create: '作成',
     edit: '編集',
     ok: 'OK',
+    add: '追加',
     notSet: '未設定',
     example: '例:',
     seconds: '秒',
@@ -74,6 +75,10 @@ const ja = {
 
     // ダッシュボード
     dashboard: 'ダッシュボード',
+    estimated: '推定',
+    measured: '測定',
+    default: 'デフォルト',
+    etpSeconds: '{{seconds}}s',
     etpSourceEstimated: '推定',
     etpSourceMeasured: '測定',
     etpSourceDefault: 'デフォルト',
@@ -93,16 +98,20 @@ const ja = {
     nextSteps: '次のステップ',
     runEtpTest: 'ETPテストを実施',
     runEtpTestDesc: '正確なETPとリミッタータイプを測定しましょう',
+    recommended: '推奨',
     createPlan: 'トレーニング計画を作成',
     createPlanDesc: '目標レースに向けた週間計画を自動生成',
 
     // 計画カード
     targetRace: '目標レース',
+    halfMarathon: 'ハーフマラソン',
+    marathon: 'マラソン',
     todayWorkout: '今日のトレーニング',
     tapForDetails: 'タップして詳細を見る →',
 
     // 週間進捗
     weekProgress: '今週の進捗',
+    ofWorkouts: '{{total}}ワークアウト中',
     weekProgressSubtitle: '{{total}}ワークアウト中',
 
     // レース予測
@@ -110,7 +119,8 @@ const ja = {
 
     // ゾーン
     trainingZones: 'トレーニングゾーン',
-    etpBadge: 'ETP: {{kmPace}} ({{etp}}s/400m)',
+    etpBadge: 'ETP: {{pace}} ({{seconds}}s/400m)',
+    pacePerLap: '{{seconds}}s/400m',
   },
 
   // ============================================
@@ -127,20 +137,36 @@ const ja = {
     featurePersonalize: 'パーソナライズ',
     featurePersonalizeDesc: 'あなたに合ったトレーニング',
     getStarted: 'はじめる',
+    start: 'はじめる',
     skip: 'スキップ',
 
     // セットアップ
+    setupTitle: 'かんたん初期設定',
+    setupSubtitle: '2つの質問に答えるだけ',
     quickSetup: 'かんたん初期設定',
     twoQuestions: '2つの質問に答えるだけ',
     ageLabel: '年齢',
     experienceLabel: '競技歴',
     pbLabel: '自己ベスト（任意）',
+    estimatedEtp: '推定ETP: {{pace}} ({{seconds}}s/400m)',
     pbEstimatedEtp: '推定ETP: {{kmPace}} ({{etp}}s/400m)',
     monthlyMileageLabel: '月間走行距離上限（任意）',
+    mileagePlaceholder: '例: 200',
+    mileageHint: 'トレーニング期間中に走れる月間最大距離（km）を入力してください。この上限に収まるようにメニューが生成されます。基礎期は上限に近い量、その後段階的に調整されます。',
     monthlyMileagePlaceholder: '例: 200',
     monthlyMileageHint: 'トレーニング期間中に走れる月間最大距離（km）を入力してください。この上限に収まるようにメニューが生成されます。基礎期は上限に近い量、その後段階的に調整されます。',
     complete: '完了',
     bestTime: 'ベストタイム',
+
+    // PBタイトル
+    pbTitle: {
+      m200: '200mベストタイム',
+      m400: '400mベストタイム',
+      m800: '800mベストタイム',
+      m1500: '1500mベストタイム',
+      m3000: '3000mベストタイム',
+      m5000: '5000mベストタイム',
+    },
 
     // 結果
     resultEstimated: 'PBからETPを推定しました',
@@ -155,6 +181,8 @@ const ja = {
   // ============================================
   test: {
     // メイン
+    title: 'ETPテスト',
+    subtitle: 'ETPを測定してトレーニングゾーンを算出',
     pageTitle: 'ETPテスト',
     pageSubtitle: 'ETPを測定してトレーニングゾーンを算出',
 
@@ -163,18 +191,27 @@ const ja = {
     pbEstimateDesc: 'テストを受けなくても自己ベストからETPを推定できます',
 
     // スタートカード
+    runTest: 'テストを実施',
+    runTestHint: '400mトラックで実施',
     startTest: 'テストを実施',
     startTestHint: '400mトラックで実施',
     levelSelect: 'レベルを選択',
     startPace: 'スタートペース',
     maxLaps: '最大周回数',
+    lapsCount: '{{count}}周',
     maxLapsValue: '{{laps}}周',
     acceleration: '加速',
+    perLapDecrement: '1周ごとに-{{seconds}}秒',
     accelerationValue: '1周ごとに-{{increment}}秒',
+    inputResults: 'テスト結果を入力',
     enterResults: 'テスト結果を入力',
+    secondsSuffix: '秒',
+    secPer400m: '秒/400m',
 
     // 進行表
     scheduleTitle: 'レベル{{level}} 進行表',
+    lap: '周',
+    pacePerKm: 'ペース/km',
     tableHeaderLap: '周',
     tableHeaderPaceKm: 'ペース/km',
     tableHeaderPace400: '400m',
@@ -195,23 +232,35 @@ const ja = {
 
     // 入力画面
     inputTitle: '結果を入力',
+    executedLevel: 'テストレベル',
+    completedLaps: '完了周回数',
     inputLevel: 'テストレベル',
     inputLaps: '完了周回数',
-    lastPace: '最終ペース: {{kmPace}} ({{pace}}s/400m)',
+    lastPace: '最終ペース: {{pace}} ({{seconds}}s/400m)',
     whyStopped: '止まった理由は？',
+    reasonBreath: '息がきつい',
+    reasonLegs: '脚がきつい',
+    reasonBoth: '両方',
     breathHard: '息がきつい',
     legsHeavy: '脚がきつい',
     both: '両方',
+    recoveryTime: '息が整うまでの時間',
+    recoveryUnder30: '30秒未満',
+    recovery30to60: '30〜60秒',
+    recoveryOver60: '60秒以上',
     breathRecovery: '息が整うまでの時間',
     breathRecoveryUnder30: '30秒未満',
     breathRecovery3060: '30〜60秒',
     breathRecoveryOver60: '60秒以上',
+    calculateResult: '結果を計算',
     calculateResults: '結果を計算',
 
     // 結果画面
     resultTitle: 'テスト結果',
     testComplete: 'テスト完了',
     yourEtp: 'あなたのETP',
+    trainingZones: 'トレーニングゾーン',
+    racePredictions: 'レース予測',
     etpSuffix: 's',
   },
 
@@ -222,20 +271,39 @@ const ja = {
     // 作成画面
     pageTitle: 'トレーニング計画',
     pageSubtitle: '6ヶ月以内の最も重要なレース（目標レース）を設定してください。\n中間レースは計画作成後に追加できます。',
+    createTitle: 'トレーニング計画',
+    createSubtitle: '6ヶ月以内の最も重要なレース（目標レース）を設定してください。\n中間レースは計画作成後に追加できます。',
     raceName: 'レース名',
     raceNamePlaceholder: '例: 地区選手権',
     raceDate: 'レース日',
     selectDate: '日付を選択',
     raceDistance: 'レース距離',
+    event: 'レース距離',
     customDistancePlaceholder: '距離をメートルで入力（例: 1000）',
     trainingDays: 'トレーニング日',
+    restDay: '休養日',
     restDayFrequency: '休養日の頻度',
+    keyWorkoutDays: 'キーワークアウト日',
+    monthlyMileage: '月間走行距離上限（km）',
     monthlyMileageLabel: '月間走行距離上限（km）',
+    mileagePlaceholder: '例: 200',
+    mileageHint: 'メニューの量が自動調整されます',
     monthlyMileagePlaceholder: '例: 200',
     monthlyMileageHint: 'メニューの量が自動調整されます',
     createPlan: '計画を作成',
+    generate: '計画を作成',
     selectRaceDate: 'レース日を選択',
+    featureName: 'トレーニング計画',
     premiumFeatureName: 'トレーニング計画',
+
+    // 曜日
+    mon: '月',
+    tue: '火',
+    wed: '水',
+    thu: '木',
+    fri: '金',
+    sat: '土',
+    sun: '日',
 
     // バリデーション
     errorPastDate: '過去の日付です',
@@ -245,24 +313,43 @@ const ja = {
     errorCustomDistance: 'カスタム距離を入力してください',
 
     // 概要画面
+    noPlan: '計画がありません',
+    noPlanSubtitle: '目標レースを設定して\nトレーニング計画を作成しましょう',
     emptyTitle: '計画がありません',
     emptySubtitle: '目標レースを設定して\nトレーニング計画を作成しましょう',
+    noData: 'データがありません',
     deletePlan: '計画を削除',
     deletePlanConfirm: 'この計画を削除してもよろしいですか？',
     newPlan: '新しい計画を作成',
+    newPlanDesc: '現在の計画を上書きして新しい計画を作成します。トレーニングログとテスト結果は保持されます。',
     newPlanConfirm: '現在の計画を上書きして新しい計画を作成します。トレーニングログとテスト結果は保持されます。',
     newPlanAction: '作成',
+    create: '作成',
 
     // メニュー更新
     updateMenu: 'メニューを更新',
     updateMenuDesc: '最新のメニューで計画を再生成します。完了マークは保持されます。',
     updateAction: '更新',
+    update: '更新',
+    menuUpdated: 'メニューが更新されました',
+    menuUpdatedDesc: '最新のワークアウトメニューに更新できます',
+    later: '後で',
 
     // 週間表示
     weekLabel: '第{{number}}週',
+    weekNumber: '第{{week}}週',
+    weeklySchedule: '週間スケジュール',
+    weekProgress: '第{{current}}週 / {{total}}週',
+    weekPhase: '第{{week}}週 {{phase}}',
+    weekDayLabel: '第{{week}}週 {{day}}',
+    weekGoal: '今週のポイント',
+    thisWeek: '今週',
+    today: '今日',
     phaseLabel: '{{phase}}',
     recoveryWeek: '回復週',
     testWeek: 'ETPテスト週',
+    trainingPhase: 'トレーニングフェーズ',
+    daysUntilRace: 'あと{{days}}日',
 
     // 体感
     feelingGreat: '絶好調',
@@ -278,28 +365,72 @@ const ja = {
 
     // トレーニングログ
     trainingLog: 'トレーニングログ',
+    trainingRecord: 'トレーニング記録',
+    recordCount: '{{count}}件',
     logCount: '{{count}}件',
     logCompleted: '完了',
     logSkipped: 'スキップ',
     logPlanned: '予定',
+    todayPlanned: '今日の予定',
+    addMenu: 'メニューを追加',
+    skip: 'スキップ',
     skipConfirm: 'このワークアウトをスキップしますか？',
+    recordsUntilRace: 'レースまでの記録',
+    allRecords: 'すべての記録',
+    noRecords: '記録はありません',
+    noRecordsHint: 'トレーニングを記録してみましょう',
     deleteRecord: '記録を削除',
     deleteRecordConfirm: 'この記録を削除して未完了に戻しますか？',
+    deleteRecordCompleted: '完了した記録を削除して未完了に戻しますか？',
+    deleteRecordRevert: '記録を削除して取り消す',
     deleteRecordConfirmGeneral: 'この記録を削除しますか？',
     recordDeleted: '記録を削除しました',
     recordUpdated: '記録を更新しました',
     recordNotePlaceholder: '体感、ペース配分などのメモ',
+    statusCompleted: '完了',
+    statusSkipped: 'スキップ',
+    statusPlanned: '予定',
+    completionHint: '左のチェックボタンで完了マーク、長押しで記録入力',
+    actualDataHint: 'ゾーンごとの実際の距離を入力できます（任意）',
+    planned: '計画: {{distance}}m',
+    durationFormat: '{{min}}分{{sec}}秒',
+    record: '記録',
+    recordAndComplete: '記録して完了',
+    completeWithoutRecord: '記録なしで完了',
+    editRecord: '記録を編集',
+    selectRecordDate: '記録日を選択',
+    customWorkout: 'カスタム',
 
     // 分析
     allPeriod: '全期間',
     thirtyDays: '30日間',
     sevenDays: '7日間',
+    trainingAnalytics: 'トレーニング分析',
+    weeklyKm: '週間km',
+    monthlyKm: '月間km',
+    completionRate: '完了率',
+    overallProgress: '全体進捗',
+    zoneStimulus: 'ゾーン別刺激',
+    zoneRatio: 'ゾーン比率',
+    targetLine100: '100%目標',
+    all: 'すべて',
+
+    // レーススケジュール
+    raceSchedule: 'レーススケジュール',
+    targetRace: '目標レース',
+    finished: '終了',
 
     // サブレース
+    addRace: 'レースを追加',
     subRace: '中間レース',
+    subRaceEmptyText: '中間レースはまだ追加されていません',
     subRacePriorityHigh: '重要',
     subRacePriorityMedium: 'やや重要',
     subRacePriorityLow: '練習レース',
+    priorityHigh: '重要',
+    priorityMedium: 'やや重要',
+    priorityLow: '練習レース',
+    priority: '重要度',
     subRacePriorityHighDesc: 'ピークを合わせたいレース',
     subRacePriorityMediumDesc: '軽くテーパーしてレースに臨む',
     subRacePriorityLowDesc: 'テーパーなし、練習として出場',
@@ -313,19 +444,27 @@ const ja = {
     subRaceErrorBeforePlan: '計画開始日より前の日付は設定できません',
     subRaceErrorAfterTarget: '目標レース日以降の日付は設定できません',
     subRaceErrorCustomDistance: 'カスタム距離を入力してください',
+    errorSubRacePast: '過去の日付には中間レースを設定できません',
+    errorSubRaceCompleted: 'この日は完了済みのワークアウトがあります',
+    errorSubRaceBeforeStart: '計画開始日より前の日付は設定できません',
+    errorSubRaceAfterTarget: '目標レース日以降の日付は設定できません',
 
     // 結果記録モーダル
     recordResult: '結果を記録',
     recordResultTitle: '{{title}}',
+    distance: '距離（m）',
     distanceLabel: '距離（m）',
     durationLabel: 'タイム',
     minuteLabel: '分',
     secondLabel: '秒',
+    feeling: '体感',
     feelingLabel: '体感はどうでしたか？',
+    notes: 'メモ',
     notesLabel: 'メモ',
     notesPlaceholder: 'ワークアウトの感想、ペース配分など',
     deleteAndRevert: '記録を削除',
     deleteAndRevertConfirm: 'この記録を削除して未完了に戻しますか？',
+    date: '日付',
 
     // 曜日表示
     dayNames: ['月', '火', '水', '木', '金', '土', '日'],
