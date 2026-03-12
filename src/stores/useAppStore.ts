@@ -28,6 +28,18 @@ import { STORAGE_KEYS } from '../constants';
 import { calculateEtp, calculateZonesV3, getEffectiveValues, getUserStage, estimateLimiterFromPBs } from '../utils';
 import { generatePlan } from '../utils/planGenerator';
 
+// サブレースの距離に対応するレースワークアウトIDを返す
+function selectRaceWorkoutId(distance: number | 'custom', customDistance?: number): string | undefined {
+  const d = distance === 'custom' ? (customDistance || 5000) : distance;
+  if (d <= 800) return 'race-800';
+  if (d <= 1500) return 'race-1500';
+  if (d <= 3000) return 'race-3000';
+  if (d <= 5000) return 'race-5000';
+  if (d <= 10000) return 'race-10000';
+  if (d <= 21097) return 'race-half';
+  return 'race-full';
+}
+
 // サブレースの優先度に応じてレース前の日を調整するヘルパー
 // 返り値: { days: 調整後のdays配列, originalDays: 変更前の元データ }
 function applySubRaceAdjustments(
@@ -38,7 +50,8 @@ function applySubRaceAdjustments(
   const newDays = [...days];
   const originalDays: { [dayIndex: number]: ScheduledWorkout | null } = {};
 
-  // 全優先度共通：レース日をレースメニューに変更
+  // 全優先度共通：レース日をレースメニューに変更（ゾーン別距離付き）
+  const raceWorkoutId = selectRaceWorkoutId(subRace.distance, subRace.customDistance);
   if (newDays[srDayOfWeek]) {
     originalDays[srDayOfWeek] = { ...newDays[srDayOfWeek]! };
     newDays[srDayOfWeek] = {
@@ -46,9 +59,9 @@ function applySubRaceAdjustments(
       type: 'race' as const,
       label: subRace.name || 'レース',
       isKey: true,
-      workoutId: undefined,
+      workoutId: raceWorkoutId,
       focusKey: undefined,
-      focusCategory: undefined,
+      focusCategory: 'レース',
     };
   }
 

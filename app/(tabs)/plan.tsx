@@ -2120,6 +2120,11 @@ export default function PlanScreen() {
                   priority: subRacePriority,
                 });
                 setShowSubRaceModal(false);
+                // レースカテゴリへ遷移（W-up/C-downの編集・カスタムレースメニュー作成を促す）
+                router.push({
+                  pathname: '/(tabs)/workout',
+                  params: { category: 'レース', t: Date.now().toString() },
+                });
               }}
               disabled={!subRaceName || !subRaceDate}
             >

@@ -814,6 +814,132 @@ export const WORKOUTS = [
       balanced: { reps: 10, recoveryDistance: 250, note: '標準で実施' },
     },
   },
+  // ============================================
+  // レースカテゴリ（サブレース用デフォルトメニュー）
+  // W-up + レース + C-down の構成。ゾーン別距離を正しく記録するため
+  // 距離に応じた強度ゾーンを設定。ユーザーがカスタム編集も可能。
+  // ============================================
+  {
+    id: 'race-800',
+    name: '800mレース',
+    category: 'レース',
+    description: '800mレース。W-up・C-downを含むレース日のメニュー。レペティション強度で記録。',
+    selectionGuide: 'W-up 2000m → レース 800m → C-down 2000m のデフォルト構成。W-upやC-downの距離はカスタムメニューで調整可能。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 2000, label: 'W-up' },
+      { zone: 'repetition' as ZoneName, distance: 800, label: 'レース 800m' },
+      { zone: 'jog' as ZoneName, distance: 2000, label: 'C-down' },
+    ],
+    limiterVariants: {
+      cardio: { note: '標準で実施' },
+      muscular: { note: '標準で実施' },
+      balanced: { note: '標準で実施' },
+    },
+  },
+  {
+    id: 'race-1500',
+    name: '1500mレース',
+    category: 'レース',
+    description: '1500mレース。W-up・C-downを含むレース日のメニュー。レペティション強度で記録。',
+    selectionGuide: 'W-up 2000m → レース 1500m → C-down 2000m のデフォルト構成。W-upやC-downの距離はカスタムメニューで調整可能。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 2000, label: 'W-up' },
+      { zone: 'repetition' as ZoneName, distance: 1500, label: 'レース 1500m' },
+      { zone: 'jog' as ZoneName, distance: 2000, label: 'C-down' },
+    ],
+    limiterVariants: {
+      cardio: { note: '標準で実施' },
+      muscular: { note: '標準で実施' },
+      balanced: { note: '標準で実施' },
+    },
+  },
+  {
+    id: 'race-3000',
+    name: '3000mレース',
+    category: 'レース',
+    description: '3000mレース。W-up・C-downを含むレース日のメニュー。VO2max（インターバル）強度で記録。',
+    selectionGuide: 'W-up 2000m → レース 3000m → C-down 1600m のデフォルト構成。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 2000, label: 'W-up' },
+      { zone: 'interval' as ZoneName, distance: 3000, label: 'レース 3000m' },
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'C-down' },
+    ],
+    limiterVariants: {
+      cardio: { note: '標準で実施' },
+      muscular: { note: '標準で実施' },
+      balanced: { note: '標準で実施' },
+    },
+  },
+  {
+    id: 'race-5000',
+    name: '5000mレース',
+    category: 'レース',
+    description: '5000mレース。W-up・C-downを含むレース日のメニュー。VO2max（インターバル）強度で記録。',
+    selectionGuide: 'W-up 1600m → レース 5000m → C-down 1600m のデフォルト構成。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up' },
+      { zone: 'interval' as ZoneName, distance: 5000, label: 'レース 5000m' },
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'C-down' },
+    ],
+    limiterVariants: {
+      cardio: { note: '標準で実施' },
+      muscular: { note: '標準で実施' },
+      balanced: { note: '標準で実施' },
+    },
+  },
+  {
+    id: 'race-10000',
+    name: '10000mレース',
+    category: 'レース',
+    description: '10000mレース。W-up・C-downを含むレース日のメニュー。VO2max＋閾値強度の組み合わせで記録。',
+    selectionGuide: 'W-up 1600m → 前半5000m(interval) → 後半5000m(threshold) → C-down 1600m のデフォルト構成。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up' },
+      { zone: 'interval' as ZoneName, distance: 5000, label: 'レース前半 5000m' },
+      { zone: 'threshold' as ZoneName, distance: 5000, label: 'レース後半 5000m' },
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'C-down' },
+    ],
+    limiterVariants: {
+      cardio: { note: '標準で実施' },
+      muscular: { note: '標準で実施' },
+      balanced: { note: '標準で実施' },
+    },
+  },
+  {
+    id: 'race-half',
+    name: 'ハーフマラソン',
+    category: 'レース',
+    description: 'ハーフマラソン（21.0975km）。W-up・C-downを含むレース日のメニュー。閾値＋マラソン強度で記録。',
+    selectionGuide: 'W-up 1600m → 前半(threshold) → 後半(marathon) → C-down 1600m のデフォルト構成。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up' },
+      { zone: 'threshold' as ZoneName, distance: 10000, label: 'レース前半 10km' },
+      { zone: 'marathon' as ZoneName, distance: 11097, label: 'レース後半 11km' },
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'C-down' },
+    ],
+    limiterVariants: {
+      cardio: { note: '標準で実施' },
+      muscular: { note: '標準で実施' },
+      balanced: { note: '標準で実施' },
+    },
+  },
+  {
+    id: 'race-full',
+    name: 'フルマラソン',
+    category: 'レース',
+    description: 'フルマラソン（42.195km）。W-up・C-downを含むレース日のメニュー。マラソン強度で記録。',
+    selectionGuide: 'W-up 1600m → レース 42195m → C-down 1600m のデフォルト構成。',
+    segments: [
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'W-up' },
+      { zone: 'marathon' as ZoneName, distance: 42195, label: 'レース 42.195km' },
+      { zone: 'jog' as ZoneName, distance: 1600, label: 'C-down' },
+    ],
+    limiterVariants: {
+      cardio: { note: '標準で実施' },
+      muscular: { note: '標準で実施' },
+      balanced: { note: '標準で実施' },
+    },
+  },
 ];
 
 // イージー走距離目安（種目×フェーズ別）
