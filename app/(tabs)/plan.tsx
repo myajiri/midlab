@@ -94,13 +94,7 @@ const getTranslatedCategory = (category: string): string => {
   return key ? i18next.t(key) : category;
 };
 
-// タイムゾーン安全なローカル日付文字列ヘルパー（YYYY-MM-DD）
-const toLocalDateStr = (d: Date): string => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-};
+// toDateStr (utils) をローカル日付文字列ヘルパーとして使用
 
 // レース距離ラベル
 const RACE_DISTANCE_OPTIONS: { value: RaceDistance; labelKey: string }[] = [
@@ -276,7 +270,7 @@ export default function PlanScreen() {
             if (!d) return false;
             const wpStart = parseDateStr(wp.startDate); const startParts = [wpStart.getFullYear(), wpStart.getMonth() + 1, wpStart.getDate()];
             const dayDate = new Date(startParts[0], startParts[1] - 1, startParts[2] + d.dayOfWeek);
-            const dateStr = toLocalDateStr(dayDate);
+            const dateStr = toDateStr(dayDate);
             return dateStr === log.date && (d.workoutId === log.workoutId || d.id === log.workoutId);
           });
           if (dayData && dayData.completed) {
@@ -293,7 +287,7 @@ export default function PlanScreen() {
 
   // メニュー追加モーダル
   const [menuSelectModalVisible, setMenuSelectModalVisible] = useState(false);
-  const [menuSelectDate, setMenuSelectDate] = useState<string>(toLocalDateStr(new Date()));
+  const [menuSelectDate, setMenuSelectDate] = useState<string>(toDateStr(new Date()));
   const [menuSelectCategory, setMenuSelectCategory] = useState('all');
   const [menuDatePickerVisible, setMenuDatePickerVisible] = useState(false);
 
@@ -419,10 +413,8 @@ export default function PlanScreen() {
   // プラン関連のログのみフィルタ
   const planLogs = useMemo(() => {
     if (!activePlan) return groupedLogs;
-    const raceDateObj = new Date(activePlan.race.date);
-    const raceDate = toLocalDateStr(raceDateObj);
-    const startDateObj = activePlan.weeklyPlans?.[0]?.startDate ? new Date(activePlan.weeklyPlans[0].startDate) : null;
-    const startDate = startDateObj ? toLocalDateStr(startDateObj) : '';
+    const raceDate = activePlan.race.date;
+    const startDate = activePlan.weeklyPlans?.[0]?.startDate || '';
     return groupedLogs.filter(([date]) => date >= startDate && date <= raceDate);
   }, [groupedLogs, activePlan]);
 
@@ -753,10 +745,10 @@ export default function PlanScreen() {
   }
 
   // 計算
-  const raceDateObj = new Date(activePlan.race.date);
+  const raceDateObj = parseDateStr(activePlan.race.date);
   const daysUntilRace = Math.ceil((raceDateObj.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
   const totalWeeks = activePlan.weeklyPlans?.length || 0;
-  const firstWeekStart = activePlan.weeklyPlans?.[0]?.startDate ? new Date(activePlan.weeklyPlans[0].startDate) : new Date();
+  const firstWeekStart = activePlan.weeklyPlans?.[0]?.startDate ? parseDateStr(activePlan.weeklyPlans[0].startDate) : new Date();
   const currentWeekNumber = totalWeeks > 0
     ? Math.min(Math.max(1, Math.floor((new Date().getTime() - firstWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1), totalWeeks)
     : 1;
@@ -1116,7 +1108,7 @@ export default function PlanScreen() {
                         const dayDate = new Date(startParts[0], startParts[1] - 1, startParts[2] + dayData.dayOfWeek);
                         addTrainingLog({
                           id: `tl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-                          date: toLocalDateStr(dayDate),
+                          date: toDateStr(dayDate),
                           workoutId: dayData.workoutId || dayData.id,
                           workoutName: dayData.label,
                           workoutCategory: dayData.focusCategory || dayData.type,
@@ -1167,7 +1159,7 @@ export default function PlanScreen() {
                         const dayDate = new Date(startParts2[0], startParts2[1] - 1, startParts2[2] + dayData.dayOfWeek);
                         addTrainingLog({
                           id: `tl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-                          date: toLocalDateStr(dayDate),
+                          date: toDateStr(dayDate),
                           workoutId: dayData.workoutId || dayData.id,
                           workoutName: dayData.label,
                           workoutCategory: dayData.focusCategory || dayData.type,
@@ -1201,7 +1193,7 @@ export default function PlanScreen() {
   // トレーニング記録画面（日誌）
   // ============================================
   if (view === 'log') {
-    const todayStr = toLocalDateStr(new Date());
+    const todayStr = toDateStr(new Date());
     const todayLogs = trainingLogs.filter((l) => l.date === todayStr && l.planId === activePlan?.id);
     const plannedLogs = todayLogs.filter((l) => l.status === 'planned');
 
@@ -1291,7 +1283,7 @@ export default function PlanScreen() {
               ) : (
                 <View style={styles.logTimeline}>
                   {planLogs.map(([date, logs], groupIndex) => {
-                    const dateObj = new Date(date + 'T00:00:00');
+                    const dateObj = parseDateStr(date);
                     const isToday = date === todayStr;
                     const dayOfWeekNames = [t('plan.sun'), t('plan.mon'), t('plan.tue'), t('plan.wed'), t('plan.thu'), t('plan.fri'), t('plan.sat')];
                     const dateLabel = isToday
@@ -1400,7 +1392,7 @@ export default function PlanScreen() {
                                                     if (!d) return false;
                                                     const wpStartDel = parseDateStr(wp.startDate); const sp = [wpStartDel.getFullYear(), wpStartDel.getMonth() + 1, wpStartDel.getDate()];
                                                     const dayDate = new Date(sp[0], sp[1] - 1, sp[2] + d.dayOfWeek);
-                                                    const dateStr = toLocalDateStr(dayDate);
+                                                    const dateStr = toDateStr(dayDate);
                                                     return dateStr === log.date && (d.workoutId === log.workoutId || d.id === log.workoutId);
                                                   });
                                                   if (dayData && dayData.completed) {
@@ -1499,8 +1491,8 @@ export default function PlanScreen() {
                   <View style={styles.menuSelectDateRight}>
                     <Text style={styles.menuSelectDateValue}>
                       {(() => {
-                        const d = new Date(menuSelectDate + 'T00:00:00');
-                        const todayStr = toLocalDateStr(new Date());
+                        const d = parseDateStr(menuSelectDate);
+                        const todayStr = toDateStr(new Date());
                         const dateStr = `${d.getFullYear()}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getDate().toString().padStart(2, '0')}`;
                         return menuSelectDate === todayStr ? `${dateStr}（${t('plan.today')}）` : dateStr;
                       })()}
@@ -1560,11 +1552,11 @@ export default function PlanScreen() {
               setTimeout(() => setMenuSelectModalVisible(true), 300);
             }}
             onSelect={(date) => {
-              setMenuSelectDate(toLocalDateStr(date));
+              setMenuSelectDate(toDateStr(date));
               setMenuDatePickerVisible(false);
               setTimeout(() => setMenuSelectModalVisible(true), 300);
             }}
-            value={new Date(menuSelectDate + 'T00:00:00')}
+            value={parseDateStr(menuSelectDate)}
             maxDate={new Date()}
             title={t('plan.selectRecordDate')}
           />

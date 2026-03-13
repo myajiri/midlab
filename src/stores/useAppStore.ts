@@ -68,6 +68,10 @@ const normalizeStoredDates = {
   // TrainingLog.date を正規化
   trainingLogs: (logs: TrainingLog[]): TrainingLog[] =>
     logs.map(l => ({ ...l, date: normalizeDateStr(l.date) })),
+
+  // WorkoutLog.date を正規化
+  workoutLogs: (logs: WorkoutLog[]): WorkoutLog[] =>
+    logs.map(l => ({ ...l, date: normalizeDateStr(l.date) })),
 };
 
 // サブレースの距離に対応するレースワークアウトIDを返す
@@ -747,6 +751,11 @@ export const useWorkoutLogsStore = create<WorkoutLogsState>()(
     {
       name: STORAGE_KEYS.workoutLogs,
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state?.logs) {
+          state.logs = normalizeStoredDates.workoutLogs(state.logs);
+        }
+      },
     }
   )
 );
