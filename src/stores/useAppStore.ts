@@ -25,7 +25,7 @@ import {
 } from '../types';
 
 import { STORAGE_KEYS } from '../constants';
-import { calculateEtp, calculateZonesV3, getEffectiveValues, getUserStage, estimateLimiterFromPBs } from '../utils';
+import { calculateEtp, calculateZonesV3, getEffectiveValues, getUserStage, estimateLimiterFromPBs, toDateStr, parseDateStr } from '../utils';
 import { generatePlan } from '../utils/planGenerator';
 import i18next from 'i18next';
 
@@ -273,7 +273,7 @@ export const useProfileStore = create<ProfileState>()(
             current: {
               etp,
               limiterType,
-              lastTestDate: new Date().toISOString(),
+              lastTestDate: toDateStr(new Date()),
             },
           },
         });
@@ -413,21 +413,21 @@ export const usePlanStore = create<PlanState>()(
 
         const currentSubRaces = plan.subRaces || [];
         const updatedSubRaces = [...currentSubRaces, subRace].sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+          (a, b) => a.date.localeCompare(b.date)
         );
 
         // サブレースを週間プランに反映 + 優先度に応じたメニュー調整
         const updatedWeeklyPlans = plan.weeklyPlans.map((week) => {
-          const weekStart = new Date(week.startDate);
-          const weekEnd = new Date(week.endDate);
+          const weekStart = parseDateStr(week.startDate);
+          const weekEnd = parseDateStr(week.endDate);
           const subRaceInWeek = updatedSubRaces.find((sr) => {
-            const srDate = new Date(sr.date);
+            const srDate = parseDateStr(sr.date);
             return srDate >= weekStart && srDate <= weekEnd;
           });
 
           if (!subRaceInWeek) return { ...week, subRace: undefined };
 
-          const srDate = new Date(subRaceInWeek.date);
+          const srDate = parseDateStr(subRaceInWeek.date);
           const srDayOfWeek = (srDate.getDay() + 6) % 7;
           const result = applySubRaceAdjustments(week.days, srDayOfWeek, subRaceInWeek);
           subRaceInWeek.originalDays = result.originalDays;
@@ -460,10 +460,10 @@ export const usePlanStore = create<PlanState>()(
 
         // サブレースを週間プランから除去し、変更された日のメニューを復元
         const updatedWeeklyPlans = plan.weeklyPlans.map((week) => {
-          const weekStart = new Date(week.startDate);
-          const weekEnd = new Date(week.endDate);
+          const weekStart = parseDateStr(week.startDate);
+          const weekEnd = parseDateStr(week.endDate);
           const subRaceInWeek = updatedSubRaces.find((sr) => {
-            const srDate = new Date(sr.date);
+            const srDate = parseDateStr(sr.date);
             return srDate >= weekStart && srDate <= weekEnd;
           });
 
@@ -605,10 +605,10 @@ export const usePlanStore = create<PlanState>()(
         // 完了状態を復元し、サブレースを再配置
         const subRaces = currentPlan.subRaces || [];
         const restoredWeeklyPlans = newPlan.weeklyPlans.map((week) => {
-          const weekStart = new Date(week.startDate);
-          const weekEnd = new Date(week.endDate);
+          const weekStart = parseDateStr(week.startDate);
+          const weekEnd = parseDateStr(week.endDate);
           const subRaceInWeek = subRaces.find((sr) => {
-            const srDate = new Date(sr.date);
+            const srDate = parseDateStr(sr.date);
             return srDate >= weekStart && srDate <= weekEnd;
           });
 
@@ -623,7 +623,7 @@ export const usePlanStore = create<PlanState>()(
           });
 
           if (subRaceInWeek) {
-            const srDate = new Date(subRaceInWeek.date);
+            const srDate = parseDateStr(subRaceInWeek.date);
             const srDayOfWeek = (srDate.getDay() + 6) % 7;
             const result = applySubRaceAdjustments(newDays, srDayOfWeek, subRaceInWeek);
             subRaceInWeek.originalDays = result.originalDays;

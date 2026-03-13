@@ -55,7 +55,7 @@ import {
   WorkoutTemplate,
 } from '../../src/types';
 import { generatePlan } from '../../src/utils/planGenerator';
-import { getWeeklyPlanRationale, calculateTrainingAnalytics, getWorkoutZoneDistances, calculateZoneTimes, AnalyticsPeriod } from '../../src/utils';
+import { getWeeklyPlanRationale, calculateTrainingAnalytics, getWorkoutZoneDistances, calculateZoneTimes, AnalyticsPeriod, toDateStr, parseDateStr } from '../../src/utils';
 import { ZoneName } from '../../src/types';
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
@@ -274,7 +274,7 @@ export default function PlanScreen() {
           // 日付とworkoutIdの両方でマッチングして正確に特定する
           const dayData = wp.days.find((d) => {
             if (!d) return false;
-            const wpStart = new Date(wp.startDate); const startParts = [wpStart.getFullYear(), wpStart.getMonth() + 1, wpStart.getDate()];
+            const wpStart = parseDateStr(wp.startDate); const startParts = [wpStart.getFullYear(), wpStart.getMonth() + 1, wpStart.getDate()];
             const dayDate = new Date(startParts[0], startParts[1] - 1, startParts[2] + d.dayOfWeek);
             const dateStr = toLocalDateStr(dayDate);
             return dateStr === log.date && (d.workoutId === log.workoutId || d.id === log.workoutId);
@@ -501,7 +501,7 @@ export default function PlanScreen() {
     }
     const customDist = distance === 'custom' ? parseInt(customDistanceInput, 10) : undefined;
     const plan = generatePlan({
-      race: { name: raceName, date: raceDate.toISOString(), distance, customDistance: customDist },
+      race: { name: raceName, date: toDateStr(raceDate), distance, customDistance: customDist },
       baseline: { etp, limiterType: limiter },
       restDay,
       keyWorkoutDays: keyDays,
@@ -802,8 +802,8 @@ export default function PlanScreen() {
             <Text style={styles.headerTitle}>{t('plan.weekNumber', { week: weekPlan.weekNumber })}</Text>
             <Text style={styles.headerSubtitle}>
               {(() => {
-                const s = new Date(weekPlan.startDate);
-                const e = new Date(weekPlan.endDate);
+                const s = parseDateStr(weekPlan.startDate);
+                const e = parseDateStr(weekPlan.endDate);
                 return `${s.getMonth() + 1}/${s.getDate()} - ${e.getMonth() + 1}/${e.getDate()}`;
               })()}
             </Text>
@@ -938,7 +938,7 @@ export default function PlanScreen() {
                           <Text style={styles.dayName}>{dayNames[i]}</Text>
                           <Text style={styles.dayDate}>
                             {(() => {
-                              const d = new Date(weekPlan.startDate);
+                              const d = parseDateStr(weekPlan.startDate);
                               d.setDate(d.getDate() + i);
                               return `${d.getMonth() + 1}/${d.getDate()}`;
                             })()}
@@ -979,7 +979,7 @@ export default function PlanScreen() {
                       </Pressable>
                     )}
                     {!isRestDay && (() => {
-                      const dayDate = new Date(weekPlan.startDate);
+                      const dayDate = parseDateStr(weekPlan.startDate);
                       dayDate.setDate(dayDate.getDate() + i);
                       dayDate.setHours(0, 0, 0, 0);
                       const today = new Date();
@@ -1112,7 +1112,7 @@ export default function PlanScreen() {
                       const wp = activePlan?.weeklyPlans.find(w => w.weekNumber === actualDataTarget.weekNumber);
                       const dayData = wp?.days.find(d => d?.id === actualDataTarget.dayId);
                       if (dayData && wp) {
-                        const wpStart = new Date(wp.startDate); const startParts = [wpStart.getFullYear(), wpStart.getMonth() + 1, wpStart.getDate()];
+                        const wpStart = parseDateStr(wp.startDate); const startParts = [wpStart.getFullYear(), wpStart.getMonth() + 1, wpStart.getDate()];
                         const dayDate = new Date(startParts[0], startParts[1] - 1, startParts[2] + dayData.dayOfWeek);
                         addTrainingLog({
                           id: `tl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -1163,7 +1163,7 @@ export default function PlanScreen() {
                       const wp = activePlan?.weeklyPlans.find(w => w.weekNumber === actualDataTarget.weekNumber);
                       const dayData = wp?.days.find(d => d?.id === actualDataTarget.dayId);
                       if (dayData && wp) {
-                        const wpStart2 = new Date(wp.startDate); const startParts2 = [wpStart2.getFullYear(), wpStart2.getMonth() + 1, wpStart2.getDate()];
+                        const wpStart2 = parseDateStr(wp.startDate); const startParts2 = [wpStart2.getFullYear(), wpStart2.getMonth() + 1, wpStart2.getDate()];
                         const dayDate = new Date(startParts2[0], startParts2[1] - 1, startParts2[2] + dayData.dayOfWeek);
                         addTrainingLog({
                           id: `tl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -1398,7 +1398,7 @@ export default function PlanScreen() {
                                                 if (wp) {
                                                   const dayData = wp.days.find((d) => {
                                                     if (!d) return false;
-                                                    const wpStartDel = new Date(wp.startDate); const sp = [wpStartDel.getFullYear(), wpStartDel.getMonth() + 1, wpStartDel.getDate()];
+                                                    const wpStartDel = parseDateStr(wp.startDate); const sp = [wpStartDel.getFullYear(), wpStartDel.getMonth() + 1, wpStartDel.getDate()];
                                                     const dayDate = new Date(sp[0], sp[1] - 1, sp[2] + d.dayOfWeek);
                                                     const dateStr = toLocalDateStr(dayDate);
                                                     return dateStr === log.date && (d.workoutId === log.workoutId || d.id === log.workoutId);
@@ -1915,7 +1915,7 @@ export default function PlanScreen() {
             ) : (
               <View style={styles.subRaceList}>
                 {activePlan.subRaces.map((sr) => {
-                  const srDate = new Date(sr.date);
+                  const srDate = parseDateStr(sr.date);
                   const daysUntilSr = Math.ceil((srDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
                   const priorityConfig = {
                     high: { label: t('plan.priorityHigh'), color: '#EF4444' },
@@ -2121,22 +2121,17 @@ export default function PlanScreen() {
                 // サブレースのバリデーション
                 const planStart = activePlan.weeklyPlans?.[0]?.startDate;
                 const raceEnd = activePlan.race.date;
-                const srDateStr = subRaceDate.toISOString();
+                const srDateStr = toDateStr(subRaceDate);
                 // 過去の日付（今日以前）は設定不可
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const srDateOnly = new Date(subRaceDate);
-                srDateOnly.setHours(0, 0, 0, 0);
-                if (srDateOnly <= today) {
+                const todayStr = toDateStr(new Date());
+                if (srDateStr <= todayStr) {
                   Alert.alert(t('common.error'), t('plan.errorSubRacePast'));
                   return;
                 }
                 // 完了済みの日には設定不可
                 const srDayOfWeek = (subRaceDate.getDay() + 6) % 7;
                 const targetWeek = activePlan.weeklyPlans?.find((week) => {
-                  const weekStart = new Date(week.startDate);
-                  const weekEnd = new Date(week.endDate);
-                  return srDateOnly >= weekStart && srDateOnly <= weekEnd;
+                  return srDateStr >= week.startDate && srDateStr <= week.endDate;
                 });
                 if (targetWeek) {
                   const targetDay = targetWeek.days[srDayOfWeek];

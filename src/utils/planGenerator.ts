@@ -42,7 +42,7 @@ import {
   MAX_MONTHLY_DISTANCE_CAP,
 } from '../constants';
 import { selectWorkoutForCategory } from './workoutSelector';
-import { toDateStr } from './index';
+import { toDateStr, parseDateStr } from './index';
 import i18next from 'i18next';
 
 export interface GeneratePlanParams {
@@ -194,7 +194,7 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
   const baseRecoveryCycle = Math.min(ageConfig.recoveryCycle, EXPERIENCE_CONFIG[experience].recoveryCycle);
   const recoveryCycle = genderConfig.recoveryMultiplier > 1.0 ? Math.max(2, baseRecoveryCycle - 1) : baseRecoveryCycle;
   const today = new Date();
-  const raceDate = new Date(race.date);
+  const raceDate = parseDateStr(race.date);
   const weeksUntilRace = Math.floor((raceDate.getTime() - today.getTime()) / (7 * 24 * 60 * 60 * 1000));
 
   const distribution = weeksUntilRace >= 16 ? 'long' : weeksUntilRace >= 10 ? 'medium' : weeksUntilRace >= 6 ? 'short' : 'minimal';
@@ -313,12 +313,12 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
   // ターゲットレース日のメニューを「レース」に設定
   // 最終週のレース日にあたる曜日のメニューを変更
   // ============================================
-  const raceDay = new Date(race.date);
+  const raceDay = parseDateStr(race.date);
   const raceDayOfWeek = (raceDay.getDay() + 6) % 7; // JS: 0=日→変換: 0=月
   const lastWeek = weeklyPlans[weeklyPlans.length - 1];
   if (lastWeek) {
-    const lastWeekStart = new Date(lastWeek.startDate);
-    const lastWeekEnd = new Date(lastWeek.endDate);
+    const lastWeekStart = parseDateStr(lastWeek.startDate);
+    const lastWeekEnd = parseDateStr(lastWeek.endDate);
     if (raceDay >= lastWeekStart && raceDay <= lastWeekEnd) {
       // レース日のメニューを設定
       if (lastWeek.days[raceDayOfWeek]) {
@@ -374,7 +374,7 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
   const rampTestDates = rampTestWeeks.map(w => {
     const weekPlan = weeklyPlans.find(wp => wp.weekNumber === w);
     if (weekPlan) {
-      const testDate = new Date(weekPlan.startDate);
+      const testDate = parseDateStr(weekPlan.startDate);
       testDate.setDate(testDate.getDate() + 3);
       return toDateStr(testDate);
     }

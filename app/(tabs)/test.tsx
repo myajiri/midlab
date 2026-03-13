@@ -27,6 +27,7 @@ import {
   generateLapSchedule,
   getLevelFromEtp,
   formatLocalDate,
+  toDateStr,
 } from '../../src/utils';
 import {
   Button,
@@ -129,7 +130,7 @@ export default function TestScreen() {
 
     const testResult: TestResult = {
       id: Date.now().toString(),
-      date: new Date().toISOString(),
+      date: toDateStr(new Date()),
       level,
       completedLaps,
       lastCompletedPace: lcp,

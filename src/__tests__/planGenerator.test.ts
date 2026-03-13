@@ -4,6 +4,7 @@
 // ============================================
 
 import { generatePlan, determineRestDayFrequency, GeneratePlanParams } from '../utils/planGenerator';
+import { toDateStr } from '../utils';
 
 // ============================================
 // determineRestDayFrequency
@@ -58,7 +59,7 @@ describe('generatePlan - 休養日頻度', () => {
   futureDate.setDate(futureDate.getDate() + 56);
 
   const baseParams: GeneratePlanParams = {
-    race: { name: 'テストレース', date: futureDate.toISOString(), distance: 1500 },
+    race: { name: 'テストレース', date: toDateStr(futureDate), distance: 1500 },
     baseline: { etp: 75, limiterType: 'balanced' },
     restDay: 6,
     ageCategory: 'senior',
