@@ -1370,6 +1370,67 @@ const ja = {
     subRaceMedium: '今週「{{name}}」があります。トレーニングの流れを維持しながら軽めのテーパーを行います。',
     subRaceLow: '今週「{{name}}」があります（練習レース）。通常のトレーニングを維持し、レースを実戦経験として活用します。',
   },
+
+  // ============================================
+  // プレミアム・サブスクリプション
+  // ============================================
+  premium: {
+    // PremiumGate
+    featureTitle: 'プレミアム機能',
+    featureGateDesc: '「{{feature}}」はプレミアムプランでご利用いただけます。',
+    viewPlans: 'プランを見る',
+
+    // アップグレード画面 - 機能リスト
+    featurePlan: 'トレーニング計画',
+    featureWorkout: 'ワークアウト',
+    featureRace: 'レース予測',
+    featureAnalysis: '進捗分析',
+
+    // アップグレード画面 - ヘッダー
+    title: 'MidLab Premium',
+    featureExclusive: '「{{feature}}」はプレミアム限定機能です',
+    unlockAll: 'すべての機能をアンロック',
+
+    // プレミアム会員
+    memberTitle: 'プレミアム会員',
+    memberDesc: 'すべてのプレミアム機能をご利用いただけます。',
+    manageSubscription: 'サブスクリプションを管理',
+
+    // プラン選択
+    recommended: 'おすすめ',
+    yearlyPlan: '年額プラン',
+    yearlyPrice: '¥9,800',
+    perYear: '/年',
+    yearlySaving: '2ヶ月分お得',
+    monthlyPlan: '月額プラン',
+    monthlyPrice: '¥980',
+    perMonth: '/月',
+
+    // 購入ボタン
+    freeTrial: '7日間無料トライアル',
+    startFreeTrial: '無料トライアルを開始',
+    restorePurchase: '購入を復元',
+    unavailable: '現在ご利用いただけません',
+
+    // トースト
+    noPlanAvailable: '利用可能なプランが見つかりません',
+    upgradeSuccess: 'プレミアムへのアップグレードが完了しました！',
+    purchaseFailed: '購入を完了できませんでした',
+    purchaseError: '購入中にエラーが発生しました',
+    restoreSuccess: '購入を復元しました',
+    restoreNotFound: '復元できる購入が見つかりません',
+    restoreError: '復元中にエラーが発生しました',
+
+    // 法的情報
+    legalPrefix: '',
+    terms: '利用規約',
+    legalSeparator: ' と ',
+    privacy: 'プライバシーポリシー',
+    legalSuffix: ' に同意の上ご利用ください。',
+    autoRenewNote: '無料トライアル終了後、{{price}}で自動更新されます。{{store}}の設定からいつでもキャンセルできます。',
+    yearlyPriceLabel: '¥9,800/年',
+    monthlyPriceLabel: '¥980/月',
+  },
 };
 
 export default ja;

@@ -209,7 +209,7 @@ export default function TestScreen() {
                   <View key={zone} style={styles.zoneRow}>
                     <View style={styles.zoneInfo}>
                       <View style={[styles.zoneDot, { backgroundColor: zoneConfig.color }]} />
-                      <Text style={styles.zoneName}>{zoneConfig.label}</Text>
+                      <Text style={styles.zoneName}>{t(`constants.zones.${zone}.label`)}</Text>
                     </View>
                     <Text style={styles.zonePace}>{formatKmPace(pace)}</Text>
                   </View>

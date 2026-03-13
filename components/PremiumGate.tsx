@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useIsPremium } from '../store/useSubscriptionStore';
 import { COLORS } from '../src/constants';
+import { useTranslation } from 'react-i18next';
 
 interface PremiumGateProps {
     featureName: string;
@@ -21,6 +22,7 @@ interface PremiumGateProps {
  */
 export const PremiumGate: React.FC<PremiumGateProps> = ({ featureName, children }) => {
     const router = useRouter();
+    const { t } = useTranslation();
     const isPremium = useIsPremium();
 
     if (isPremium) {
@@ -34,9 +36,9 @@ export const PremiumGate: React.FC<PremiumGateProps> = ({ featureName, children 
                 <View style={styles.iconCircle}>
                     <Ionicons name="lock-closed" size={32} color={COLORS.primary} />
                 </View>
-                <Text style={styles.title}>プレミアム機能</Text>
+                <Text style={styles.title}>{t('premium.featureTitle')}</Text>
                 <Text style={styles.description}>
-                    「{featureName}」はプレミアムプランで{'\n'}ご利用いただけます
+                    {t('premium.featureGateDesc', { feature: featureName })}
                 </Text>
                 <Pressable
                     style={styles.upgradeButton}
@@ -46,7 +48,7 @@ export const PremiumGate: React.FC<PremiumGateProps> = ({ featureName, children 
                     })}
                 >
                     <Ionicons name="diamond" size={18} color="#fff" />
-                    <Text style={styles.upgradeButtonText}>プランを見る</Text>
+                    <Text style={styles.upgradeButtonText}>{t('premium.viewPlans')}</Text>
                 </Pressable>
             </View>
         </View>

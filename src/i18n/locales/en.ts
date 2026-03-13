@@ -1370,6 +1370,67 @@ const en = {
     subRaceMedium: 'You have "{{name}}" this week. Light taper while maintaining the training flow.',
     subRaceLow: 'You have "{{name}}" this week (practice race). Maintain normal training and use the race as practical experience.',
   },
+
+  // ============================================
+  // プレミアム・サブスクリプション
+  // ============================================
+  premium: {
+    // PremiumGate
+    featureTitle: 'Premium Feature',
+    featureGateDesc: '"{{feature}}" is available with a Premium plan.',
+    viewPlans: 'View Plans',
+
+    // アップグレード画面 - 機能リスト
+    featurePlan: 'Training Plans',
+    featureWorkout: 'Workouts',
+    featureRace: 'Race Predictions',
+    featureAnalysis: 'Progress Analysis',
+
+    // アップグレード画面 - ヘッダー
+    title: 'MidLab Premium',
+    featureExclusive: '"{{feature}}" is a Premium-only feature',
+    unlockAll: 'Unlock all features',
+
+    // プレミアム会員
+    memberTitle: 'Premium Member',
+    memberDesc: 'You have access to all Premium features.',
+    manageSubscription: 'Manage Subscription',
+
+    // プラン選択
+    recommended: 'Recommended',
+    yearlyPlan: 'Yearly Plan',
+    yearlyPrice: '¥9,800',
+    perYear: '/year',
+    yearlySaving: 'Save 2 months',
+    monthlyPlan: 'Monthly Plan',
+    monthlyPrice: '¥980',
+    perMonth: '/month',
+
+    // 購入ボタン
+    freeTrial: '7-day free trial',
+    startFreeTrial: 'Start Free Trial',
+    restorePurchase: 'Restore Purchase',
+    unavailable: 'Currently unavailable',
+
+    // トースト
+    noPlanAvailable: 'No available plans found',
+    upgradeSuccess: 'Successfully upgraded to Premium!',
+    purchaseFailed: 'Could not complete the purchase',
+    purchaseError: 'An error occurred during purchase',
+    restoreSuccess: 'Purchase restored',
+    restoreNotFound: 'No purchases found to restore',
+    restoreError: 'An error occurred during restore',
+
+    // 法的情報
+    legalPrefix: 'By continuing, you agree to our ',
+    terms: 'Terms of Service',
+    legalSeparator: ' and ',
+    privacy: 'Privacy Policy',
+    legalSuffix: '.',
+    autoRenewNote: 'After the free trial ends, auto-renews at {{price}}. You can cancel anytime from {{store}} settings.',
+    yearlyPriceLabel: '¥9,800/year',
+    monthlyPriceLabel: '¥980/month',
+  },
 };
 
 export default en;
