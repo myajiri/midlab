@@ -135,7 +135,7 @@ export interface SubRace {
   customDistance?: number; // distance === 'custom' の場合
   priority: 'high' | 'medium' | 'low'; // レースの重要度（調整度合いに影響）
   // サブレース追加時に変更された日の元データ（削除時の復元用）
-  originalDays?: { [dayIndex: number]: ScheduledWorkout };
+  originalDays?: { [dayIndex: number]: ScheduledWorkout | null };
 }
 
 // ゾーン別距離（メートル）
@@ -286,6 +286,7 @@ export interface TrainingLog {
 // アプリ設定
 export interface AppSettings {
   useNewUI?: boolean;
+  language?: 'ja' | 'en' | 'system';
 }
 
 // 有効値（現在のeTPとリミッター）

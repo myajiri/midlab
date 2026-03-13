@@ -52,8 +52,10 @@ import {
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
 import { useIsFocused } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 
 export default function TestScreen() {
+  const { t } = useTranslation();
   const router = useRouter();
   const profile = useProfileStore((state) => state.profile);
   const results = useTestResultsStore((state) => state.results);
@@ -148,10 +150,10 @@ export default function TestScreen() {
   };
 
   // リミッター表示用
-  const LIMITER_DISPLAY: Record<string, { icon: string; name: string; color: string }> = {
-    cardio: { icon: 'heart', name: '心肺リミッター型', color: '#EF4444' },
-    muscular: { icon: 'fitness', name: '筋持久力リミッター型', color: '#F97316' },
-    balanced: { icon: 'git-compare', name: 'バランス型', color: '#22C55E' },
+  const LIMITER_DISPLAY: Record<string, { icon: string; nameKey: string; color: string }> = {
+    cardio: { icon: 'heart', nameKey: 'constants.limiters.cardio.label', color: '#EF4444' },
+    muscular: { icon: 'fitness', nameKey: 'constants.limiters.muscular.label', color: '#F97316' },
+    balanced: { icon: 'git-compare', nameKey: 'constants.limiters.balanced.label', color: '#22C55E' },
   };
 
   // ============================================
@@ -167,7 +169,7 @@ export default function TestScreen() {
             <Pressable style={styles.backButton} onPress={() => setView('main')}>
               <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
             </Pressable>
-            <Text style={styles.headerTitle}>テスト結果</Text>
+            <Text style={styles.headerTitle}>{t('test.resultTitle')}</Text>
             <View style={{ width: 40 }} />
           </View>
 
@@ -175,7 +177,7 @@ export default function TestScreen() {
 
           <SlideIn direction="up" delay={300}>
             <View style={styles.resultHeader}>
-              <Text style={styles.resultTitle}>テスト完了</Text>
+              <Text style={styles.resultTitle}>{t('test.testComplete')}</Text>
               <Text style={styles.resultDate}>
                 {new Date(lastTestResult.date).toLocaleDateString('ja-JP')}
               </Text>
@@ -184,8 +186,8 @@ export default function TestScreen() {
 
           <ScaleIn delay={500}>
             <View style={styles.etpCard}>
-              <Text style={styles.etpLabel}>あなたのETP</Text>
-              <CountUp value={lastTestResult.eTP} duration={1500} style={styles.etpValue} suffix="秒" />
+              <Text style={styles.etpLabel}>{t('test.yourEtp')}</Text>
+              <CountUp value={lastTestResult.eTP} duration={1500} style={styles.etpValue} suffix={t('test.secondsSuffix')} />
               <Text style={styles.etpPace}>{formatKmPace(lastTestResult.eTP)}</Text>
             </View>
           </ScaleIn>
@@ -193,13 +195,13 @@ export default function TestScreen() {
           <SlideIn direction="left" delay={700}>
             <View style={[styles.limiterCard, { borderColor: limiterInfo.color }]}>
               <Ionicons name={limiterInfo.icon as any} size={24} color={limiterInfo.color} />
-              <Text style={[styles.limiterName, { color: limiterInfo.color }]}>{limiterInfo.name}</Text>
+              <Text style={[styles.limiterName, { color: limiterInfo.color }]}>{t(limiterInfo.nameKey)}</Text>
             </View>
           </SlideIn>
 
           <FadeIn delay={900}>
             <View style={styles.zonesCard}>
-              <Text style={styles.cardTitle}>トレーニングゾーン</Text>
+              <Text style={styles.cardTitle}>{t('test.trainingZones')}</Text>
               {(['jog', 'easy', 'marathon', 'threshold', 'interval', 'repetition'] as ZoneName[]).map((zone) => {
                 const pace = lastTestResult.zones[zone];
                 const zoneConfig = ZONE_COEFFICIENTS_V3[zone];
@@ -207,7 +209,7 @@ export default function TestScreen() {
                   <View key={zone} style={styles.zoneRow}>
                     <View style={styles.zoneInfo}>
                       <View style={[styles.zoneDot, { backgroundColor: zoneConfig.color }]} />
-                      <Text style={styles.zoneName}>{zoneConfig.label}</Text>
+                      <Text style={styles.zoneName}>{t(`constants.zones.${zone}.label`)}</Text>
                     </View>
                     <Text style={styles.zonePace}>{formatKmPace(pace)}</Text>
                   </View>
@@ -218,7 +220,7 @@ export default function TestScreen() {
 
           <FadeIn delay={1100}>
             <View style={styles.predictionsCard}>
-              <Text style={styles.cardTitle}>レース予測</Text>
+              <Text style={styles.cardTitle}>{t('test.racePredictions')}</Text>
               <View style={styles.predictionsGrid}>
                 {Object.entries(lastTestResult.predictions).map(([key, prediction]) => (
                   <View key={key} style={styles.predictionItem}>
@@ -236,7 +238,7 @@ export default function TestScreen() {
 
           <FadeIn delay={1300}>
             <Pressable style={styles.primaryButton} onPress={() => setView('main')}>
-              <Text style={styles.primaryButtonText}>完了</Text>
+              <Text style={styles.primaryButtonText}>{t('common.done')}</Text>
             </Pressable>
           </FadeIn>
         </ScrollView>
@@ -257,14 +259,14 @@ export default function TestScreen() {
             <Pressable style={styles.backButton} onPress={() => setView('main')}>
               <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
             </Pressable>
-            <Text style={styles.headerTitle}>結果入力</Text>
+            <Text style={styles.headerTitle}>{t('test.inputTitle')}</Text>
             <View style={{ width: 40 }} />
           </View>
 
           <FadeIn>
             <View style={styles.inputCard}>
               {/* レベル選択 */}
-              <Text style={styles.inputLabel}>実施レベル</Text>
+              <Text style={styles.inputLabel}>{t('test.executedLevel')}</Text>
               <View style={styles.levelSelector}>
                 {(Object.keys(LEVELS) as LevelName[]).map((key) => (
                   <Pressable
@@ -287,7 +289,7 @@ export default function TestScreen() {
           <SlideIn delay={100} direction="up">
             <View style={styles.inputCard}>
               {/* 周回数 */}
-              <Text style={styles.inputLabel}>完走した周回数</Text>
+              <Text style={styles.inputLabel}>{t('test.completedLaps')}</Text>
               <View style={styles.lapsSelector}>
                 <Pressable
                   style={styles.lapsButton}
@@ -308,7 +310,7 @@ export default function TestScreen() {
               </View>
               <View style={styles.lcpBadge}>
                 <Ionicons name="speedometer" size={14} color={COLORS.primary} />
-                <Text style={styles.lcpText}>最終ペース: {formatKmPace(lcp)} ({lcp}秒/400m)</Text>
+                <Text style={styles.lcpText}>{t('test.lastPace', { pace: formatKmPace(lcp), seconds: lcp })}</Text>
               </View>
             </View>
           </SlideIn>
@@ -316,12 +318,12 @@ export default function TestScreen() {
           <SlideIn delay={200} direction="up">
             <View style={styles.inputCard}>
               {/* 終了理由 */}
-              <Text style={styles.inputLabel}>なぜ止まりましたか？</Text>
+              <Text style={styles.inputLabel}>{t('test.whyStopped')}</Text>
               <View style={styles.reasonGrid}>
                 {[
-                  { value: 'breath' as TerminationReason, label: '息が苦しい', icon: 'fitness' },
-                  { value: 'legs' as TerminationReason, label: '脚が重い', icon: 'footsteps' },
-                  { value: 'both' as TerminationReason, label: '両方', icon: 'body' },
+                  { value: 'breath' as TerminationReason, labelKey: 'test.reasonBreath', icon: 'fitness' },
+                  { value: 'legs' as TerminationReason, labelKey: 'test.reasonLegs', icon: 'footsteps' },
+                  { value: 'both' as TerminationReason, labelKey: 'test.reasonBoth', icon: 'body' },
                 ].map((opt) => (
                   <Pressable
                     key={opt.value}
@@ -334,7 +336,7 @@ export default function TestScreen() {
                       color={terminationReason === opt.value ? COLORS.primary : COLORS.text.muted}
                     />
                     <Text style={[styles.reasonText, terminationReason === opt.value && styles.reasonTextActive]}>
-                      {opt.label}
+                      {t(opt.labelKey)}
                     </Text>
                   </Pressable>
                 ))}
@@ -345,7 +347,7 @@ export default function TestScreen() {
           <SlideIn delay={300} direction="up">
             <View style={styles.inputCard}>
               {/* 回復時間 */}
-              <Text style={styles.inputLabel}>息が落ち着くまでの時間</Text>
+              <Text style={styles.inputLabel}>{t('test.recoveryTime')}</Text>
               <View style={styles.recoveryOptions}>
                 {(['<30', '30-60', '>60'] as RecoveryTime[]).map((v) => (
                   <Pressable
@@ -354,7 +356,7 @@ export default function TestScreen() {
                     onPress={() => setBreathRecovery(v)}
                   >
                     <Text style={[styles.recoveryText, breathRecovery === v && styles.recoveryTextActive]}>
-                      {v === '<30' ? '30秒未満' : v === '30-60' ? '30-60秒' : '60秒以上'}
+                      {v === '<30' ? t('test.recoveryUnder30') : v === '30-60' ? t('test.recovery30to60') : t('test.recoveryOver60')}
                     </Text>
                   </Pressable>
                 ))}
@@ -364,7 +366,7 @@ export default function TestScreen() {
 
           <SlideIn delay={400} direction="up">
             <Pressable style={styles.primaryButton} onPress={handleSubmit}>
-              <Text style={styles.primaryButtonText}>結果を算出</Text>
+              <Text style={styles.primaryButtonText}>{t('test.calculateResult')}</Text>
             </Pressable>
           </SlideIn>
         </ScrollView>
@@ -380,8 +382,8 @@ export default function TestScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
         <FadeIn>
-          <Text style={styles.pageTitle}>ETPテスト</Text>
-          <Text style={styles.pageSubtitle}>ETPを測定してトレーニングゾーンを算出</Text>
+          <Text style={styles.pageTitle}>{t('test.title')}</Text>
+          <Text style={styles.pageSubtitle}>{t('test.subtitle')}</Text>
         </FadeIn>
 
         {/* PB推定カード */}
@@ -393,9 +395,9 @@ export default function TestScreen() {
             >
               <Ionicons name="calculator-outline" size={24} color="#22C55E" />
               <View style={styles.pbEstimateContent}>
-                <Text style={styles.pbEstimateTitle}>PBからeTPを推定</Text>
+                <Text style={styles.pbEstimateTitle}>{t('test.pbEstimateTitle')}</Text>
                 <Text style={styles.pbEstimateDesc}>
-                  テストを実施しなくても、自己ベストからeTPを推定できます
+                  {t('test.pbEstimateDesc')}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={COLORS.text.muted} />
@@ -409,13 +411,13 @@ export default function TestScreen() {
             <View style={styles.startCardHeader}>
               <Ionicons name="timer" size={28} color={COLORS.primary} />
               <View style={styles.startCardTitleRow}>
-                <Text style={styles.startCardTitle}>テストを実施</Text>
-                <Text style={styles.startCardHint}>400mトラックで実施</Text>
+                <Text style={styles.startCardTitle}>{t('test.runTest')}</Text>
+                <Text style={styles.startCardHint}>{t('test.runTestHint')}</Text>
               </View>
             </View>
 
             {/* レベル選択 */}
-            <Text style={styles.levelLabel}>レベル選択</Text>
+            <Text style={styles.levelLabel}>{t('test.levelSelect')}</Text>
             <View style={styles.levelTabs}>
               {(Object.keys(LEVELS) as LevelName[]).map((key) => (
                 <Pressable
@@ -434,21 +436,21 @@ export default function TestScreen() {
             {/* 簡易スケジュール */}
             <View style={styles.schedulePreview}>
               <View style={styles.scheduleRow}>
-                <Text style={styles.scheduleLabel}>開始ペース</Text>
-                <Text style={styles.scheduleValue}>{formatKmPace(config.startPace)} ({config.startPace}秒)</Text>
+                <Text style={styles.scheduleLabel}>{t('test.startPace')}</Text>
+                <Text style={styles.scheduleValue}>{formatKmPace(config.startPace)} ({config.startPace}{t('test.secondsSuffix')})</Text>
               </View>
               <View style={styles.scheduleRow}>
-                <Text style={styles.scheduleLabel}>最大周回</Text>
-                <Text style={styles.scheduleValue}>{maxLaps}周</Text>
+                <Text style={styles.scheduleLabel}>{t('test.maxLaps')}</Text>
+                <Text style={styles.scheduleValue}>{t('test.lapsCount', { count: maxLaps })}</Text>
               </View>
               <View style={styles.scheduleRow}>
-                <Text style={styles.scheduleLabel}>加速</Text>
-                <Text style={styles.scheduleValue}>毎周 -{PACE_INCREMENT}秒</Text>
+                <Text style={styles.scheduleLabel}>{t('test.acceleration')}</Text>
+                <Text style={styles.scheduleValue}>{t('test.perLapDecrement', { seconds: PACE_INCREMENT })}</Text>
               </View>
             </View>
 
             <Pressable style={styles.primaryButton} onPress={() => setView('input')}>
-              <Text style={styles.primaryButtonText}>テスト結果を入力</Text>
+              <Text style={styles.primaryButtonText}>{t('test.inputResults')}</Text>
             </Pressable>
           </View>
         </SlideIn>
@@ -456,18 +458,18 @@ export default function TestScreen() {
         {/* 進行表（コンパクト） */}
         <SlideIn delay={200} direction="up">
           <Pressable style={styles.scheduleCard}>
-            <Text style={styles.cardTitle}>レベル{level} 進行表</Text>
+            <Text style={styles.cardTitle}>{t('test.scheduleTitle', { level })}</Text>
             <View style={styles.scheduleTable}>
               <View style={styles.tableHeader}>
-                <Text style={[styles.tableCell, styles.tableHeaderCell, { width: 40 }]}>周</Text>
-                <Text style={[styles.tableCell, styles.tableHeaderCell, { flex: 1 }]}>ペース/km</Text>
+                <Text style={[styles.tableCell, styles.tableHeaderCell, { width: 40 }]}>{t('test.lap')}</Text>
+                <Text style={[styles.tableCell, styles.tableHeaderCell, { flex: 1 }]}>{t('test.pacePerKm')}</Text>
                 <Text style={[styles.tableCell, styles.tableHeaderCell, { flex: 1 }]}>400m</Text>
               </View>
               {schedule.map((lap) => (
                 <View key={lap.lap} style={styles.tableRow}>
                   <Text style={[styles.tableCell, { width: 40 }]}>{lap.lap}</Text>
                   <Text style={[styles.tableCell, { flex: 1 }]}>{formatKmPace(lap.pace)}</Text>
-                  <Text style={[styles.tableCell, { flex: 1 }]}>{lap.pace}秒</Text>
+                  <Text style={[styles.tableCell, { flex: 1 }]}>{lap.pace}{t('test.secondsSuffix')}</Text>
                 </View>
               ))}
             </View>
@@ -479,7 +481,7 @@ export default function TestScreen() {
           <SlideIn delay={300} direction="up">
             <Pressable style={styles.historyCard} onPress={() => setShowHistory(!showHistory)}>
               <View style={styles.historyHeader}>
-                <Text style={styles.cardTitle}>過去の結果</Text>
+                <Text style={styles.cardTitle}>{t('test.pastResults')}</Text>
                 <Ionicons
                   name={showHistory ? 'chevron-up' : 'chevron-down'}
                   size={20}
@@ -497,7 +499,7 @@ export default function TestScreen() {
                 </View>
                 <View style={styles.historyRight}>
                   <Text style={styles.historyEtp}>{formatKmPace(results[0].eTP)}</Text>
-                  <Text style={styles.historyEtpSec}>{results[0].eTP}秒/400m</Text>
+                  <Text style={styles.historyEtpSec}>{results[0].eTP}{t('test.secPer400m')}</Text>
                 </View>
               </View>
 
@@ -512,7 +514,7 @@ export default function TestScreen() {
                   </View>
                   <View style={styles.historyRight}>
                     <Text style={styles.historyEtp}>{formatKmPace(result.eTP)}</Text>
-                    <Text style={styles.historyEtpSec}>{result.eTP}秒/400m</Text>
+                    <Text style={styles.historyEtpSec}>{result.eTP}{t('test.secPer400m')}</Text>
                   </View>
                 </View>
               ))}
@@ -523,19 +525,19 @@ export default function TestScreen() {
         {/* 簡易ガイド */}
         <SlideIn delay={400} direction="up">
           <View style={styles.guideCard}>
-            <Text style={styles.guideTitle}>テストの流れ</Text>
+            <Text style={styles.guideTitle}>{t('test.guideTitle')}</Text>
             <View style={styles.guideSteps}>
               <View style={styles.guideStep}>
                 <View style={styles.guideStepNum}><Text style={styles.guideStepNumText}>1</Text></View>
-                <Text style={styles.guideStepText}>レベルを選択して開始ペースを確認</Text>
+                <Text style={styles.guideStepText}>{t('test.guideStep1')}</Text>
               </View>
               <View style={styles.guideStep}>
                 <View style={styles.guideStepNum}><Text style={styles.guideStepNumText}>2</Text></View>
-                <Text style={styles.guideStepText}>400mトラックで各周のペースを守る</Text>
+                <Text style={styles.guideStepText}>{t('test.guideStep2')}</Text>
               </View>
               <View style={styles.guideStep}>
                 <View style={styles.guideStepNum}><Text style={styles.guideStepNumText}>3</Text></View>
-                <Text style={styles.guideStepText}>2秒以上遅れたら終了→結果を入力</Text>
+                <Text style={styles.guideStepText}>{t('test.guideStep3')}</Text>
               </View>
             </View>
           </View>
@@ -546,14 +548,13 @@ export default function TestScreen() {
           <View style={styles.disclaimerCard}>
             <View style={styles.disclaimerHeader}>
               <Ionicons name="information-circle" size={18} color={COLORS.text.secondary} />
-              <Text style={styles.disclaimerTitle}>eTPテストの位置づけ</Text>
+              <Text style={styles.disclaimerTitle}>{t('test.disclaimerTitle')}</Text>
             </View>
             <Text style={styles.disclaimerText}>
-              eTPテストはロードバイクのランプテストをランニングに転化したものです。
-              絶対値としての精度よりも、同じプロトコルを繰り返すことで「前回比でどれだけ変化したか」を追跡する点に価値があります。
+              {t('test.disclaimerText1')}
             </Text>
             <Text style={styles.disclaimerText}>
-              定期的（4週間ごと推奨）に実施し、トレーニング効果による変化を確認しましょう。
+              {t('test.disclaimerText2')}
             </Text>
           </View>
         </SlideIn>

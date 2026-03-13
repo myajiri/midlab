@@ -8,6 +8,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import Svg, { Path, Circle, Line, Text as SvgText, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { COLORS } from '../../constants';
 import { LimiterType, TestResult } from '../../types';
+import { useTranslation } from 'react-i18next';
 
 // リミッタータイプ別の色
 const LIMITER_COLORS: Record<LimiterType, string> = {
@@ -16,17 +17,13 @@ const LIMITER_COLORS: Record<LimiterType, string> = {
   balanced: '#22C55E',
 };
 
-const LIMITER_LABELS: Record<LimiterType, string> = {
-  cardio: '心肺',
-  muscular: '筋持久力',
-  balanced: 'バランス',
-};
-
 interface EtpTrendChartProps {
   results: TestResult[];
 }
 
 export const EtpTrendChart: React.FC<EtpTrendChartProps> = ({ results }) => {
+  const { t } = useTranslation();
+
   // 2件未満は推移が見えないので非表示
   if (results.length < 2) return null;
 
@@ -89,10 +86,10 @@ export const EtpTrendChart: React.FC<EtpTrendChartProps> = ({ results }) => {
     <View style={styles.container}>
       {/* ヘッダー行 */}
       <View style={styles.header}>
-        <Text style={styles.title}>推移</Text>
+        <Text style={styles.title}>{t('ui.trend')}</Text>
         <View style={[styles.changeBadge, change < 0 ? styles.changePositive : change > 0 ? styles.changeNegative : styles.changeNeutral]}>
           <Text style={[styles.changeText, change < 0 ? styles.changeTextPositive : change > 0 ? styles.changeTextNegative : styles.changeTextNeutral]}>
-            {change < 0 ? '▲' : change > 0 ? '▼' : '→'} {Math.abs(change).toFixed(1)}秒
+            {change < 0 ? '▲' : change > 0 ? '▼' : '→'} {Math.abs(change).toFixed(1)}{t('ui.secondsUnit')}
           </Text>
         </View>
       </View>
@@ -151,7 +148,7 @@ export const EtpTrendChart: React.FC<EtpTrendChartProps> = ({ results }) => {
           return (
             <View key={type} style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: LIMITER_COLORS[type] }]} />
-              <Text style={styles.legendText}>{LIMITER_LABELS[type]}</Text>
+              <Text style={styles.legendText}>{t(`constants.limiters.${type}.label`)}</Text>
             </View>
           );
         })}

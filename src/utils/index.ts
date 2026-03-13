@@ -26,9 +26,12 @@ import {
   ScheduledWorkout,
   ZoneDistances,
   WorkoutTemplate,
+  WorkoutSegment,
   WeeklyPlan,
   TrainingLog,
 } from '../types';
+
+import i18next from '../i18n';
 
 import {
   LEVELS,
@@ -82,8 +85,9 @@ export const parseTime = (timeStr: string): number | null => {
  */
 export const toLaps = (distance: number): string => {
   const laps = distance / 400;
-  if (laps === Math.floor(laps)) return `${laps}周`;
-  return `${laps.toFixed(1)}周`;
+  const t = i18next.t;
+  if (laps === Math.floor(laps)) return t('utils.lapFormat', { laps });
+  return t('utils.lapFormatDecimal', { laps: laps.toFixed(1) });
 };
 
 // ============================================
@@ -123,10 +127,10 @@ export const calculateEtp = (
   const expAdj = EXPERIENCE_CONFIG[experience].etpAdj;
 
   if (ageAdj !== 0) {
-    adjustments.push({ reason: `年齢: ${AGE_CATEGORY_CONFIG[ageCategory].label}`, value: ageAdj });
+    adjustments.push({ reason: i18next.t('utils.ageReason', { label: i18next.t(`constants.ageCategories.${ageCategory}.label`) }), value: ageAdj });
   }
   if (expAdj !== 0) {
-    adjustments.push({ reason: `経験: ${EXPERIENCE_CONFIG[experience].label}`, value: expAdj });
+    adjustments.push({ reason: i18next.t('utils.expReason', { label: i18next.t(`constants.experience.${experience}.label`) }), value: expAdj });
   }
 
   const adjustedEtp = baseEtp + ageAdj + expAdj;
@@ -272,9 +276,10 @@ export const recommendTestLevel = (
   const recommended = levels[adjustedIndex];
   const alternative = adjustedIndex > 0 ? levels[adjustedIndex - 1] : undefined;
 
-  let reason = `ETP ${etp}秒に基づく推奨`;
+  let reason = i18next.t('utils.etpReason', { etp });
   if (levelAdj !== 0) {
-    reason += `（属性により${levelAdj > 0 ? '難易度下げ' : '難易度上げ'}）`;
+    const adj = levelAdj > 0 ? i18next.t('utils.difficultyDown') : i18next.t('utils.difficultyUp');
+    reason += i18next.t('utils.etpReasonWithAdj', { adj });
   }
 
   return { recommended, alternative, reason };
@@ -488,18 +493,18 @@ export const getWeekProgress = (plan: RacePlan): WeekProgress | null => {
  */
 export const getNextTestRecommendation = (results: TestResult[]): { reason: string } | null => {
   if (!results || results.length === 0) {
-    return { reason: 'まだテストを実施していません' };
+    return { reason: i18next.t('utils.noTestYet') };
   }
 
   const latestTest = new Date(results[0].date);
   const daysSinceTest = Math.floor((Date.now() - latestTest.getTime()) / (1000 * 60 * 60 * 24));
 
   if (daysSinceTest >= 28) {
-    return { reason: `前回のテストから${daysSinceTest}日経過 - 再測定をお勧めします` };
+    return { reason: i18next.t('utils.daysSinceTestRecommend', { days: daysSinceTest }) };
   }
 
   if (daysSinceTest >= 21) {
-    return { reason: `前回のテストから${daysSinceTest}日経過` };
+    return { reason: i18next.t('utils.daysSinceTest', { days: daysSinceTest }) };
   }
 
   return null;
@@ -619,11 +624,11 @@ export const estimateLimiterFromSpeedIndex = (
   const { value } = speedIndex;
 
   if (value < 0.95) {
-    return { type: 'muscular', confidence: 'high', reason: 'スピード型（中距離寄り）' };
+    return { type: 'muscular', confidence: 'high', reason: i18next.t('utils.speedType') };
   } else if (value < 1.02) {
-    return { type: 'balanced', confidence: 'medium', reason: 'バランス型' };
+    return { type: 'balanced', confidence: 'medium', reason: i18next.t('utils.balancedType') };
   } else {
-    return { type: 'cardio', confidence: 'high', reason: '持久型（長距離寄り）' };
+    return { type: 'cardio', confidence: 'high', reason: i18next.t('utils.enduranceType') };
   }
 };
 
@@ -633,7 +638,6 @@ export const estimateLimiterFromSpeedIndex = (
 
 import {
   LIMITER_RATIONALE,
-  FOCUS_RATIONALE,
   PHASE_RATIONALE,
   PHYSIOLOGICAL_FOCUS_CATEGORIES,
   WORKOUT_LIMITER_CONFIG,
@@ -652,22 +656,18 @@ export const getWorkoutRationale = (
     ([_, v]) => v.menuCategory === category
   )?.[0];
 
-  const focusRationale = focusKey ? FOCUS_RATIONALE[focusKey] : null;
-  const limiterConfig = WORKOUT_LIMITER_CONFIG[limiterType];
-
-  if (focusRationale) {
-    const connection = focusRationale.limiterConnection[limiterType];
+  if (focusKey) {
     return {
-      headline: focusRationale.whyImportant,
-      detail: connection,
+      headline: i18next.t(`rationale.focus.${focusKey}.whyImportant`),
+      detail: i18next.t(`rationale.focus.${focusKey}.limiterConnection.${limiterType}`),
     };
   }
 
   // フォールバック（総合カテゴリ等）
   const limiterRationale = LIMITER_RATIONALE[limiterType];
   return {
-    headline: `${limiterConfig.name}のあなたに適したトレーニングです。`,
-    detail: limiterRationale.trainingFocus,
+    headline: i18next.t('utils.limiterTraining', { name: i18next.t(`constants.limiters.${limiterType}.name`) }),
+    detail: i18next.t(`rationale.limiter.${limiterType}.trainingFocus`),
   };
 };
 
@@ -675,28 +675,9 @@ export const getWorkoutRationale = (
  * 週間計画の根拠テキストを生成
  * フェーズとリミッタータイプに基づき、この週のメニュー構成の理由を説明
  */
-// 期×リミッター別の週間ねらいテキスト
-const PHASE_LIMITER_FOCUS: Record<PhaseType, Record<LimiterType, string>> = {
-  base: {
-    cardio: 'イージーランと閾値走を中心に有酸素基盤を構築します。毛細血管の発達とミトコンドリアの増加を促し、心肺系の土台を固めます。',
-    muscular: 'イージーランで有酸素基盤を築きつつ、流しやドリルで神経筋系を活性化します。ランニングエコノミーの基礎を作ります。',
-    balanced: 'イージーランと閾値走を軸に有酸素基盤をバランスよく構築します。心肺系・筋持久力の両面から土台を固めます。',
-  },
-  build: {
-    cardio: 'VO2maxインターバルを重点的に配置し、最大酸素摂取量の天井を引き上げます。回復を長めに取り、1本1本の質を重視します。',
-    muscular: 'レペティション・スピード系を重点的に配置し、神経筋協調性とランニングエコノミーを改善します。本数を多めに設定し、筋適応を促します。',
-    balanced: 'VO2maxインターバルとスピード系をバランスよく配置し、心肺機能と筋持久力を同時に引き上げます。',
-  },
-  peak: {
-    cardio: 'レースペースに近い強度のVO2max走と閾値走で、本番に向けた心肺系の最終調整を行います。レース特異的な刺激で仕上げます。',
-    muscular: 'レースペースのレペティションとスピード持久走で、神経筋系の最終調整を行います。レースリズムの定着を重視します。',
-    balanced: 'レースペースに特化した練習で心肺系と筋持久力の最終調整を行います。本番のペース感覚を磨きます。',
-  },
-  taper: {
-    cardio: 'トレーニング量を減らしつつ高強度の刺激は維持し、蓄積された疲労を取り除きます。心肺系のキレを保ちながらレースに備えます。',
-    muscular: 'トレーニング量を減らしつつスピード刺激は維持し、蓄積された疲労を取り除きます。神経筋系のキレを保ちながらレースに備えます。',
-    balanced: 'トレーニング量を減らしつつ強度は維持し、蓄積された疲労を取り除きます。心身のキレを保ちながらレースに備えます。',
-  },
+// 期×リミッター別の週間ねらいテキスト（i18n対応）
+const getPhaseLimiterFocus = (phase: PhaseType, limiter: LimiterType): string => {
+  return i18next.t(`rationale.phaseLimiter.${phase}.${limiter}`);
 };
 
 export const getWeeklyPlanRationale = (
@@ -707,23 +688,22 @@ export const getWeeklyPlanRationale = (
   subRaceName?: string,
   subRacePriority?: 'high' | 'medium' | 'low',
 ): string => {
+  const t = i18next.t;
   if (isRampTestWeek) {
-    return 'ETPテスト週です。テストで最新の走力とリミッタータイプを再測定し、以降のトレーニングに反映します。';
+    return t('utils.rampTestWeek');
   }
   if (isRecoveryWeek) {
-    return '回復週です。負荷を落として体の回復を促し、次の高負荷週に備えます。計画的な休養がパフォーマンス向上の鍵です。';
+    return t('utils.recoveryWeek');
   }
 
-  const phase = PHASE_RATIONALE[phaseType];
-  let rationale = `${phase.purpose}のフェーズです。${PHASE_LIMITER_FOCUS[phaseType][limiterType]}`;
+  const purpose = t(`rationale.phase.${phaseType}.purpose`);
+  const focus = getPhaseLimiterFocus(phaseType, limiterType);
+  let rationale = t('utils.phaseRationale', { purpose, focus });
 
   if (subRaceName) {
-    const priorityText = subRacePriority === 'high'
-      ? `今週は「${subRaceName}」に出場予定です。レースに向けて練習負荷を落とし、調整を図ります。`
-      : subRacePriority === 'medium'
-        ? `今週は「${subRaceName}」に出場予定です。軽めの調整を入れつつ、トレーニングの流れを維持します。`
-        : `今週は「${subRaceName}」に出場予定（練習レース）。通常のトレーニングを維持しつつ、レースを実戦練習として活用します。`;
-    rationale = priorityText;
+    const priorityKey = subRacePriority === 'high' ? 'subRaceHigh'
+      : subRacePriority === 'medium' ? 'subRaceMedium' : 'subRaceLow';
+    rationale = t(`utils.${priorityKey}`, { name: subRaceName });
   }
 
   return rationale;
@@ -742,7 +722,8 @@ export const getWorkoutZoneDistances = (workoutId: string, limiterType?: Limiter
   if (!workout) return {};
   const zones: ZoneDistances = {};
   const variant = limiterType ? workout.limiterVariants?.[limiterType] : undefined;
-  for (const seg of workout.segments) {
+  for (const s of workout.segments) {
+    const seg = s as WorkoutSegment;
     const reps = seg.reps ? (variant?.reps || seg.reps) : 1;
     const dist = seg.distance * reps;
     zones[seg.zone] = (zones[seg.zone] || 0) + dist;

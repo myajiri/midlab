@@ -36,20 +36,22 @@ import { WorkoutTemplate, WorkoutSegment, ZoneName, LimiterType, TrainingLog, Cu
 import { useSetSubScreenOpen } from '../../store/useUIStore';
 import { SwipeBackView } from '../../components/SwipeBackView';
 import { useIsFocused } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
+import i18next from '../../src/i18n';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// カテゴリラベル（簡素化）
-const CATEGORY_LABELS: Record<string, string> = {
-  all: 'すべて',
-  VO2max: 'VO2max',
-  '乳酸閾値': '乳酸閾値',
-  'スピード・スプリント': 'スピード・スプリント',
-  '有酸素ベース': '有酸素ベース',
-  '総合': '総合',
-  'レース': 'レース',
-  'オリジナル': 'オリジナル',
-};
+// カテゴリラベル（i18n対応）
+const getCategoryLabels = (): Record<string, string> => ({
+  all: i18next.t('workout.categoryAll'),
+  VO2max: i18next.t('workout.categoryVO2max'),
+  '乳酸閾値': i18next.t('workout.categoryThreshold'),
+  'スピード・スプリント': i18next.t('workout.categorySpeed'),
+  '有酸素ベース': i18next.t('workout.categoryAerobic'),
+  '総合': i18next.t('workout.categoryGeneral'),
+  'レース': i18next.t('workout.categoryRace'),
+  'オリジナル': i18next.t('workout.categoryOriginal'),
+});
 
 // タイムゾーン安全なローカル日付文字列ヘルパー（YYYY-MM-DD）
 const toLocalDateStr = (d: Date): string => {
@@ -59,21 +61,51 @@ const toLocalDateStr = (d: Date): string => {
   return `${y}-${m}-${day}`;
 };
 
-// ゾーン表示名
-const ZONE_LABELS: Record<string, string> = {
-  jog: 'リカバリー',
-  easy: 'イージー',
-  marathon: 'マラソン',
-  threshold: '閾値',
-  interval: 'インターバル',
-  repetition: 'レペティション',
+// ゾーン表示名（i18n対応）
+const getZoneLabels = (): Record<string, string> => ({
+  jog: i18next.t('workout.zoneJog'),
+  easy: i18next.t('workout.zoneEasy'),
+  marathon: i18next.t('workout.zoneMarathon'),
+  threshold: i18next.t('workout.zoneThreshold'),
+  interval: i18next.t('workout.zoneInterval'),
+  repetition: i18next.t('workout.zoneRepetition'),
+});
+
+// リミッター設定（i18n対応）
+const getLimiterConfig = (): Record<LimiterType, { icon: string; label: string }> => ({
+  cardio: { icon: 'fitness', label: i18next.t('workout.limiterCardio') },
+  muscular: { icon: 'barbell', label: i18next.t('workout.limiterMuscular') },
+  balanced: { icon: 'scale', label: i18next.t('workout.limiterBalanced') },
+});
+
+// ワークアウトの翻訳テキストを取得するヘルパー
+const getWorkoutText = (workout: WorkoutTemplate, field: 'name' | 'description' | 'selectionGuide'): string => {
+  const key = `workouts.${workout.id}.${field}`;
+  const translated = i18next.t(key, { defaultValue: '' });
+  // 翻訳キーがそのまま返ってきた場合は元のテキストを使用
+  if (!translated || translated === key) {
+    return (workout as any)[field] || '';
+  }
+  return translated;
 };
 
-// リミッター設定
-const LIMITER_CONFIG: Record<LimiterType, { icon: string; label: string }> = {
-  cardio: { icon: 'fitness', label: '心肺リミッター型' },
-  muscular: { icon: 'barbell', label: '筋持久力リミッター型' },
-  balanced: { icon: 'scale', label: 'バランス型' },
+// リミッターバリアントのnoteを翻訳するヘルパー
+const getVariantNote = (workoutId: string, limiter: LimiterType, fallback: string): string => {
+  const key = `workouts.${workoutId}.limiterVariants.${limiter}.note`;
+  const translated = i18next.t(key, { defaultValue: '' });
+  if (!translated || translated === key) {
+    return fallback;
+  }
+  return translated;
+};
+
+// セグメントラベルの「周」を翻訳するヘルパー
+const translateSegmentLabel = (label: string): string => {
+  // 「回復 1周」→ "Recovery 1 lap"
+  let result = label.replace(/^回復/, i18next.t('workout.segmentRecoveryLabel'));
+  // 「N周」→ "N laps"
+  result = result.replace(/(\d+)周$/, `$1${i18next.t('common.laps')}`);
+  return result;
 };
 
 interface ExpandedSegment {
@@ -83,6 +115,7 @@ interface ExpandedSegment {
 }
 
 export default function WorkoutScreen() {
+  const { t } = useTranslation();
   const isPremium = useIsPremium();
   const { showToast } = useToast();
   const { etp, limiter } = useEffectiveValues();
@@ -131,19 +164,19 @@ export default function WorkoutScreen() {
       id: `tl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       date: toLocalDateStr(new Date()),
       workoutId: workout.id,
-      workoutName: workout.name,
+      workoutName: getWorkoutText(workout, 'name'),
       workoutCategory: workout.category,
       status: 'planned',
       planId: activePlan?.id,
     };
     addTrainingLog(log);
-    showToast('計画タブの「トレーニング記録」に追加しました', 'success');
+    showToast(t('workout.addedToLog'), 'success');
   };
 
   // 計画内メニューを差し替える
   const handleReplaceWorkout = (workout: WorkoutTemplate) => {
-    replaceWorkoutInPlan(replaceWeek, replaceDayId, workout.id, workout.name, workout.category);
-    showToast(`${replaceDayLabel}のメニューを「${workout.name}」に変更しました`, 'success');
+    replaceWorkoutInPlan(replaceWeek, replaceDayId, workout.id, getWorkoutText(workout, 'name'), workout.category);
+    showToast(t('workout.replacedWorkout', { dayLabel: replaceDayLabel, workoutName: getWorkoutText(workout, 'name') }), 'success');
     // 差し替え処理済みとして記録（タブ再訪問時にモードが残らないように）
     setProcessedReplaceT(replaceT);
     // 計画タブの週間表示に戻り、他のメニューも変更できるようにする
@@ -193,9 +226,9 @@ export default function WorkoutScreen() {
       description: cw.description,
       segments: cw.segments,
       limiterVariants: {
-        cardio: { note: 'カスタムメニュー' },
-        muscular: { note: 'カスタムメニュー' },
-        balanced: { note: 'カスタムメニュー' },
+        cardio: { note: i18next.t('workout.customMenu') },
+        muscular: { note: i18next.t('workout.customMenu') },
+        balanced: { note: i18next.t('workout.customMenu') },
       },
     }));
   }, [customWorkouts]);
@@ -222,7 +255,7 @@ export default function WorkoutScreen() {
 
   if (!isPremium) {
     return (
-      <PremiumGate featureName="トレーニング">
+      <PremiumGate featureName={t('workout.premiumFeatureName')}>
         <View />
       </PremiumGate>
     );
@@ -265,13 +298,13 @@ export default function WorkoutScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding}>
         <FadeIn>
-          <Text style={styles.sectionTitle}>{isReplaceMode ? 'メニューを変更' : 'トレーニング'}</Text>
+          <Text style={styles.sectionTitle}>{isReplaceMode ? t('workout.replaceTitle') : t('workout.pageTitle')}</Text>
 
           {/* 差し替えモードのバナー */}
           {isReplaceMode && (
             <View style={styles.replaceBanner}>
               <Ionicons name="swap-horizontal" size={18} color={COLORS.primary} />
-              <Text style={styles.replaceBannerText}>{replaceDayLabel}のメニューを選択してください</Text>
+              <Text style={styles.replaceBannerText}>{t('workout.selectReplacementMenu', { dayLabel: replaceDayLabel })}</Text>
             </View>
           )}
 
@@ -279,14 +312,14 @@ export default function WorkoutScreen() {
           <View style={styles.etpBox}>
             <View style={styles.etpTableRow}>
               <Text style={styles.etpLabel}>ETP</Text>
-              <Text style={styles.etpValue}>{Math.round(etp)}秒 ({formatKmPace(etp)})</Text>
+              <Text style={styles.etpValue}>{Math.round(etp)}{t('common.seconds')} ({formatKmPace(etp)})</Text>
             </View>
             <View style={styles.etpDivider} />
             <View style={styles.etpTableRow}>
-              <Text style={styles.etpLabel}>リミッター</Text>
+              <Text style={styles.etpLabel}>{t('settings.limiterType')}</Text>
               <View style={styles.etpLimiterValue}>
                 <Ionicons name={WORKOUT_LIMITER_CONFIG[limiter].icon as any} size={16} color={WORKOUT_LIMITER_CONFIG[limiter].color} />
-                <Text style={styles.etpValue}>{WORKOUT_LIMITER_CONFIG[limiter].name}</Text>
+                <Text style={styles.etpValue}>{getLimiterConfig()[limiter].label}</Text>
               </View>
             </View>
           </View>
@@ -296,7 +329,7 @@ export default function WorkoutScreen() {
             {Object.entries(ZONE_COEFFICIENTS_V3).map(([key, zone]) => (
               <View key={key} style={styles.zoneLegendItem}>
                 <View style={[styles.zoneLegendDot, { backgroundColor: zone.color }]} />
-                <Text style={styles.zoneLegendText}>{zone.label}</Text>
+                <Text style={styles.zoneLegendText}>{getZoneLabels()[key] || zone.label}</Text>
               </View>
             ))}
           </View>
@@ -319,7 +352,7 @@ export default function WorkoutScreen() {
                   onPress={() => setSelectedCategory(cat)}
                 >
                   <Text style={[styles.filterBtnText, isActive && styles.filterBtnTextActive]}>
-                    {CATEGORY_LABELS[cat] || cat}
+                    {getCategoryLabels()[cat] || cat}
                   </Text>
                 </Pressable>
               );
@@ -344,7 +377,7 @@ export default function WorkoutScreen() {
               }}
             >
               <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.createCustomButtonText}>新規メニューを作成</Text>
+              <Text style={styles.createCustomButtonText}>{t('workout.createNew')}</Text>
             </Pressable>
           </SlideIn>
         )}
@@ -364,25 +397,25 @@ export default function WorkoutScreen() {
                     <IntensityGraph segments={expanded} height={80} />
                     <View style={styles.workoutCardBody}>
                       <View style={styles.workoutCardNameRow}>
-                        <Text style={styles.workoutCardName}>{workout.name}</Text>
+                        <Text style={styles.workoutCardName}>{getWorkoutText(workout, 'name')}</Text>
                         {isCustom && (
                           <View style={styles.customBadge}>
-                            <Text style={styles.customBadgeText}>自作</Text>
+                            <Text style={styles.customBadgeText}>{t('common.custom')}</Text>
                           </View>
                         )}
                         <View style={styles.workoutCardCategoryBadge}>
                           <Text style={styles.workoutCardCategoryText}>
-                            {CATEGORY_LABELS[workout.category] || workout.category}
+                            {getCategoryLabels()[workout.category] || workout.category}
                           </Text>
                         </View>
                       </View>
                       <Text style={styles.workoutCardDistance}>
-                        {totalDistance.toLocaleString()}m ({(totalDistance / 400).toFixed(0)}周)
+                        {totalDistance.toLocaleString()}m ({(totalDistance / 400).toFixed(0)}{t('common.laps')})
                       </Text>
                       {variant?.note && (
                         <View style={styles.workoutCardNote}>
                           <Ionicons name={WORKOUT_LIMITER_CONFIG[limiter].icon as any} size={14} color={WORKOUT_LIMITER_CONFIG[limiter].color} />
-                          <Text style={styles.workoutCardNoteText}>{variant.note}</Text>
+                          <Text style={styles.workoutCardNoteText}>{getVariantNote(workout.id, limiter, variant.note)}</Text>
                         </View>
                       )}
                     </View>
@@ -393,7 +426,7 @@ export default function WorkoutScreen() {
                       onPress={() => { setSelectedWorkout(workout); setOpenedFromPlan(false); }}
                     >
                       <Ionicons name="information-circle-outline" size={16} color={COLORS.text.secondary} />
-                      <Text style={styles.workoutDetailButtonText}>詳細</Text>
+                      <Text style={styles.workoutDetailButtonText}>{t('workout.segments')}</Text>
                     </Pressable>
                     {isReplaceMode && (
                       <Pressable
@@ -401,7 +434,7 @@ export default function WorkoutScreen() {
                         onPress={() => handleReplaceWorkout(workout)}
                       >
                         <Ionicons name="swap-horizontal" size={16} color="#fff" />
-                        <Text style={styles.workoutStartButtonText}>このメニューに変更</Text>
+                        <Text style={styles.workoutStartButtonText}>{t('workout.replaceWorkoutDefault')}</Text>
                       </Pressable>
                     )}
                     {isCustom && !isReplaceMode && (
@@ -428,19 +461,19 @@ export default function WorkoutScreen() {
                           }}
                         >
                           <Ionicons name="create-outline" size={16} color={COLORS.text.secondary} />
-                          <Text style={styles.workoutDetailButtonText}>編集</Text>
+                          <Text style={styles.workoutDetailButtonText}>{t('common.edit')}</Text>
                         </Pressable>
                         <Pressable
                           style={styles.workoutDetailButton}
                           onPress={() => {
-                            Alert.alert('メニューを削除', `「${workout.name}」を削除しますか？`, [
-                              { text: 'キャンセル', style: 'cancel' },
-                              { text: '削除', style: 'destructive', onPress: () => deleteCustomWorkout(workout.id) },
+                            Alert.alert(t('workout.deleteWorkout'), t('workout.deleteWorkoutConfirm', { name: getWorkoutText(workout, 'name') }), [
+                              { text: t('common.cancel'), style: 'cancel' },
+                              { text: t('common.delete'), style: 'destructive', onPress: () => deleteCustomWorkout(workout.id) },
                             ]);
                           }}
                         >
                           <Ionicons name="trash-outline" size={16} color="#EF4444" />
-                          <Text style={[styles.workoutDetailButtonText, { color: '#EF4444' }]}>削除</Text>
+                          <Text style={[styles.workoutDetailButtonText, { color: '#EF4444' }]}>{t('common.delete')}</Text>
                         </Pressable>
                       </>
                     )}
@@ -466,7 +499,7 @@ export default function WorkoutScreen() {
           <Pressable style={styles.createModalOverlayPress} onPress={() => setCreateModalVisible(false)}>
             <Pressable style={styles.createModalContent} onPress={(e) => e.stopPropagation()}>
               <View style={styles.createModalHeader}>
-                <Text style={styles.createModalTitle}>{editingCustomId ? 'メニューを編集' : '新規メニュー作成'}</Text>
+                <Text style={styles.createModalTitle}>{editingCustomId ? t('workout.editTitle') : t('workout.createTitle')}</Text>
                 <Pressable onPress={() => setCreateModalVisible(false)}>
                   <Ionicons name="close" size={24} color={COLORS.text.secondary} />
                 </Pressable>
@@ -474,28 +507,28 @@ export default function WorkoutScreen() {
 
               <ScrollView style={styles.createModalScroll} showsVerticalScrollIndicator={false}>
               {/* メニュー名 */}
-              <Text style={styles.createFieldLabel}>メニュー名</Text>
+              <Text style={styles.createFieldLabel}>{t('workout.namePlaceholder')}</Text>
               <TextInput
                 style={styles.createFieldInput}
                 value={customName}
                 onChangeText={setCustomName}
-                placeholder="例: 500m×5 スピード持久力"
+                placeholder={t('workout.namePlaceholder')}
                 placeholderTextColor={COLORS.text.muted}
               />
 
               {/* メニュー概要 */}
-              <Text style={styles.createFieldLabel}>メニュー概要</Text>
+              <Text style={styles.createFieldLabel}>{t('workout.descriptionPlaceholder')}</Text>
               <TextInput
                 style={[styles.createFieldInput, { minHeight: 60, textAlignVertical: 'top' }]}
                 value={customDescription}
                 onChangeText={setCustomDescription}
-                placeholder="メニューの目的や説明"
+                placeholder={t('workout.descriptionPlaceholder')}
                 placeholderTextColor={COLORS.text.muted}
                 multiline
               />
 
               {/* カテゴリ選択 */}
-              <Text style={styles.createFieldLabel}>カテゴリ</Text>
+              <Text style={styles.createFieldLabel}>{t('workout.categoryLabel')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
                 {['オリジナル', 'VO2max', '乳酸閾値', 'スピード・スプリント', '有酸素ベース'].map((cat) => (
                   <Pressable
@@ -504,14 +537,14 @@ export default function WorkoutScreen() {
                     onPress={() => setCustomCategory(cat)}
                   >
                     <Text style={[styles.createCategoryChipText, customCategory === cat && styles.createCategoryChipTextActive]}>
-                      {CATEGORY_LABELS[cat] || cat}
+                      {getCategoryLabels()[cat] || cat}
                     </Text>
                   </Pressable>
                 ))}
               </ScrollView>
 
               {/* セグメント */}
-              <Text style={styles.createFieldLabel}>セグメント（練習内容）</Text>
+              <Text style={styles.createFieldLabel}>{t('workout.segments')}</Text>
               {customSegments.map((seg, idx) => (
                 <View key={idx} style={styles.createSegmentRow}>
                   <View style={styles.createSegmentHeader}>
@@ -532,13 +565,13 @@ export default function WorkoutScreen() {
                           onPress={() => setCustomSegments(prev => prev.map((s, i) => i === idx ? { ...s, zone: z } : s))}
                         >
                           <View style={[styles.createZoneDot, { backgroundColor: ZONE_COEFFICIENTS_V3[z].color }]} />
-                          <Text style={[styles.createZoneChipText, seg.zone === z && { color: ZONE_COEFFICIENTS_V3[z].color }]}>{ZONE_LABELS[z]}</Text>
+                          <Text style={[styles.createZoneChipText, seg.zone === z && { color: ZONE_COEFFICIENTS_V3[z].color }]}>{getZoneLabels()[z]}</Text>
                         </Pressable>
                       ))}
                     </ScrollView>
                     <View style={styles.createSegmentInputRow}>
                       <View style={styles.createSegmentInputGroup}>
-                        <Text style={styles.createSegmentInputLabel}>距離(m)</Text>
+                        <Text style={styles.createSegmentInputLabel}>{t('workout.segmentDistance')}</Text>
                         <TextInput
                           style={styles.createSegmentInput}
                           value={seg.distance}
@@ -549,7 +582,7 @@ export default function WorkoutScreen() {
                         />
                       </View>
                       <View style={styles.createSegmentInputGroup}>
-                        <Text style={styles.createSegmentInputLabel}>本数</Text>
+                        <Text style={styles.createSegmentInputLabel}>{t('workout.segmentReps')}</Text>
                         <TextInput
                           style={styles.createSegmentInput}
                           value={seg.reps}
@@ -560,7 +593,7 @@ export default function WorkoutScreen() {
                         />
                       </View>
                       <View style={styles.createSegmentInputGroup}>
-                        <Text style={styles.createSegmentInputLabel}>レスト(m)</Text>
+                        <Text style={styles.createSegmentInputLabel}>{t('workout.segmentRecovery')}</Text>
                         <TextInput
                           style={styles.createSegmentInput}
                           value={seg.recoveryDistance}
@@ -575,7 +608,7 @@ export default function WorkoutScreen() {
                       style={[styles.createSegmentInput, { marginTop: 4 }]}
                       value={seg.label}
                       onChangeText={(t) => setCustomSegments(prev => prev.map((s, i) => i === idx ? { ...s, label: t } : s))}
-                      placeholder="ラベル（例: W-up 4周）"
+                      placeholder={t('workout.segmentLabel')}
                       placeholderTextColor={COLORS.text.muted}
                     />
                   </View>
@@ -586,7 +619,7 @@ export default function WorkoutScreen() {
                 onPress={() => setCustomSegments(prev => [...prev, { zone: 'jog', distance: '', label: '', reps: '1', recoveryDistance: '' }])}
               >
                 <Ionicons name="add" size={18} color={COLORS.primary} />
-                <Text style={styles.createAddSegmentText}>セグメントを追加</Text>
+                <Text style={styles.createAddSegmentText}>{t('workout.addSegment')}</Text>
               </Pressable>
             </ScrollView>
 
@@ -600,13 +633,13 @@ export default function WorkoutScreen() {
                   .map(s => ({
                     zone: s.zone,
                     distance: parseInt(s.distance, 10) || 0,
-                    label: s.label || `${ZONE_LABELS[s.zone]} ${s.distance}m`,
+                    label: s.label || `${getZoneLabels()[s.zone]} ${s.distance}m`,
                     ...(parseInt(s.reps, 10) > 1 ? { reps: parseInt(s.reps, 10) } : {}),
                     ...(s.recoveryDistance && parseInt(s.recoveryDistance, 10) > 0 ? { recoveryDistance: parseInt(s.recoveryDistance, 10) } : {}),
                   }));
 
                 if (segments.length === 0) {
-                  showToast('少なくとも1つのセグメントが必要です', 'error');
+                  showToast(t('workout.needOneSegment'), 'error');
                   return;
                 }
 
@@ -617,7 +650,7 @@ export default function WorkoutScreen() {
                     category: customCategory,
                     segments,
                   });
-                  showToast('メニューを更新しました', 'success');
+                  showToast(t('workout.workoutUpdated'), 'success');
                 } else {
                   const newWorkout: CustomWorkout = {
                     id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
@@ -629,12 +662,12 @@ export default function WorkoutScreen() {
                     updatedAt: new Date().toISOString(),
                   };
                   addCustomWorkout(newWorkout);
-                  showToast('メニューを作成しました', 'success');
+                  showToast(t('workout.workoutCreated'), 'success');
                 }
                 setCreateModalVisible(false);
               }}
             >
-              <Text style={styles.createSaveButtonText}>{editingCustomId ? '更新' : '作成'}</Text>
+              <Text style={styles.createSaveButtonText}>{editingCustomId ? t('common.update') : t('common.create')}</Text>
             </Pressable>
             </Pressable>
           </Pressable>
@@ -660,6 +693,7 @@ interface WorkoutDetailScreenProps {
 }
 
 function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining, onReplaceWorkout, onDelete, replaceDayLabel }: WorkoutDetailScreenProps) {
+  const { t } = useTranslation();
   const variant = workout.limiterVariants?.[limiter];
   const expandedSegments = expandSegments(workout.segments, variant);
   const totalDistance = calculateTotalDistance(workout.segments, variant);
@@ -683,14 +717,14 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining, o
             <Pressable style={styles.backButton} onPress={onBack}>
               <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
             </Pressable>
-            <Text style={styles.detailTitle}>{workout.name}</Text>
+            <Text style={styles.detailTitle}>{getWorkoutText(workout, 'name')}</Text>
             {onDelete && (
               <Pressable
                 style={styles.detailDeleteButton}
                 onPress={() => {
-                  Alert.alert('メニューを削除', `「${workout.name}」を削除しますか？`, [
-                    { text: 'キャンセル', style: 'cancel' },
-                    { text: '削除', style: 'destructive', onPress: () => onDelete(workout.id) },
+                  Alert.alert(t('workout.deleteWorkout'), t('workout.deleteWorkoutConfirm', { name: getWorkoutText(workout, 'name') }), [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    { text: t('common.delete'), style: 'destructive', onPress: () => onDelete(workout.id) },
                   ]);
                 }}
               >
@@ -710,46 +744,46 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining, o
           <View style={styles.detailMeta}>
             <View style={styles.categoryTag}>
               <Text style={styles.categoryTagText}>
-                {CATEGORY_LABELS[workout.category] || workout.category}
+                {getCategoryLabels()[workout.category] || workout.category}
               </Text>
             </View>
             <Text style={styles.detailDistance}>
-              総距離 {totalDistance.toLocaleString()}m ({(totalDistance / 400).toFixed(1)}周)
+              {t('workout.totalDistance')} {totalDistance.toLocaleString()}m ({(totalDistance / 400).toFixed(1)}{t('common.laps')})
             </Text>
           </View>
 
           {variant?.note && (
             <View style={styles.limiterCard}>
-              <Ionicons name={LIMITER_CONFIG[limiter].icon as any} size={20} color={COLORS.primary} />
+              <Ionicons name={getLimiterConfig()[limiter].icon as any} size={20} color={COLORS.primary} />
               <View>
-                <Text style={styles.limiterCardTitle}>{LIMITER_CONFIG[limiter].label}リミッター向け調整</Text>
-                <Text style={styles.limiterCardNote}>{variant.note}</Text>
+                <Text style={styles.limiterCardTitle}>{getLimiterConfig()[limiter].label} - {i18next.t('workout.limiterAdjustments')}</Text>
+                <Text style={styles.limiterCardNote}>{getVariantNote(workout.id, limiter, variant.note)}</Text>
               </View>
             </View>
           )}
 
-          <Text style={styles.detailDescription}>{workout.description}</Text>
+          <Text style={styles.detailDescription}>{getWorkoutText(workout, 'description')}</Text>
         </SlideIn>
 
         {/* 選択ガイド（同カテゴリ内での差分・選び方） */}
-        {workout.selectionGuide && (
+        {getWorkoutText(workout, 'selectionGuide') ? (
           <SlideIn delay={170} direction="up">
             <View style={styles.selectionGuideCard}>
               <View style={styles.selectionGuideHeader}>
                 <Ionicons name="git-compare-outline" size={18} color="#3B82F6" />
-                <Text style={styles.selectionGuideTitle}>このメニューの選び方</Text>
+                <Text style={styles.selectionGuideTitle}>{t('workout.selectionGuide')}</Text>
               </View>
-              <Text style={styles.selectionGuideText}>{workout.selectionGuide}</Text>
+              <Text style={styles.selectionGuideText}>{getWorkoutText(workout, 'selectionGuide')}</Text>
             </View>
           </SlideIn>
-        )}
+        ) : null}
 
         {/* なぜこのメニューか */}
         <SlideIn delay={180} direction="up">
           <View style={styles.rationaleCard}>
             <View style={styles.rationaleHeader}>
               <Ionicons name="bulb-outline" size={18} color="#EAB308" />
-              <Text style={styles.rationaleTitle}>なぜこのメニューか</Text>
+              <Text style={styles.rationaleTitle}>{t('workout.whyThisWorkout')}</Text>
             </View>
             <Text style={styles.rationaleText}>{rationale.headline}</Text>
             <View style={styles.rationaleLimiterRow}>
@@ -761,7 +795,7 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining, o
 
         {/* セグメント一覧 */}
         <SlideIn delay={200} direction="up">
-          <Text style={styles.sectionLabel}>メニュー詳細</Text>
+          <Text style={styles.sectionLabel}>{t('workout.segments')}</Text>
           <View style={styles.segmentsContainer}>
             {workout.segments.map((seg, i) => {
               const pace = calculateWorkoutPace(etp, seg.zone, limiter);
@@ -780,17 +814,17 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining, o
                   <View style={styles.segmentRow}>
                     <View style={styles.segmentLeft}>
                       <Text style={styles.segmentLabel}>
-                        {seg.label}{reps && reps > 1 ? ` × ${reps}本` : ''}
+                        {translateSegmentLabel(seg.label)}{reps && reps > 1 ? ` × ${reps}` : ''}
                       </Text>
-                      <Text style={styles.segmentZone}>{zoneConfig?.label || seg.zone}</Text>
+                      <Text style={styles.segmentZone}>{getZoneLabels()[seg.zone] || seg.zone}</Text>
                     </View>
                     <View style={styles.segmentRight}>
                       <Text style={styles.segmentPaceKm}>{formatKmPace(pace)}</Text>
-                      <Text style={styles.segmentPace400}>{Math.round(pace)}秒/400m</Text>
+                      <Text style={styles.segmentPace400}>{Math.round(pace)}{t('common.secondsPer400m')}</Text>
                     </View>
                   </View>
                   {reps && reps > 1 && recovery && (
-                    <Text style={styles.segmentRecovery}>回復 {recovery}m</Text>
+                    <Text style={styles.segmentRecovery}>{t('workout.recovery')} {recovery}m</Text>
                   )}
                 </View>
               );
@@ -814,7 +848,7 @@ function WorkoutDetailScreen({ workout, etp, limiter, onBack, onStartTraining, o
             >
               <Ionicons name="swap-horizontal" size={20} color="#fff" />
               <Text style={styles.startTrainingButtonText}>
-                {replaceDayLabel ? `${replaceDayLabel}をこのメニューに変更` : 'このメニューに変更'}
+                {replaceDayLabel ? t('workout.replaceWorkout', { dayLabel: replaceDayLabel }) : t('workout.replaceWorkoutDefault')}
               </Text>
             </Pressable>
           </SlideIn>
@@ -898,7 +932,7 @@ function CompactLapTable({ distance, pace400m }: CompactLapTableProps) {
 
   return (
     <View style={styles.lapTable}>
-      <Text style={styles.sectionLabel}>ラップ目安</Text>
+      <Text style={styles.sectionLabel}>{i18next.t('workout.lapGuide')}</Text>
       <View style={styles.lapTableGrid}>
         {splits.map((split, i) => (
           <View key={i} style={styles.lapTableItem}>
@@ -929,7 +963,7 @@ function expandSegments(
       for (let i = 0; i < reps; i++) {
         expanded.push({ zone: seg.zone, distance: seg.distance, label: seg.label });
         if (i < reps - 1 && recovery > 0) {
-          expanded.push({ zone: 'jog', distance: recovery, label: '回復' });
+          expanded.push({ zone: 'jog', distance: recovery, label: i18next.t('workout.recovery') });
         }
       }
     } else {

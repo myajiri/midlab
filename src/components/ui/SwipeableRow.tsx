@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
+import { useTranslation } from 'react-i18next';
 
 const SWIPE_THRESHOLD = 80;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -31,6 +32,7 @@ export const SwipeableRow: React.FC<SwipeableRowProps> = ({
   disabled = false,
   completed = false,
 }) => {
+  const { t } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
 
   const panResponder = useRef(
@@ -109,7 +111,7 @@ export const SwipeableRow: React.FC<SwipeableRowProps> = ({
         <Animated.View style={{ transform: [{ scale: iconScale }] }}>
           <Ionicons name="checkmark-circle" size={24} color="#fff" />
         </Animated.View>
-        <Text style={styles.backgroundText}>完了</Text>
+        <Text style={styles.backgroundText}>{t('common.done')}</Text>
       </Animated.View>
 
       {/* メインコンテンツ */}

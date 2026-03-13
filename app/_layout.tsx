@@ -13,6 +13,7 @@ import { useSettingsStore } from '../src/stores/useAppStore';
 import { useSubscriptionStore } from '../store/useSubscriptionStore';
 import { COLORS } from '../src/constants';
 import { migrateStorageKeys } from '../src/utils';
+import '../src/i18n';
 
 export default function RootLayout() {
   const router = useRouter();

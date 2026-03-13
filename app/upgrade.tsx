@@ -27,6 +27,7 @@ import {
 } from '../store/useSubscriptionStore';
 import { isPurchasesEnabled } from '../lib/purchases';
 import { useToast } from '../src/components/ui';
+import { useTranslation } from 'react-i18next';
 
 // 定数
 const COLORS = {
@@ -38,16 +39,17 @@ const COLORS = {
     text: { primary: '#ffffff', secondary: '#a1a1aa', muted: '#71717a' },
 };
 
-// プレミアム機能リスト（コンパクト版）
-const PREMIUM_FEATURES = [
-    { icon: 'calendar', text: 'トレーニング計画' },
-    { icon: 'barbell', text: 'トレーニング' },
-    { icon: 'analytics', text: 'レース予測' },
-    { icon: 'trending-up', text: '進捗分析' },
+// プレミアム機能リスト（コンパクト版）- 翻訳キー
+const PREMIUM_FEATURE_KEYS = [
+    { icon: 'calendar', key: 'premium.featurePlan' },
+    { icon: 'barbell', key: 'premium.featureWorkout' },
+    { icon: 'analytics', key: 'premium.featureRace' },
+    { icon: 'trending-up', key: 'premium.featureAnalysis' },
 ];
 
 export default function UpgradeScreen() {
     const router = useRouter();
+    const { t } = useTranslation();
     const navigation = useNavigation();
     const { feature } = useLocalSearchParams<{ feature?: string }>();
     const isPremium = useIsPremium();
@@ -104,7 +106,7 @@ export default function UpgradeScreen() {
     // 購入処理
     const handlePurchase = useCallback(async () => {
         if (!selectedPackage) {
-            showToast('購入可能なプランが見つかりません', 'error');
+            showToast(t('premium.noPlanAvailable'), 'error');
             return;
         }
 
@@ -112,7 +114,7 @@ export default function UpgradeScreen() {
             const success = await purchase(selectedPackage);
             if (success) {
                 isNavigatingRef.current = true;
-                showToast('プレミアムプランへのアップグレードが完了しました！', 'success');
+                showToast(t('premium.upgradeSuccess'), 'success');
                 // 先に遷移してからisPremiumを更新する。
                 // purchase()はisPremiumを即座に更新しない（customerInfoのみ保存）。
                 // 画面遷移完了後にisPremiumを安全に反映する。
@@ -121,10 +123,10 @@ export default function UpgradeScreen() {
                     applyPremiumStatus();
                 }, 500);
             } else {
-                showToast('購入を完了できませんでした', 'error');
+                showToast(t('premium.purchaseFailed'), 'error');
             }
         } catch (error) {
-            showToast('購入処理中にエラーが発生しました', 'error');
+            showToast(t('premium.purchaseError'), 'error');
         }
     }, [selectedPackage, purchase, router, showToast, applyPremiumStatus]);
 
@@ -137,17 +139,17 @@ export default function UpgradeScreen() {
 
             if (restored) {
                 isNavigatingRef.current = true;
-                showToast('購入が復元されました', 'success');
+                showToast(t('premium.restoreSuccess'), 'success');
                 router.replace('/(tabs)');
                 setTimeout(() => {
                     applyPremiumStatus();
                 }, 500);
             } else {
-                showToast('復元可能な購入が見つかりませんでした', 'warning');
+                showToast(t('premium.restoreNotFound'), 'warning');
             }
         } catch (error) {
             setRestoring(false);
-            showToast('復元処理中にエラーが発生しました', 'error');
+            showToast(t('premium.restoreError'), 'error');
         }
     }, [restore, router, showToast, applyPremiumStatus]);
 
@@ -168,7 +170,7 @@ export default function UpgradeScreen() {
                     <Pressable onPress={() => router.back()} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
                     </Pressable>
-                    <Text style={styles.headerTitle}>プレミアム</Text>
+                    <Text style={styles.headerTitle}>{t('premium.title')}</Text>
                     <View style={{ width: 40 }} />
                 </View>
 
@@ -178,12 +180,12 @@ export default function UpgradeScreen() {
                         style={styles.premiumActiveCard}
                     >
                         <Ionicons name="trophy" size={48} color="#F59E0B" />
-                        <Text style={styles.premiumActiveTitle}>プレミアム会員</Text>
+                        <Text style={styles.premiumActiveTitle}>{t('premium.memberTitle')}</Text>
                         <Text style={styles.premiumActiveDescription}>
-                            すべてのプレミアム機能をご利用いただけます
+                            {t('premium.memberDesc')}
                         </Text>
                         <Pressable style={styles.manageButton} onPress={handleManageSubscription}>
-                            <Text style={styles.manageButtonText}>サブスクリプションを管理</Text>
+                            <Text style={styles.manageButtonText}>{t('premium.manageSubscription')}</Text>
                         </Pressable>
                     </LinearGradient>
                 </View>
@@ -214,7 +216,7 @@ export default function UpgradeScreen() {
                 <Pressable onPress={handleBack} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={COLORS.text.primary} />
                 </Pressable>
-                <Text style={styles.headerTitle}>プレミアム</Text>
+                <Text style={styles.headerTitle}>{t('premium.title')}</Text>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -228,17 +230,17 @@ export default function UpgradeScreen() {
                     <Text style={styles.heroTitle}>MidLab Premium</Text>
                     <Text style={styles.heroSubtitle}>
                         {feature
-                            ? `「${feature}」はプレミアム限定です`
-                            : 'すべての機能をアンロック'}
+                            ? t('premium.featureExclusive', { feature })
+                            : t('premium.unlockAll')}
                     </Text>
                 </LinearGradient>
 
                 {/* 機能リスト（横並び） */}
                 <View style={styles.featuresRow}>
-                    {PREMIUM_FEATURES.map((item, index) => (
+                    {PREMIUM_FEATURE_KEYS.map((item, index) => (
                         <View key={index} style={styles.featureItem}>
                             <Ionicons name={item.icon as any} size={20} color={COLORS.premium} />
-                            <Text style={styles.featureText}>{item.text}</Text>
+                            <Text style={styles.featureText}>{t(item.key)}</Text>
                         </View>
                     ))}
                 </View>
@@ -251,14 +253,14 @@ export default function UpgradeScreen() {
                         onPress={() => setSelectedPlan('yearly')}
                     >
                         <View style={styles.planBadge}>
-                            <Text style={styles.planBadgeText}>おすすめ</Text>
+                            <Text style={styles.planBadgeText}>{t('premium.recommended')}</Text>
                         </View>
-                        <Text style={styles.planTitle}>年額プラン</Text>
+                        <Text style={styles.planTitle}>{t('premium.yearlyPlan')}</Text>
                         <View style={styles.priceRow}>
-                            <Text style={styles.price}>¥9,800</Text>
-                            <Text style={styles.period}>/年</Text>
+                            <Text style={styles.price}>{t('premium.yearlyPrice')}</Text>
+                            <Text style={styles.period}>{t('premium.perYear')}</Text>
                         </View>
-                        <Text style={styles.planSaving}>月あたり¥817 — 2ヶ月分おトク</Text>
+                        <Text style={styles.planSaving}>{t('premium.yearlySaving')}</Text>
                     </Pressable>
 
                     {/* 月額プラン */}
@@ -266,10 +268,10 @@ export default function UpgradeScreen() {
                         style={[styles.planCard, selectedPlan === 'monthly' && styles.planCardSelected]}
                         onPress={() => setSelectedPlan('monthly')}
                     >
-                        <Text style={styles.planTitle}>月額プラン</Text>
+                        <Text style={styles.planTitle}>{t('premium.monthlyPlan')}</Text>
                         <View style={styles.priceRow}>
-                            <Text style={styles.price}>¥980</Text>
-                            <Text style={styles.period}>/月</Text>
+                            <Text style={styles.price}>{t('premium.monthlyPrice')}</Text>
+                            <Text style={styles.period}>{t('premium.perMonth')}</Text>
                         </View>
                     </Pressable>
                 </View>
@@ -277,7 +279,7 @@ export default function UpgradeScreen() {
                 {/* トライアルバッジ */}
                 <View style={styles.trialBadge}>
                     <Ionicons name="gift-outline" size={14} color="#000" />
-                    <Text style={styles.trialBadgeText}>初回1ヶ月無料</Text>
+                    <Text style={styles.trialBadgeText}>{t('premium.freeTrial')}</Text>
                 </View>
 
                 {/* 購入ボタン */}
@@ -299,7 +301,7 @@ export default function UpgradeScreen() {
                                         <ActivityIndicator color="#000" />
                                     ) : (
                                         <Text style={styles.purchaseButtonText}>
-                                            無料トライアルを開始
+                                            {t('premium.startFreeTrial')}
                                         </Text>
                                     )}
                                 </LinearGradient>
@@ -313,7 +315,7 @@ export default function UpgradeScreen() {
                                 {restoring ? (
                                     <ActivityIndicator color={COLORS.text.secondary} size="small" />
                                 ) : (
-                                    <Text style={styles.restoreButtonText}>購入を復元</Text>
+                                    <Text style={styles.restoreButtonText}>{t('premium.restorePurchase')}</Text>
                                 )}
                             </Pressable>
                         </>
@@ -321,7 +323,7 @@ export default function UpgradeScreen() {
                         <View style={styles.unavailableContainer}>
                             <Ionicons name="information-circle-outline" size={20} color={COLORS.text.muted} />
                             <Text style={styles.unavailableText}>
-                                この環境では課金機能をご利用いただけません
+                                {t('premium.unavailable')}
                             </Text>
                         </View>
                     )}
@@ -330,25 +332,24 @@ export default function UpgradeScreen() {
                 {/* 利用規約・プライバシーポリシー */}
                 <View style={styles.legalSection}>
                     <Text style={styles.legalText}>
-                        購入により
+                        {t('premium.legalPrefix')}
                         <Text
                             style={styles.legalLink}
                             onPress={() => Linking.openURL('https://myajiri.github.io/midlab/terms.html')}
                         >
-                            利用規約
+                            {t('premium.terms')}
                         </Text>
-                        ・
+                        {t('premium.legalSeparator')}
                         <Text
                             style={styles.legalLink}
                             onPress={() => Linking.openURL('https://myajiri.github.io/midlab/privacy.html')}
                         >
-                            プライバシーポリシー
+                            {t('premium.privacy')}
                         </Text>
-                        に同意
+                        {t('premium.legalSuffix')}
                     </Text>
                     <Text style={styles.legalNote}>
-                        無料トライアル終了後、{selectedPlan === 'yearly' ? '年額¥9,800' : '月額¥980'}で自動更新されます。{'\n'}
-                        解約はいつでも{Platform.OS === 'ios' ? 'App Store' : 'Google Play'}の設定から可能です。
+                        {t('premium.autoRenewNote', { price: selectedPlan === 'yearly' ? t('premium.yearlyPriceLabel') : t('premium.monthlyPriceLabel'), store: Platform.OS === 'ios' ? 'App Store' : 'Google Play' })}
                     </Text>
                 </View>
             </View>
