@@ -1372,6 +1372,36 @@ const en = {
   },
 
   // ============================================
+  // 404ページ
+  // ============================================
+  notFound: {
+    title: 'Page Not Found',
+    goHome: 'Go Home',
+  },
+
+  // ============================================
+  // 共通UIコンポーネント
+  // ============================================
+  ui: {
+    // TimePickerModal
+    selectTime: 'Select Time',
+    minutes: 'min',
+    seconds: 'sec',
+    secondsUnit: 's',
+    select: 'Select',
+
+    // DatePickerModal
+    selectDate: 'Select Date',
+    weekdaysShort: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    yearMonth: '{{month}} {{year}}',
+    goToToday: 'Go to Today',
+
+    // EtpTrendChart
+    trend: 'Trend',
+  },
+
+  // ============================================
   // プレミアム・サブスクリプション
   // ============================================
   premium: {

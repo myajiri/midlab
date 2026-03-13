@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
+import { useTranslation } from 'react-i18next';
 
 interface DatePickerModalProps {
   visible: boolean;
@@ -25,9 +26,6 @@ interface DatePickerModalProps {
   title?: string;
 }
 
-const WEEKDAYS = ['月', '火', '水', '木', '金', '土', '日'];
-const MONTHS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
-
 export const DatePickerModal: React.FC<DatePickerModalProps> = ({
   visible,
   onClose,
@@ -35,8 +33,12 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
   value,
   minDate,
   maxDate,
-  title = '日付を選択',
+  title,
 }) => {
+  const { t } = useTranslation();
+  const displayTitle = title ?? t('ui.selectDate');
+  const weekdays = t('ui.weekdaysShort', { returnObjects: true }) as string[];
+  const months = t('ui.months', { returnObjects: true }) as string[];
   const [displayMonth, setDisplayMonth] = useState(() => {
     const initial = value || new Date();
     return new Date(initial.getFullYear(), initial.getMonth(), 1);
@@ -136,7 +138,7 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
         <Pressable style={styles.container} onPress={e => e.stopPropagation()}>
           {/* ヘッダー */}
           <View style={styles.header}>
-            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.title}>{displayTitle}</Text>
             <Pressable style={styles.closeButton} onPress={onClose}>
               <Ionicons name="close" size={24} color={COLORS.text.secondary} />
             </Pressable>
@@ -148,7 +150,7 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
               <Ionicons name="chevron-back" size={24} color={COLORS.text.primary} />
             </Pressable>
             <Text style={styles.monthTitle}>
-              {displayMonth.getFullYear()}年 {MONTHS[displayMonth.getMonth()]}
+              {t('ui.yearMonth', { year: displayMonth.getFullYear(), month: months[displayMonth.getMonth()] })}
             </Text>
             <Pressable style={styles.navButton} onPress={handleNextMonth}>
               <Ionicons name="chevron-forward" size={24} color={COLORS.text.primary} />
@@ -157,7 +159,7 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
 
           {/* 曜日ヘッダー */}
           <View style={styles.weekHeader}>
-            {WEEKDAYS.map((day, i) => (
+            {weekdays.map((day: string, i: number) => (
               <Text key={i} style={styles.weekDay}>{day}</Text>
             ))}
           </View>
@@ -203,7 +205,7 @@ export const DatePickerModal: React.FC<DatePickerModalProps> = ({
               setDisplayMonth(new Date(newToday.getFullYear(), newToday.getMonth(), 1));
             }}
           >
-            <Text style={styles.todayButtonText}>今日に移動</Text>
+            <Text style={styles.todayButtonText}>{t('ui.goToToday')}</Text>
           </Pressable>
         </Pressable>
       </Pressable>

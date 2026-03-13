@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants';
+import { useTranslation } from 'react-i18next';
 
 interface TimePickerModalProps {
   visible: boolean;
@@ -36,10 +37,12 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
   onClose,
   onSelect,
   value = 0,
-  title = 'タイムを選択',
+  title,
   minMinutes = 0,
   maxMinutes = 60,
 }) => {
+  const { t } = useTranslation();
+  const displayTitle = title ?? t('ui.selectTime');
   const [selectedMinutes, setSelectedMinutes] = useState(Math.floor((value || 0) / 60));
   const [selectedSeconds, setSelectedSeconds] = useState((value || 0) % 60);
 
@@ -216,7 +219,7 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
         <Pressable style={styles.container} onPress={e => e.stopPropagation()}>
           {/* ヘッダー */}
           <View style={styles.header}>
-            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.title}>{displayTitle}</Text>
             <Pressable style={styles.closeButton} onPress={onClose}>
               <Ionicons name="close" size={24} color={COLORS.text.secondary} />
             </Pressable>
@@ -233,7 +236,7 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
           <View style={styles.pickerContainer}>
             {/* 分ピッカー */}
             <View style={styles.pickerColumn}>
-              <Text style={styles.pickerLabel}>分</Text>
+              <Text style={styles.pickerLabel}>{t('ui.minutes')}</Text>
               <View style={styles.pickerWrapper}>
                 <View style={styles.pickerHighlight} />
                 <FlatList
@@ -259,7 +262,7 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
 
             {/* 秒ピッカー */}
             <View style={styles.pickerColumn}>
-              <Text style={styles.pickerLabel}>秒</Text>
+              <Text style={styles.pickerLabel}>{t('ui.seconds')}</Text>
               <View style={styles.pickerWrapper}>
                 <View style={styles.pickerHighlight} />
                 <FlatList
@@ -284,10 +287,10 @@ export const TimePickerModal: React.FC<TimePickerModalProps> = ({
           {/* ボタン */}
           <View style={styles.buttons}>
             <Pressable style={styles.cancelButton} onPress={onClose}>
-              <Text style={styles.cancelButtonText}>キャンセル</Text>
+              <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
             </Pressable>
             <Pressable style={styles.confirmButton} onPress={handleConfirm}>
-              <Text style={styles.confirmButtonText}>選択</Text>
+              <Text style={styles.confirmButtonText}>{t('ui.select')}</Text>
             </Pressable>
           </View>
         </Pressable>

@@ -128,7 +128,7 @@ function selectEasyWorkout(baseEasyDistance: number, volumeScale: number): { wor
     }
   }
   const last = EASY_WORKOUT_BY_DISTANCE[EASY_WORKOUT_BY_DISTANCE.length - 1];
-  return { workoutId: last.workoutId, distance: last.distance, label: `イージー ${last.distance / 1000}km` };
+  return { workoutId: last.workoutId, distance: last.distance, label: `${i18next.t('workout.zoneEasy')} ${last.distance / 1000}km` };
 }
 
 /**
