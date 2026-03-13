@@ -94,6 +94,8 @@ export const toDateStr = (d: Date): string => {
  * - "2024-03-13T15:00:00.000Z" → ローカルTZの日付部分のみ抽出してDate化
  */
 export const parseDateStr = (dateStr: string): Date => {
+  // 空文字列・不正値のガード
+  if (!dateStr) return new Date();
   // YYYY-MM-DD形式: ローカルTZとして直接パース
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
     const [y, m, d] = dateStr.split('-').map(Number);
@@ -101,6 +103,7 @@ export const parseDateStr = (dateStr: string): Date => {
   }
   // ISO 8601等のフル形式: ローカルTZの日付コンポーネントを使用
   const parsed = new Date(dateStr);
+  if (isNaN(parsed.getTime())) return new Date();
   return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
 };
 
@@ -111,8 +114,11 @@ export const parseDateStr = (dateStr: string): Date => {
  * - "2024-03-13T15:00:00.000Z" → ローカルTZで"2024-03-13"に変換
  */
 export const normalizeDateStr = (dateStr: string): string => {
+  if (!dateStr) return toDateStr(new Date());
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
-  return toDateStr(new Date(dateStr));
+  const parsed = new Date(dateStr);
+  if (isNaN(parsed.getTime())) return toDateStr(new Date());
+  return toDateStr(parsed);
 };
 
 /**
