@@ -88,12 +88,31 @@ export const toDateStr = (d: Date): string => {
 };
 
 /**
- * YYYY-MM-DD形式の文字列をローカルタイムゾーンのDateとしてパースする
- * new Date("YYYY-MM-DD") はUTC解釈されるため、この関数で安全にパースする
+ * 日付文字列をローカルタイムゾーンのDateとしてパースする
+ * YYYY-MM-DD形式とISO 8601形式の両方に対応（後方互換性）
+ * - "2024-03-13" → ローカルTZ 2024/3/13 0:00
+ * - "2024-03-13T15:00:00.000Z" → ローカルTZの日付部分のみ抽出してDate化
  */
 export const parseDateStr = (dateStr: string): Date => {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, m - 1, d);
+  // YYYY-MM-DD形式: ローカルTZとして直接パース
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  // ISO 8601等のフル形式: ローカルTZの日付コンポーネントを使用
+  const parsed = new Date(dateStr);
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+};
+
+/**
+ * 日付文字列をYYYY-MM-DD形式に正規化する（後方互換性）
+ * ISO形式の既存データを安全にYYYY-MM-DD形式に変換する
+ * - "2024-03-13" → "2024-03-13"（そのまま）
+ * - "2024-03-13T15:00:00.000Z" → ローカルTZで"2024-03-13"に変換
+ */
+export const normalizeDateStr = (dateStr: string): string => {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  return toDateStr(new Date(dateStr));
 };
 
 /**
@@ -562,7 +581,7 @@ export const getNextTestRecommendation = (results: TestResult[]): { reason: stri
     return { reason: i18next.t('utils.noTestYet') };
   }
 
-  const latestTest = new Date(results[0].date);
+  const latestTest = parseDateStr(results[0].date);
   const daysSinceTest = Math.floor((Date.now() - latestTest.getTime()) / (1000 * 60 * 60 * 24));
 
   if (daysSinceTest >= 28) {

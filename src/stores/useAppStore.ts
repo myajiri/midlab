@@ -25,9 +25,50 @@ import {
 } from '../types';
 
 import { STORAGE_KEYS } from '../constants';
-import { calculateEtp, calculateZonesV3, getEffectiveValues, getUserStage, estimateLimiterFromPBs, toDateStr, parseDateStr } from '../utils';
+import { calculateEtp, calculateZonesV3, getEffectiveValues, getUserStage, estimateLimiterFromPBs, toDateStr, parseDateStr, normalizeDateStr } from '../utils';
 import { generatePlan } from '../utils/planGenerator';
 import i18next from 'i18next';
+
+// 既存データの日付形式をYYYY-MM-DDに正規化する（ISO→YYYY-MM-DD変換）
+const normalizeStoredDates = {
+  // TestResult.date を正規化
+  testResults: (results: TestResult[]): TestResult[] =>
+    results.map(r => ({ ...r, date: normalizeDateStr(r.date) })),
+
+  // RacePlan内の全日付フィールドを正規化
+  racePlan: (plan: RacePlan): RacePlan => ({
+    ...plan,
+    race: { ...plan.race, date: normalizeDateStr(plan.race.date) },
+    phases: plan.phases.map(p => ({
+      ...p,
+      startDate: normalizeDateStr(p.startDate),
+      endDate: normalizeDateStr(p.endDate),
+    })),
+    weeklyPlans: plan.weeklyPlans.map(w => ({
+      ...w,
+      startDate: normalizeDateStr(w.startDate),
+      endDate: normalizeDateStr(w.endDate),
+    })),
+    subRaces: plan.subRaces?.map(sr => ({
+      ...sr,
+      date: normalizeDateStr(sr.date),
+    })),
+    rampTestDates: plan.rampTestDates.map(d => normalizeDateStr(d)),
+  }),
+
+  // Profile.current.lastTestDate を正規化
+  profile: (profile: Profile): Profile => ({
+    ...profile,
+    current: profile.current ? {
+      ...profile.current,
+      lastTestDate: normalizeDateStr(profile.current.lastTestDate),
+    } : profile.current,
+  }),
+
+  // TrainingLog.date を正規化
+  trainingLogs: (logs: TrainingLog[]): TrainingLog[] =>
+    logs.map(l => ({ ...l, date: normalizeDateStr(l.date) })),
+};
 
 // サブレースの距離に対応するレースワークアウトIDを返す
 function selectRaceWorkoutId(distance: number | 'custom', customDistance?: number): string | undefined {
@@ -284,6 +325,11 @@ export const useProfileStore = create<ProfileState>()(
     {
       name: STORAGE_KEYS.profile,
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state?.profile) {
+          state.profile = normalizeStoredDates.profile(state.profile);
+        }
+      },
     }
   )
 );
@@ -319,6 +365,11 @@ export const useTestResultsStore = create<TestResultsState>()(
     {
       name: STORAGE_KEYS.testResults,
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state?.results) {
+          state.results = normalizeStoredDates.testResults(state.results);
+        }
+      },
     }
   )
 );
@@ -662,6 +713,11 @@ export const usePlanStore = create<PlanState>()(
     {
       name: STORAGE_KEYS.activePlan,
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state?.activePlan) {
+          state.activePlan = normalizeStoredDates.racePlan(state.activePlan);
+        }
+      },
     }
   )
 );
@@ -765,6 +821,11 @@ export const useTrainingLogsStore = create<TrainingLogsState>()(
     {
       name: STORAGE_KEYS.trainingLogs,
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state?.logs) {
+          state.logs = normalizeStoredDates.trainingLogs(state.logs);
+        }
+      },
     }
   )
 );
