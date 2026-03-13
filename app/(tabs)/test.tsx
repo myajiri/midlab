@@ -26,6 +26,7 @@ import {
   determineLimiterType,
   generateLapSchedule,
   getLevelFromEtp,
+  formatLocalDate,
 } from '../../src/utils';
 import {
   Button,
@@ -179,7 +180,7 @@ export default function TestScreen() {
             <View style={styles.resultHeader}>
               <Text style={styles.resultTitle}>{t('test.testComplete')}</Text>
               <Text style={styles.resultDate}>
-                {new Date(lastTestResult.date).toLocaleDateString('ja-JP')}
+                {formatLocalDate(lastTestResult.date)}
               </Text>
             </View>
           </SlideIn>
@@ -493,7 +494,7 @@ export default function TestScreen() {
               <View style={styles.historyItem}>
                 <View style={styles.historyLeft}>
                   <Text style={styles.historyDate}>
-                    {new Date(results[0].date).toLocaleDateString('ja-JP')}
+                    {formatLocalDate(results[0].date)}
                   </Text>
                   <Text style={styles.historyLevel}>Lv.{results[0].level}</Text>
                 </View>
@@ -508,7 +509,7 @@ export default function TestScreen() {
                 <View key={result.id} style={styles.historyItem}>
                   <View style={styles.historyLeft}>
                     <Text style={styles.historyDate}>
-                      {new Date(result.date).toLocaleDateString('ja-JP')}
+                      {formatLocalDate(result.date)}
                     </Text>
                     <Text style={styles.historyLevel}>Lv.{result.level}</Text>
                   </View>

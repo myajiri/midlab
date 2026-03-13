@@ -48,6 +48,44 @@ import {
 } from '../constants';
 
 // ============================================
+// タイムゾーン安全な日付ユーティリティ
+// ============================================
+
+// i18n言語コードからBCP 47ロケールタグへのマッピング
+const LANGUAGE_TO_LOCALE: Record<string, string> = {
+  ja: 'ja-JP',
+  en: 'en-US',
+};
+
+/**
+ * 現在のi18n言語設定に基づくBCP 47ロケールタグを返す
+ */
+export const getDateLocale = (): string => {
+  const lang = i18next.language || 'ja';
+  return LANGUAGE_TO_LOCALE[lang] || LANGUAGE_TO_LOCALE['ja'];
+};
+
+/**
+ * タイムゾーン安全な日付文字列ヘルパー（YYYY-MM-DD）
+ * ローカルタイムゾーンの日付コンポーネントを使用し、UTC変換による日付ズレを防ぐ
+ */
+export const toDateStr = (d: Date): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+/**
+ * Date/ISO文字列をi18nロケールに応じた表示形式にフォーマットする
+ * 例: ja → "2024年3月13日", en → "3/13/2024"
+ */
+export const formatLocalDate = (date: Date | string): string => {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleDateString(getDateLocale());
+};
+
+// ============================================
 // 時間フォーマット
 // ============================================
 
@@ -786,13 +824,7 @@ export const calculateTrainingAnalytics = (
   let weeklyDistance = 0;
   let monthlyDistance = 0;
 
-  // タイムゾーン安全な日付文字列ヘルパー（YYYY-MM-DD）
-  const toDateStr = (d: Date): string => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
+  // トップレベルのtoDateStrを使用（タイムゾーン安全）
 
   const now = new Date();
   const todayStr = toDateStr(now);

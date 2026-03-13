@@ -42,6 +42,7 @@ import {
   MAX_MONTHLY_DISTANCE_CAP,
 } from '../constants';
 import { selectWorkoutForCategory } from './workoutSelector';
+import { toDateStr } from './index';
 import i18next from 'i18next';
 
 export interface GeneratePlanParams {
@@ -293,8 +294,8 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
     weeklyPlans.push({
       weekNumber,
       phaseType,
-      startDate: weekStart.toISOString(),
-      endDate: weekEnd.toISOString(),
+      startDate: toDateStr(weekStart),
+      endDate: toDateStr(weekEnd),
       targetDistance: baseDistance,
       loadPercent,
       distribution: dist,
@@ -364,8 +365,8 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
     const endWeekPlan = weeklyPlans.find(w => w.weekNumber === p.endWeek);
     return {
       type: p.type,
-      startDate: weekPlan?.startDate || startDate.toISOString(),
-      endDate: endWeekPlan?.endDate || startDate.toISOString(),
+      startDate: weekPlan?.startDate || toDateStr(startDate),
+      endDate: endWeekPlan?.endDate || toDateStr(startDate),
       weeks: p.weeks,
     };
   });
@@ -375,7 +376,7 @@ export function generatePlan({ race, baseline, restDay = 6, keyWorkoutDays, ageC
     if (weekPlan) {
       const testDate = new Date(weekPlan.startDate);
       testDate.setDate(testDate.getDate() + 3);
-      return testDate.toISOString();
+      return toDateStr(testDate);
     }
     return '';
   }).filter(d => d !== '');
