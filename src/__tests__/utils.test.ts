@@ -23,6 +23,7 @@ import {
   estimateVO2max,
   calculateVolumeScale,
   getVolumeRepsBonus,
+  toDateStr,
 } from '../utils';
 
 import type { PBs, Profile, TestResult, RacePlan } from '../types';
@@ -1000,7 +1001,7 @@ import { generatePlan } from '../utils/planGenerator';
 
 describe('generatePlan ボリューム個別化', () => {
   const baseParams = {
-    race: { name: 'テスト記録会', date: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(), distance: 1500 as const },
+    race: { name: 'テスト記録会', date: toDateStr(new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)), distance: 1500 as const },
     baseline: { etp: 75, limiterType: 'balanced' as const },
     restDay: 6,
     keyWorkoutDays: [2, 5],

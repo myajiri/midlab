@@ -48,6 +48,99 @@ import {
 } from '../constants';
 
 // ============================================
+// タイムゾーン安全な日付ユーティリティ
+// ============================================
+// JavaScriptのDateはデバイスのシステムタイムゾーンを自動取得する。
+// ただし new Date("YYYY-MM-DD") はUTC 0:00として解釈されるため、
+// ローカル日付パースには parseDateStr() を使用すること。
+
+// i18n言語コードからBCP 47ロケールタグへのマッピング
+const LANGUAGE_TO_LOCALE: Record<string, string> = {
+  ja: 'ja-JP',
+  en: 'en-US',
+};
+
+/**
+ * 現在のi18n言語設定に基づくBCP 47ロケールタグを返す
+ */
+export const getDateLocale = (): string => {
+  const lang = i18next.language || 'ja';
+  return LANGUAGE_TO_LOCALE[lang] || LANGUAGE_TO_LOCALE['ja'];
+};
+
+/**
+ * デバイスのシステムタイムゾーンのIANA名を取得する
+ * 例: "Asia/Tokyo", "America/New_York"
+ */
+export const getSystemTimeZone = (): string => {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+};
+
+/**
+ * タイムゾーン安全な日付文字列ヘルパー（YYYY-MM-DD）
+ * ローカルタイムゾーンの日付コンポーネントを使用し、UTC変換による日付ズレを防ぐ
+ */
+export const toDateStr = (d: Date): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+/**
+ * 日付文字列をローカルタイムゾーンのDateとしてパースする
+ * YYYY-MM-DD形式とISO 8601形式の両方に対応（後方互換性）
+ * - "2024-03-13" → ローカルTZ 2024/3/13 0:00
+ * - "2024-03-13T15:00:00.000Z" → ローカルTZの日付部分のみ抽出してDate化
+ */
+export const parseDateStr = (dateStr: string): Date => {
+  // 空文字列・不正値のガード
+  if (!dateStr) return new Date();
+  // YYYY-MM-DD形式: ローカルTZとして直接パース
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  // ISO 8601等のフル形式: ローカルTZの日付コンポーネントを使用
+  const parsed = new Date(dateStr);
+  if (isNaN(parsed.getTime())) return new Date();
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+};
+
+/**
+ * 日付文字列をYYYY-MM-DD形式に正規化する（後方互換性）
+ * ISO形式の既存データを安全にYYYY-MM-DD形式に変換する
+ * - "2024-03-13" → "2024-03-13"（そのまま）
+ * - "2024-03-13T15:00:00.000Z" → ローカルTZで"2024-03-13"に変換
+ */
+export const normalizeDateStr = (dateStr: string): string => {
+  if (!dateStr) return toDateStr(new Date());
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  const parsed = new Date(dateStr);
+  if (isNaN(parsed.getTime())) return toDateStr(new Date());
+  return toDateStr(parsed);
+};
+
+/**
+ * Date/日付文字列をi18nロケールとシステムタイムゾーンに応じた表示形式にフォーマットする
+ * 例: ja → "2024年3月13日", en → "3/13/2024"
+ * YYYY-MM-DD形式はローカル日付として安全にパースする
+ */
+export const formatLocalDate = (date: Date | string): string => {
+  if (typeof date === 'string') {
+    // YYYY-MM-DD形式: ローカルタイムゾーンとしてパース（UTC解釈を回避）
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return parseDateStr(date).toLocaleDateString(getDateLocale());
+    }
+    // ISO 8601等のフル形式: システムタイムゾーンで表示
+    return new Date(date).toLocaleDateString(getDateLocale(), {
+      timeZone: getSystemTimeZone(),
+    });
+  }
+  return date.toLocaleDateString(getDateLocale());
+};
+
+// ============================================
 // 時間フォーマット
 // ============================================
 
@@ -456,10 +549,9 @@ export const getTodayWorkout = (plan: RacePlan): ScheduledWorkout | null => {
   const today = new Date();
   const dayOfWeek = (today.getDay() + 6) % 7; // 0=月, 6=日
 
+  const todayStr = toDateStr(today);
   const currentWeek = plan.weeklyPlans.find(w => {
-    const start = new Date(w.startDate);
-    const end = new Date(w.endDate);
-    return today >= start && today <= end;
+    return todayStr >= w.startDate && todayStr <= w.endDate;
   });
 
   if (!currentWeek?.days) return null;
@@ -473,10 +565,9 @@ export const getWeekProgress = (plan: RacePlan): WeekProgress | null => {
   if (!plan?.weeklyPlans) return null;
 
   const today = new Date();
+  const todayStr = toDateStr(today);
   const currentWeek = plan.weeklyPlans.find(w => {
-    const start = new Date(w.startDate);
-    const end = new Date(w.endDate);
-    return today >= start && today <= end;
+    return todayStr >= w.startDate && todayStr <= w.endDate;
   });
 
   if (!currentWeek?.days) return null;
@@ -496,7 +587,7 @@ export const getNextTestRecommendation = (results: TestResult[]): { reason: stri
     return { reason: i18next.t('utils.noTestYet') };
   }
 
-  const latestTest = new Date(results[0].date);
+  const latestTest = parseDateStr(results[0].date);
   const daysSinceTest = Math.floor((Date.now() - latestTest.getTime()) / (1000 * 60 * 60 * 24));
 
   if (daysSinceTest >= 28) {
@@ -786,13 +877,7 @@ export const calculateTrainingAnalytics = (
   let weeklyDistance = 0;
   let monthlyDistance = 0;
 
-  // タイムゾーン安全な日付文字列ヘルパー（YYYY-MM-DD）
-  const toDateStr = (d: Date): string => {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
+  // トップレベルのtoDateStrを使用（タイムゾーン安全）
 
   const now = new Date();
   const todayStr = toDateStr(now);
@@ -810,8 +895,8 @@ export const calculateTrainingAnalytics = (
   const planCompletedWorkoutKeys = new Set<string>();
 
   for (const week of weeklyPlans) {
-    // startDateからローカル日付を計算（UTCのISO文字列をローカル時刻に変換）
-    const weekStartLocal = new Date(week.startDate);
+    // startDateからローカル日付を計算（parseDateStrでローカルタイムゾーンとしてパース）
+    const weekStartLocal = parseDateStr(week.startDate);
     const startParts = [weekStartLocal.getFullYear(), weekStartLocal.getMonth() + 1, weekStartLocal.getDate()];
 
     for (let i = 0; i < week.days.length; i++) {

@@ -9,6 +9,7 @@ import Svg, { Path, Circle, Line, Text as SvgText, Defs, LinearGradient, Stop } 
 import { COLORS } from '../../constants';
 import { LimiterType, TestResult } from '../../types';
 import { useTranslation } from 'react-i18next';
+import { parseDateStr } from '../../utils';
 
 // リミッタータイプ別の色
 const LIMITER_COLORS: Record<LimiterType, string> = {
@@ -76,9 +77,9 @@ export const EtpTrendChart: React.FC<EtpTrendChartProps> = ({ results }) => {
   const lastEtp = sorted[sorted.length - 1].eTP;
   const change = lastEtp - firstEtp;
 
-  // 日付フォーマット
+  // 日付フォーマット（YYYY-MM-DD形式をローカルタイムゾーンで安全にパース）
   const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr);
+    const d = parseDateStr(dateStr);
     return `${d.getMonth() + 1}/${d.getDate()}`;
   };
 

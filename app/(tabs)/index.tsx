@@ -31,6 +31,7 @@ import {
   getTodayWorkout,
   getWeekProgress,
   calculateRacePredictions,
+  formatLocalDate,
 } from '../../src/utils';
 import {
   Button,
@@ -214,7 +215,7 @@ export default function HomeScreen() {
             {/* 最終測定日 */}
             {latestResult && (
               <Text style={styles.lastTestDate}>
-                {t('home.lastTest', { date: new Date(latestResult.date).toLocaleDateString('ja-JP') })}
+                {t('home.lastTest', { date: formatLocalDate(latestResult.date) })}
               </Text>
             )}
 
@@ -273,7 +274,7 @@ export default function HomeScreen() {
             >
               <Text style={styles.planName}>{activePlan.race.name}</Text>
               <Text style={styles.planMeta}>
-                {new Date(activePlan.race.date).toLocaleDateString('ja-JP')} | {activePlan.race.distance === 'custom' ? `${activePlan.race.customDistance || 0}m` : activePlan.race.distance === 21097 ? t('home.halfMarathon') : activePlan.race.distance === 42195 ? t('home.marathon') : `${activePlan.race.distance}m`}
+                {formatLocalDate(activePlan.race.date)} | {activePlan.race.distance === 'custom' ? `${activePlan.race.customDistance || 0}m` : activePlan.race.distance === 21097 ? t('home.halfMarathon') : activePlan.race.distance === 42195 ? t('home.marathon') : `${activePlan.race.distance}m`}
               </Text>
             </Pressable>
           </View>

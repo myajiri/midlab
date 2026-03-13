@@ -19,7 +19,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffectiveValues, usePlanStore, useTrainingLogsStore, useCustomWorkoutsStore } from '../../src/stores/useAppStore';
-import { formatTime, formatKmPace, calculateWorkoutPace, getWorkoutRationale } from '../../src/utils';
+import { formatTime, formatKmPace, calculateWorkoutPace, getWorkoutRationale, toDateStr } from '../../src/utils';
 import { PremiumGate } from '../../components/PremiumGate';
 import { useIsPremium } from '../../store/useSubscriptionStore';
 import { FadeIn, SlideIn } from '../../src/components/ui/Animated';
@@ -53,13 +53,7 @@ const getCategoryLabels = (): Record<string, string> => ({
   'オリジナル': i18next.t('workout.categoryOriginal'),
 });
 
-// タイムゾーン安全なローカル日付文字列ヘルパー（YYYY-MM-DD）
-const toLocalDateStr = (d: Date): string => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-};
+// toDateStr (utils) をローカル日付文字列ヘルパーとして使用
 
 // ゾーン表示名（i18n対応）
 const getZoneLabels = (): Record<string, string> => ({
@@ -162,7 +156,7 @@ export default function WorkoutScreen() {
   const handleSelectForTraining = (workout: WorkoutTemplate) => {
     const log: TrainingLog = {
       id: `tl-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      date: toLocalDateStr(new Date()),
+      date: toDateStr(new Date()),
       workoutId: workout.id,
       workoutName: getWorkoutText(workout, 'name'),
       workoutCategory: workout.category,

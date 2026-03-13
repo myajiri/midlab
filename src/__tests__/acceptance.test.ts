@@ -6,6 +6,7 @@
 
 import { generatePlan, calculateVolumeScale, GeneratePlanParams } from '../utils/planGenerator';
 import { selectWorkoutForCategory } from '../utils/workoutSelector';
+import { toDateStr } from '../utils';
 import {
   PLAN_VERSION,
   KEY_WORKOUTS_BY_PHASE,
@@ -18,7 +19,7 @@ import {
 
 // テスト用の共通パラメータ
 const basePlanParams: GeneratePlanParams = {
-  race: { name: 'テスト記録会', date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), distance: 1500 },
+  race: { name: 'テスト記録会', date: toDateStr(new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)), distance: 1500 },
   baseline: { etp: 80, limiterType: 'balanced' },
   restDay: 6,
   keyWorkoutDays: [2, 5],
@@ -173,7 +174,7 @@ describe('スピード・スプリント カテゴリ', () => {
 describe('800m向けスピード配分', () => {
   const params800: GeneratePlanParams = {
     ...basePlanParams,
-    race: { name: '800m記録会', date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), distance: 800 },
+    race: { name: '800m記録会', date: toDateStr(new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)), distance: 800 },
   };
 
   it('800mのKEY_WORKOUTS_BY_DISTANCEが定義されている', () => {
@@ -213,7 +214,7 @@ describe('800m向けスピード配分', () => {
 describe('1500m向けスピード配分', () => {
   const params1500: GeneratePlanParams = {
     ...basePlanParams,
-    race: { name: '1500m記録会', date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), distance: 1500 },
+    race: { name: '1500m記録会', date: toDateStr(new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)), distance: 1500 },
   };
 
   it('1500mのKEY_WORKOUTS_BY_DISTANCEが定義されている', () => {
@@ -255,7 +256,7 @@ describe('3000m/5000mはデフォルト配分', () => {
   it('3000mではスピードがKey日に入らない（デフォルト: vo2max + threshold）', () => {
     const plan = generatePlan({
       ...basePlanParams,
-      race: { name: '3000m記録会', date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), distance: 3000 },
+      race: { name: '3000m記録会', date: toDateStr(new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)), distance: 3000 },
     });
     const buildWeeks = plan.weeklyPlans.filter(w => w.phaseType === 'build');
     // build期のKey日はvo2maxとthresholdのみ
@@ -280,7 +281,7 @@ describe('目標レース変更', () => {
     // 目標を800mに変更して新しい計画を生成
     const plan2 = generatePlan({
       ...basePlanParams,
-      race: { name: '800m記録会', date: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(), distance: 800 },
+      race: { name: '800m記録会', date: toDateStr(new Date(Date.now() + 60 * 24 * 60 * 60 * 1000)), distance: 800 },
     });
     expect(plan2.race.distance).toBe(800);
 

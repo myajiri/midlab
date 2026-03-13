@@ -25,9 +25,54 @@ import {
 } from '../types';
 
 import { STORAGE_KEYS } from '../constants';
-import { calculateEtp, calculateZonesV3, getEffectiveValues, getUserStage, estimateLimiterFromPBs } from '../utils';
+import { calculateEtp, calculateZonesV3, getEffectiveValues, getUserStage, estimateLimiterFromPBs, toDateStr, parseDateStr, normalizeDateStr } from '../utils';
 import { generatePlan } from '../utils/planGenerator';
 import i18next from 'i18next';
+
+// 既存データの日付形式をYYYY-MM-DDに正規化する（ISO→YYYY-MM-DD変換）
+const normalizeStoredDates = {
+  // TestResult.date を正規化
+  testResults: (results: TestResult[]): TestResult[] =>
+    results.map(r => ({ ...r, date: normalizeDateStr(r.date) })),
+
+  // RacePlan内の全日付フィールドを正規化
+  racePlan: (plan: RacePlan): RacePlan => ({
+    ...plan,
+    race: { ...plan.race, date: normalizeDateStr(plan.race.date) },
+    phases: plan.phases.map(p => ({
+      ...p,
+      startDate: normalizeDateStr(p.startDate),
+      endDate: normalizeDateStr(p.endDate),
+    })),
+    weeklyPlans: plan.weeklyPlans.map(w => ({
+      ...w,
+      startDate: normalizeDateStr(w.startDate),
+      endDate: normalizeDateStr(w.endDate),
+    })),
+    subRaces: plan.subRaces?.map(sr => ({
+      ...sr,
+      date: normalizeDateStr(sr.date),
+    })),
+    rampTestDates: plan.rampTestDates.map(d => normalizeDateStr(d)),
+  }),
+
+  // Profile.current.lastTestDate を正規化
+  profile: (profile: Profile): Profile => ({
+    ...profile,
+    current: profile.current ? {
+      ...profile.current,
+      lastTestDate: normalizeDateStr(profile.current.lastTestDate),
+    } : profile.current,
+  }),
+
+  // TrainingLog.date を正規化
+  trainingLogs: (logs: TrainingLog[]): TrainingLog[] =>
+    logs.map(l => ({ ...l, date: normalizeDateStr(l.date) })),
+
+  // WorkoutLog.date を正規化
+  workoutLogs: (logs: WorkoutLog[]): WorkoutLog[] =>
+    logs.map(l => ({ ...l, date: normalizeDateStr(l.date) })),
+};
 
 // サブレースの距離に対応するレースワークアウトIDを返す
 function selectRaceWorkoutId(distance: number | 'custom', customDistance?: number): string | undefined {
@@ -273,7 +318,7 @@ export const useProfileStore = create<ProfileState>()(
             current: {
               etp,
               limiterType,
-              lastTestDate: new Date().toISOString(),
+              lastTestDate: toDateStr(new Date()),
             },
           },
         });
@@ -284,6 +329,11 @@ export const useProfileStore = create<ProfileState>()(
     {
       name: STORAGE_KEYS.profile,
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state?.profile) {
+          state.profile = normalizeStoredDates.profile(state.profile);
+        }
+      },
     }
   )
 );
@@ -319,6 +369,11 @@ export const useTestResultsStore = create<TestResultsState>()(
     {
       name: STORAGE_KEYS.testResults,
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state?.results) {
+          state.results = normalizeStoredDates.testResults(state.results);
+        }
+      },
     }
   )
 );
@@ -413,21 +468,21 @@ export const usePlanStore = create<PlanState>()(
 
         const currentSubRaces = plan.subRaces || [];
         const updatedSubRaces = [...currentSubRaces, subRace].sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+          (a, b) => a.date.localeCompare(b.date)
         );
 
         // サブレースを週間プランに反映 + 優先度に応じたメニュー調整
         const updatedWeeklyPlans = plan.weeklyPlans.map((week) => {
-          const weekStart = new Date(week.startDate);
-          const weekEnd = new Date(week.endDate);
+          const weekStart = parseDateStr(week.startDate);
+          const weekEnd = parseDateStr(week.endDate);
           const subRaceInWeek = updatedSubRaces.find((sr) => {
-            const srDate = new Date(sr.date);
+            const srDate = parseDateStr(sr.date);
             return srDate >= weekStart && srDate <= weekEnd;
           });
 
           if (!subRaceInWeek) return { ...week, subRace: undefined };
 
-          const srDate = new Date(subRaceInWeek.date);
+          const srDate = parseDateStr(subRaceInWeek.date);
           const srDayOfWeek = (srDate.getDay() + 6) % 7;
           const result = applySubRaceAdjustments(week.days, srDayOfWeek, subRaceInWeek);
           subRaceInWeek.originalDays = result.originalDays;
@@ -460,10 +515,10 @@ export const usePlanStore = create<PlanState>()(
 
         // サブレースを週間プランから除去し、変更された日のメニューを復元
         const updatedWeeklyPlans = plan.weeklyPlans.map((week) => {
-          const weekStart = new Date(week.startDate);
-          const weekEnd = new Date(week.endDate);
+          const weekStart = parseDateStr(week.startDate);
+          const weekEnd = parseDateStr(week.endDate);
           const subRaceInWeek = updatedSubRaces.find((sr) => {
-            const srDate = new Date(sr.date);
+            const srDate = parseDateStr(sr.date);
             return srDate >= weekStart && srDate <= weekEnd;
           });
 
@@ -605,10 +660,10 @@ export const usePlanStore = create<PlanState>()(
         // 完了状態を復元し、サブレースを再配置
         const subRaces = currentPlan.subRaces || [];
         const restoredWeeklyPlans = newPlan.weeklyPlans.map((week) => {
-          const weekStart = new Date(week.startDate);
-          const weekEnd = new Date(week.endDate);
+          const weekStart = parseDateStr(week.startDate);
+          const weekEnd = parseDateStr(week.endDate);
           const subRaceInWeek = subRaces.find((sr) => {
-            const srDate = new Date(sr.date);
+            const srDate = parseDateStr(sr.date);
             return srDate >= weekStart && srDate <= weekEnd;
           });
 
@@ -623,7 +678,7 @@ export const usePlanStore = create<PlanState>()(
           });
 
           if (subRaceInWeek) {
-            const srDate = new Date(subRaceInWeek.date);
+            const srDate = parseDateStr(subRaceInWeek.date);
             const srDayOfWeek = (srDate.getDay() + 6) % 7;
             const result = applySubRaceAdjustments(newDays, srDayOfWeek, subRaceInWeek);
             subRaceInWeek.originalDays = result.originalDays;
@@ -662,6 +717,11 @@ export const usePlanStore = create<PlanState>()(
     {
       name: STORAGE_KEYS.activePlan,
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state?.activePlan) {
+          state.activePlan = normalizeStoredDates.racePlan(state.activePlan);
+        }
+      },
     }
   )
 );
@@ -691,6 +751,11 @@ export const useWorkoutLogsStore = create<WorkoutLogsState>()(
     {
       name: STORAGE_KEYS.workoutLogs,
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state?.logs) {
+          state.logs = normalizeStoredDates.workoutLogs(state.logs);
+        }
+      },
     }
   )
 );
@@ -765,6 +830,11 @@ export const useTrainingLogsStore = create<TrainingLogsState>()(
     {
       name: STORAGE_KEYS.trainingLogs,
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state?.logs) {
+          state.logs = normalizeStoredDates.trainingLogs(state.logs);
+        }
+      },
     }
   )
 );
