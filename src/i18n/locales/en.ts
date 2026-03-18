@@ -1437,7 +1437,7 @@ const en = {
     perMonth: '/month',
 
     // 購入ボタン
-    freeTrial: '7-day free trial',
+    freeTrial: '1-month free trial',
     startFreeTrial: 'Start Free Trial',
     restorePurchase: 'Restore Purchase',
     unavailable: 'Currently unavailable',
