@@ -1437,7 +1437,7 @@ const ja = {
     perMonth: '/月',
 
     // 購入ボタン
-    freeTrial: '7日間無料トライアル',
+    freeTrial: '1ヶ月無料トライアル',
     startFreeTrial: '無料トライアルを開始',
     restorePurchase: '購入を復元',
     unavailable: '現在ご利用いただけません',
