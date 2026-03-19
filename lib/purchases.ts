@@ -2,7 +2,7 @@
 // RevenueCat 課金設定
 // ============================================
 
-import Purchases, { LOG_LEVEL, PurchasesPackage, CustomerInfo, SubscriptionOption } from 'react-native-purchases';
+import Purchases, { LOG_LEVEL, PurchasesPackage, CustomerInfo } from 'react-native-purchases';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
@@ -94,33 +94,10 @@ export const getOfferings = async () => {
 };
 
 /**
- * パッケージから無料トライアルオプションを取得（Android用）
- * Google Playではオファーを明示的に選択しないとトライアルが適用されない
- */
-export const getFreeTrialOption = (pkg: PurchasesPackage): SubscriptionOption | null => {
-    if (Platform.OS !== 'android') return null;
-    const freeTrial = pkg.product?.subscriptionOptions?.freeTrial;
-    return freeTrial ?? null;
-};
-
-/**
  * 購入処理
- * Androidでは無料トライアルオファーがある場合、明示的にそれを選択して購入する
  */
 export const purchasePackage = async (pkg: PurchasesPackage): Promise<CustomerInfo | null> => {
     if (!isPurchasesEnabled()) return null;
-
-    // Androidで無料トライアルオプションがある場合は明示的に選択
-    const freeTrialOption = getFreeTrialOption(pkg);
-    if (freeTrialOption) {
-        if (__DEV__) {
-            console.log('[RevenueCat] 無料トライアルオプションを使用して購入');
-        }
-        const { customerInfo } = await Purchases.purchaseSubscriptionOption(freeTrialOption);
-        return customerInfo;
-    }
-
-    // iOS or トライアルオプションがない場合は通常の購入フロー
     const { customerInfo } = await Purchases.purchasePackage(pkg);
     return customerInfo;
 };
@@ -151,4 +128,4 @@ export const checkPremiumStatus = (customerInfo: CustomerInfo | null): boolean =
     return customerInfo.entitlements.active[ENTITLEMENTS.PREMIUM]?.isActive ?? false;
 };
 
-export type { PurchasesPackage, CustomerInfo, SubscriptionOption };
+export type { PurchasesPackage, CustomerInfo };
