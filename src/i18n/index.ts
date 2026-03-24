@@ -17,8 +17,8 @@ const SUPPORTED_LANGUAGES = ['ja', 'en'];
 
 // デバイス言語を取得
 export const getDeviceLanguage = (): string => {
-  const locale = getLocales()[0]?.languageCode ?? 'ja';
-  return SUPPORTED_LANGUAGES.includes(locale) ? locale : 'ja';
+  const locale = getLocales()[0]?.languageCode ?? 'en';
+  return SUPPORTED_LANGUAGES.includes(locale) ? locale : 'en';
 };
 
 // 保存済み言語設定を取得
@@ -50,7 +50,7 @@ i18next.use(initReactI18next).init({
     en: { translation: en },
   },
   lng: getDeviceLanguage(),
-  fallbackLng: 'ja',
+  fallbackLng: 'en',
   interpolation: { escapeValue: false },
   compatibilityJSON: 'v4',
 });
