@@ -86,12 +86,6 @@ export const useSubscriptionStore = create<SubscriptionState>()(
                     let packages: PurchasesPackage[] = [];
                     try {
                         packages = await getOfferings();
-                        if (__DEV__) {
-                            console.log('[RevenueCat] パッケージ数:', packages.length);
-                            packages.forEach(pkg => {
-                                console.log('[RevenueCat] パッケージ:', pkg.identifier, 'type:', pkg.packageType, 'product:', pkg.product.identifier);
-                            });
-                        }
                     } catch (e) {
                         if (__DEV__) console.warn('getOfferings failed:', e);
                     }
