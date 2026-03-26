@@ -349,7 +349,10 @@ export default function UpgradeScreen() {
                         {t('premium.legalSuffix')}
                     </Text>
                     <Text style={styles.legalNote}>
-                        {t('premium.autoRenewNote', { price: selectedPlan === 'yearly' ? t('premium.yearlyPriceLabel') : t('premium.monthlyPriceLabel'), store: Platform.OS === 'ios' ? 'App Store' : 'Google Play' })}
+                        {t('premium.autoRenewNote', { price: selectedPlan === 'yearly' ? t('premium.yearlyPriceLabel') : t('premium.monthlyPriceLabel'), period: selectedPlan === 'yearly' ? t('premium.yearlyPeriod') : t('premium.monthlyPeriod'), store: Platform.OS === 'ios' ? 'App Store' : 'Google Play' })}
+                    </Text>
+                    <Text style={styles.legalNote}>
+                        {t('premium.subscriptionNote', { period: selectedPlan === 'yearly' ? t('premium.yearlyPeriod') : t('premium.monthlyPeriod') })}
                     </Text>
                 </View>
             </View>

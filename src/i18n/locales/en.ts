@@ -1457,9 +1457,12 @@ const en = {
     legalSeparator: ' and ',
     privacy: 'Privacy Policy',
     legalSuffix: '.',
-    autoRenewNote: 'After the free trial ends, auto-renews at {{price}}. You can cancel anytime from {{store}} settings.',
-    yearlyPriceLabel: '¥9,800/year',
-    monthlyPriceLabel: '¥980/month',
+    autoRenewNote: 'After the free trial ends, auto-renews at {{price}} per {{period}}. You will be charged unless you cancel at least 24 hours before the end of the current period in {{store}} settings.',
+    subscriptionNote: 'Subscription automatically renews every {{period}}. Cancel during the free trial to avoid being charged. Any unused portion of the free trial is forfeited upon purchase.',
+    yearlyPriceLabel: '¥9,800',
+    monthlyPriceLabel: '¥980',
+    yearlyPeriod: 'year',
+    monthlyPeriod: 'month',
   },
 };
 

@@ -1457,9 +1457,12 @@ const ja = {
     legalSeparator: ' と ',
     privacy: 'プライバシーポリシー',
     legalSuffix: ' に同意の上ご利用ください。',
-    autoRenewNote: '無料トライアル終了後、{{price}}で自動更新されます。{{store}}の設定からいつでもキャンセルできます。',
-    yearlyPriceLabel: '¥9,800/年',
-    monthlyPriceLabel: '¥980/月',
+    autoRenewNote: '無料トライアル終了後、{{period}}ごとに{{price}}で自動更新されます。期間終了日の少なくとも24時間前までに{{store}}の設定からキャンセルしない限り、自動的に課金されます。',
+    subscriptionNote: 'サブスクリプションは{{period}}単位の自動更新です。無料トライアル期間中にキャンセルすれば課金されません。未使用分の無料トライアル期間は購入時に失効します。',
+    yearlyPriceLabel: '¥9,800',
+    monthlyPriceLabel: '¥980',
+    yearlyPeriod: '1年',
+    monthlyPeriod: '1ヶ月',
   },
 };
 
